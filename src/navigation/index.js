@@ -3,7 +3,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSelector } from 'react-redux';
 import HomeScreen from '../screens/HomeScreen';
-import Item1Screen from '../screens/Item1Screen';
+import RestaurantScreen from '../screens/RestaurantScreen';
 import Item2Screen from '../screens/Item2Screen';
 import Item3Screen from '../screens/Item3Screen';
 import Item4Screen from '../screens/Item4Screen';
@@ -38,23 +38,23 @@ function AuthenticatedTabs() {
     <Tab.Navigator screenOptions={tabBarOptions}>
       {roleId === 2 ? ( // Меню для Поставщика (roleId = 2)
         <>
-          <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная' }} />
-          <Tab.Screen name="Item1" component={Item1Screen} options={{ title: 'Заказы' }} />
-          <Tab.Screen name="Item2" component={Item2Screen} options={{ title: 'Товары' }} />
-          <Tab.Screen name="Item4" component={Item4Screen} options={{ title: 'Профиль' }} />
+          <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная' ,headerShown:false}} />
+          <Tab.Screen name="Item1" component={RestaurantScreen} options={{ title: 'Ресторан' ,headerShown:false}} />
+          <Tab.Screen name="Item2" component={Item2Screen} options={{ title: 'Товары' ,headerShown:false}} />
+          <Tab.Screen name="Item4" component={Item4Screen} options={{ title: 'Профиль' ,headerShown:false}} />
         </>
       ) : roleId === 3 ? ( // Меню для Клиента (roleId = 3)
         <>
-          <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная' }} />
-          <Tab.Screen name="Item1" component={Item1Screen} options={{ title: 'Пункт ' }} />
-          <Tab.Screen name="Item3" component={Item3Screen} options={{ title: 'Пункт 3' }} />
-          <Tab.Screen name="Item4" component={Item4Screen} options={{ title: 'Профиль' }} />
+          <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная' ,headerShown:false}} />
+         
+          <Tab.Screen name="Item3" component={Item3Screen} options={{ title: 'Пункт 3' ,headerShown:false}} />
+          <Tab.Screen name="Item4" component={Item4Screen} options={{ title: 'Профиль' ,headerShown:false}} />
         </>
       ) : (
         // Если roleId не определён (например, пользователь ещё не загружен)
         <>
-          <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная' }} />
-          <Tab.Screen name="Item4" component={Item4Screen} options={{ title: 'Профиль' }} />
+          <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная' ,headerShown:false}} />
+          <Tab.Screen name="Item4" component={Item4Screen} options={{ title: 'Профиль' ,headerShown:false}} />
         </>
       )}
     </Tab.Navigator>
