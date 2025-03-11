@@ -1,18 +1,10 @@
 import React, { useState, useEffect } from 'react';
-// import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { startLoading, loginSuccess, setError } from '../store/authSlice';
 import api from '../api/api';
 import * as SecureStore from 'expo-secure-store';
-import {
-  View,
-  Text,
-  FlatList,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
-  TextInput,Alert,Button
-} from "react-native";
+
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -72,62 +64,8 @@ export default function LoginScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f3f4f6",
-    padding: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 16,
-  },
-  list: {
-    paddingBottom: 16,
-  },
-  itemContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  itemImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  itemDetails: {
-    flex: 1,
-  },
-  itemTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  itemPrice: {
-    color: "#DC2626",
-    marginTop: 4,
-  },
-  removeButton: {
-    backgroundColor: "#DC2626",
-    borderRadius: 5,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  removeButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 12,
-  },
-  emptyText: {
-    textAlign: "center",
-    color: "#9ca3af",
-    fontSize: 16,
-  },
+  container: { flex: 1, padding: 20, justifyContent: 'center' },
+  title: { fontSize: 24, marginBottom: 20, textAlign: 'center' },
+  input: { borderWidth: 1, padding: 10, marginBottom: 10, borderRadius: 5 },
+  error: { color: 'red', marginBottom: 10, textAlign: 'center' },
 });
