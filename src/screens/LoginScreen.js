@@ -5,7 +5,6 @@ import { startLoading, loginSuccess, setError } from '../store/authSlice';
 import api from '../api/api';
 import * as SecureStore from 'expo-secure-store';
 
-
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

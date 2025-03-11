@@ -39,7 +39,7 @@ function AuthenticatedTabs() {
       {roleId === 2 ? ( // Меню для Поставщика (roleId = 2)
         <>
           <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная' ,headerShown:false}} />
-          <Tab.Screen name="Item1" component={RestaurantScreen} options={{ title: 'Ресторан' ,headerShown:false}} />
+          <Tab.Screen name="Restaurant" component={RestaurantScreen} options={{ title: 'Ресторан' ,headerShown:false}} />
           <Tab.Screen name="Item2" component={Item2Screen} options={{ title: 'Товары' ,headerShown:false}} />
           <Tab.Screen name="Item4" component={Item4Screen} options={{ title: 'Профиль' ,headerShown:false}} />
         </>
