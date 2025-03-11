@@ -1,0 +1,139 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Button, StyleSheet, Alert, ScrollView } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { startLoading, setError, loginSuccess } from '../store/authSlice';
+import api from '../api/api';
+import { logout } from '../store/authSlice';
+export default function Item4Screen({ navigation }) {
+  const dispatch = useDispatch();
+  const { user, token, loading, error } = useSelector((state) => state.auth);
+
+  // Локальное состояние для формы
+  const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [name, setName] = useState('');
+  const [lastname, setLastname] = useState('');
+  const [areasOfActivity, setAreasOfActivity] = useState('');
+
+  // Загрузка данных профиля с сервера при монтировании, если они отсутствуют
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!token) {
+        navigation.navigate('Login');
+        return;
+      }
+      if (!user || !user.phone) { // Если данных нет или они неполные
+        dispatch(startLoading());
+        try {
+          const response = await api.getProfile(token); // Предполагаемый эндпоинт для получения профиля
+          dispatch(loginSuccess({ user: response.data, token }));
+        } catch (err) {
+          dispatch(setError(err.response?.data?.message || 'Ошибка загрузки профиля'));
+          Alert.alert('Ошибка', 'Не удалось загрузить данные профиля');
+        }
+      }
+    };
+    fetchProfile();
+  }, [dispatch, navigation, token, user]);
+
+  // Заполнение формы текущими данными пользователя
+  useEffect(() => {
+    if (user) {
+      setPassword(''); // Пароль обычно не заполняется из соображений безопасности
+      setPhone(user.phone || '');
+      setName(user.name || '');
+      setLastname(user.lastname || '');
+      setAreasOfActivity(user.areasofactivity || '');
+    }
+  }, [user]);
+
+  const handleUpdateProfile = async () => {
+    if (!token) {
+      Alert.alert('Ошибка', 'Токен отсутствует. Пожалуйста, войдите снова.');
+      navigation.navigate('Login');
+      return;
+    }
+
+    dispatch(startLoading());
+    try {
+      const updatedData = {
+        password,
+        phone,
+        name,
+        lastname,
+        areasofactivity: areasOfActivity,
+      };
+      const response = await api.updateProfile(updatedData, token);
+      dispatch(loginSuccess({ user: response.data, token }));
+      Alert.alert('Успех', 'Профиль успешно обновлён!');
+    } catch (error) {
+      dispatch(setError(error.response?.data?.message || 'Ошибка обновления профиля'));
+      Alert.alert('Ошибка', error.response?.data?.message || 'Не удалось обновить профиль');
+    }
+  };
+
+    const handleLogout = () => {
+      dispatch(logout());
+    };
+
+  return (
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <View style={styles.container}>
+        <Text style={styles.title}>Профиль</Text>
+
+        {user ? (
+          <>
+            <Text style={styles.label}>Email: {user.email}</Text>
+           
+          
+            <TextInput
+              style={styles.input}
+              placeholder="Имя"
+              value={name}
+              onChangeText={setName}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Фамилия"
+              value={lastname}
+              onChangeText={setLastname}
+            />
+              <TextInput
+              style={styles.input}
+              placeholder="Телефон"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+            />
+          
+            {error && <Text style={styles.error}>{error}</Text>}
+            <Button
+              title={loading ? 'Сохранение...' : 'Сохранить изменения'}
+              onPress={handleUpdateProfile}
+              disabled={loading}
+            />
+             <Button title="Выйти" onPress={handleLogout} />
+          </>
+        ) : (
+          <Text style={styles.text}>Данные пользователя недоступны</Text>
+        )}
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  scrollContainer: { flexGrow: 1, justifyContent: 'center' },
+  container: { flex: 1, padding: 20, alignItems: 'center' },
+  title: { fontSize: 24, marginBottom: 20, textAlign: 'center' },
+  label: { fontSize: 16, marginBottom: 10, textAlign: 'center' },
+  input: {
+    borderWidth: 1,
+    padding: 10,
+    marginBottom: 10,
+    borderRadius: 5,
+    width: '100%',
+  },
+  text: { fontSize: 16, marginBottom: 10, textAlign: 'center' },
+  error: { color: 'red', marginBottom: 10, textAlign: 'center' },
+});
