@@ -40,4 +40,15 @@ export default {
         deleteRestaurant: (id) => api.delete(`/api/restaurant/${id}`),
         getRestaurantById: (id) => api.get(`/api/restaurantbyid/${id}`),
         getRestaurans: () => api.get(`/api/restaurants`),
+
+
+       
+        createClothing: (data) => api.post('/api/clothing', data),
+        createTransport: (data) => api.post('/api/transport', data),
+        createTamada: (data) => api.post('/api/tamada', data),
+        createProgram: (data) => api.post('/api/programs', data),
+        createTraditionalGift: (data) => api.post('/api/traditional-gifts', data),
+        createFlowers: (data) => api.post('/api/flowers', data),
+        createCake: (data) => api.post('/api/cakes', data),
+        createAlcohol: (data) => api.post('/api/alcohol', data),
 };
