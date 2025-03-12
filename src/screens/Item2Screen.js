@@ -11,7 +11,7 @@ export default function Item2Screen({ navigation }) {
   const [formData, setFormData] = useState({}); // Данные формы
   const [modalVisible, setModalVisible] = useState(false); // Модал для кухни
   const [districtModalVisible, setDistrictModalVisible] = useState(false); // Модал для района
-
+  const [genderModalVisible, setGenderModalVisible] = useState(false); // Модал для пола (новое)
   const route = useRoute();
   const restaurantId = route.params?.id; // ID ресторана для редактирования
   console.log('Принимаю в скрине ресторан id ресторана - ', restaurantId);
@@ -48,6 +48,7 @@ export default function Item2Screen({ navigation }) {
     'За пределами Алматы',
   ];
 
+  const genderOptions = ['мужской', 'женский']; // Варианты
   // Обновление данных формы
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -276,24 +277,65 @@ export default function Item2Screen({ navigation }) {
               value={formData.address || ''}
               onChangeText={(value) => handleInputChange('address', value)}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Телефон"
-              value={formData.phone || ''}
-              onChangeText={(value) => handleInputChange('phone', value)}
-            />
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Телефон:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="+7 (XXX) XXX-XX-XX"
+                value={formData.phone || ''}
+                onChangeText={handlePhoneChange}
+                keyboardType="phone-pad"
+                maxLength={18}
+              />
+            </View>
             <TextInput
               style={styles.input}
               placeholder="Район"
               value={formData.district || ''}
               onChangeText={(value) => handleInputChange('district', value)}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Пол (мужской/женский)"
-              value={formData.gender || ''}
-              onChangeText={(value) => handleInputChange('gender', value)}
-            />
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Пол:</Text>
+              <TouchableOpacity
+                style={styles.cuisineButton}
+                onPress={() => setGenderModalVisible(true)}
+              >
+                <Text style={styles.cuisineText}>
+                  {formData.gender || 'Выберите пол'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <Modal
+              visible={genderModalVisible}
+              transparent={true}
+              animationType="slide"
+              onRequestClose={() => setGenderModalVisible(false)}
+            >
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Выберите пол</Text>
+                  <Picker
+                    selectedValue={formData.gender}
+                    onValueChange={(value) => {
+                      handleInputChange('gender', value);
+                      setGenderModalVisible(false);
+                    }}
+                    style={styles.modalPicker}
+                  >
+                    <Picker.Item label="Выберите пол" value="" />
+                    {genderOptions.map((option) => (
+                      <Picker.Item key={option} label={option} value={option} />
+                    ))}
+                  </Picker>
+                  <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={() => setGenderModalVisible(false)}
+                  >
+                    <Text style={styles.closeButtonText}>Закрыть</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
             <TextInput
               style={styles.input}
               placeholder="Наименование товара"
