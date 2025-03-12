@@ -98,28 +98,28 @@ export default function Item2Screen({ navigation }) {
           response = await api.createRestaurant(restaurantData);
           break;
         case 'Одежда':
-          response = await api.createClothing(formData);
+          response = await api.createClothing({...formData,supplier_id: user.id});
           break;
         case 'Транспорт':
-          response = await api.createTransport(formData);
+          response = await api.createTransport({...formData,supplier_id: user.id});
           break;
         case 'Тамада':
-          response = await api.createTamada(formData);
+          response = await api.createTamada({...formData,supplier_id: user.id});
           break;
         case 'Программа':
-          response = await api.createProgram(formData);
+          response = await api.createProgram({...formData,supplier_id: user.id});
           break;
         case 'Традиционные подарки':
-          response = await api.createTraditionalGift(formData);
+          response = await api.createTraditionalGift({...formData,supplier_id: user.id});
           break;
         case 'Цветы':
-          response = await api.createFlowers(formData);
+          response = await api.createFlowers({...formData,supplier_id: user.id});
           break;
         case 'Торты':
-          response = await api.createCake(formData);
+          response = await api.createCake({...formData,supplier_id: user.id});
           break;
         case 'Алкоголь':
-          response = await api.createAlcohol(formData);
+          response = await api.createAlcohol({...formData,supplier_id: user.id});
           break;
         default:
           throw new Error('Выберите тип объекта');
@@ -366,12 +366,17 @@ export default function Item2Screen({ navigation }) {
               value={formData.address || ''}
               onChangeText={(value) => handleInputChange('address', value)}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Телефон"
-              value={formData.phone || ''}
-              onChangeText={(value) => handleInputChange('phone', value)}
-            />
+          <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Телефон:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="+7 (XXX) XXX-XX-XX"
+                value={formData.phone || ''}
+                onChangeText={handlePhoneChange}
+                keyboardType="phone-pad"
+                maxLength={18}
+              />
+            </View>
             <TextInput
               style={styles.input}
               placeholder="Район"
@@ -456,12 +461,17 @@ export default function Item2Screen({ navigation }) {
               value={formData.address || ''}
               onChangeText={(value) => handleInputChange('address', value)}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Телефон"
-              value={formData.phone || ''}
-              onChangeText={(value) => handleInputChange('phone', value)}
-            />
+             <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Телефон:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="+7 (XXX) XXX-XX-XX"
+                value={formData.phone || ''}
+                onChangeText={handlePhoneChange}
+                keyboardType="phone-pad"
+                maxLength={18}
+              />
+            </View>
             <TextInput
               style={styles.input}
               placeholder="Район"
@@ -504,12 +514,17 @@ export default function Item2Screen({ navigation }) {
               value={formData.address || ''}
               onChangeText={(value) => handleInputChange('address', value)}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Телефон"
-              value={formData.phone || ''}
-              onChangeText={(value) => handleInputChange('phone', value)}
-            />
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Телефон:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="+7 (XXX) XXX-XX-XX"
+                value={formData.phone || ''}
+                onChangeText={handlePhoneChange}
+                keyboardType="phone-pad"
+                maxLength={18}
+              />
+            </View>
             <TextInput
               style={styles.input}
               placeholder="Район"
@@ -552,12 +567,17 @@ export default function Item2Screen({ navigation }) {
               value={formData.address || ''}
               onChangeText={(value) => handleInputChange('address', value)}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Телефон"
-              value={formData.phone || ''}
-              onChangeText={(value) => handleInputChange('phone', value)}
-            />
+             <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Телефон:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="+7 (XXX) XXX-XX-XX"
+                value={formData.phone || ''}
+                onChangeText={handlePhoneChange}
+                keyboardType="phone-pad"
+                maxLength={18}
+              />
+            </View>
             <TextInput
               style={styles.input}
               placeholder="Район"
@@ -594,12 +614,17 @@ export default function Item2Screen({ navigation }) {
               value={formData.address || ''}
               onChangeText={(value) => handleInputChange('address', value)}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Телефон"
-              value={formData.phone || ''}
-              onChangeText={(value) => handleInputChange('phone', value)}
-            />
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Телефон:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="+7 (XXX) XXX-XX-XX"
+                value={formData.phone || ''}
+                onChangeText={handlePhoneChange}
+                keyboardType="phone-pad"
+                maxLength={18}
+              />
+            </View>
             <TextInput
               style={styles.input}
               placeholder="Район"
@@ -701,16 +726,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems:'center',
   },
   modalContent: {
     backgroundColor: 'white',
     marginHorizontal: 20,
-    padding: 20,
+    padding: 40,
     borderRadius: 10,
   },
-  picker: { height: 200, width: '100%' },
+  picker: { height: 300, width: '100%' },
   inputContainer: {
-    marginBottom: 12,
+
+    marginBottom: 0,
+    
   },
   inputLabel: {
     fontSize: 16,
