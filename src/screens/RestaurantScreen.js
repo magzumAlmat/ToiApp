@@ -127,7 +127,7 @@ export default function RestaurantScreen() {
       ...form,
       averageCost: parseFloat(form.averageCost),
       capacity: form.capacity,
-      // supplier_id: user.id,
+      supplier_id: user.id,
     };
 
     console.log('Отправляемые данные:', formattedForm);

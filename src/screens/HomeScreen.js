@@ -5,7 +5,7 @@ import {
   Button,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
+  TouchableOpacity,Modal
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/authSlice';
@@ -17,12 +17,15 @@ export default function HomeScreen({ navigation }) {
   const { token, user } = useSelector((state) => state.auth);
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [restaurantToDelete, setRestaurantToDelete] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
   const host = process.env.BACKEND_URL || 'http://localhost:6666';
 
   useEffect(() => {
     if (!token) {
       navigation.navigate('Login');
     }
+    console.log(restaurants)
   }, [token, navigation,restaurants]);
 
   useEffect(() => {
@@ -57,14 +60,24 @@ export default function HomeScreen({ navigation }) {
     navigation.navigate('Restaurant', { id });
   };
 
-  const handleDeleteRestaurant = async (id) => {
+  const confirmDeleteRestaurant = (id) => {
+    setRestaurantToDelete(id); // Устанавливаем ID ресторана для удаления
+    setModalVisible(true); // Показываем модальное окно
+  };
+
+  const handleDeleteRestaurant = async () => {
+    if (!restaurantToDelete) return;
+
     try {
-      await api.deleteRestaurant(id);
-      setRestaurants(restaurants.filter((restaurant) => restaurant.id !== id));
-      alert('Ресторан успешно удалён!');
+      await api.deleteRestaurant(restaurantToDelete);
+      setRestaurants(restaurants.filter((restaurant) => restaurant.id !== restaurantToDelete));
+      // alert('Ресторан успешно удалён!');
     } catch (error) {
       console.error('Ошибка удаления ресторана:', error.response || error);
       alert('Ошибка удаления: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setModalVisible(false); // Закрываем модальное окно
+      setRestaurantToDelete(null); // Сбрасываем ID
     }
   };
 
@@ -88,7 +101,7 @@ export default function HomeScreen({ navigation }) {
           <TouchableOpacity onPress={() => handleEditRestaurant(item.id)}>
             <Icon name="edit" size={24} color="#2563EB" style={styles.icon} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleDeleteRestaurant(item.id)}>
+          <TouchableOpacity onPress={() => confirmDeleteRestaurant(item.id)}>
             <Icon name="delete" size={24} color="#EF4444" style={styles.icon} />
           </TouchableOpacity>
         </View>
@@ -130,6 +143,39 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.text}>У вас пока нет ресторанов</Text>
         )}
       </View>
+
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Подтверждение удаления</Text>
+            <Text style={styles.modalText}>
+              Вы уверены, что хотите удалить этот ресторан? Это действие нельзя отменить.
+            </Text>
+            <View style={styles.modalButtonContainer}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setModalVisible(false);
+                  setRestaurantToDelete(null);
+                }}
+              >
+                <Text style={styles.modalButtonText}>Отмена</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={handleDeleteRestaurant}
+              >
+                <Text style={styles.modalButtonText}>Удалить</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -209,6 +255,59 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   createButtonText: {
+    fontSize: 16,
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 10,
+  },
+  modalText: {
+    fontSize: 16,
+    color: '#4B5563',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  cancelButton: {
+    backgroundColor: '#6B7280',
+  },
+  confirmButton: {
+    backgroundColor: '#EF4444',
+  },
+  modalButtonText: {
     fontSize: 16,
     color: 'white',
     fontWeight: 'bold',
