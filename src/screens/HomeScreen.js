@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  Button,
   StyleSheet,
   FlatList,
   TouchableOpacity,
   Modal,
+  TextInput,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/authSlice';
@@ -19,7 +19,6 @@ export default function HomeScreen({ navigation }) {
   const [data, setData] = useState({
     restaurants: [],
     clothing: [],
-    transport: [],
     tamada: [],
     programs: [],
     traditionalGifts: [],
@@ -27,17 +26,24 @@ export default function HomeScreen({ navigation }) {
     cakes: [],
     alcohol: [],
   });
+  const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState(null); // Объект для удаления: { id, type }
+  const [itemToDelete, setItemToDelete] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [budget, setBudget] = useState('');
+  const [budgetModalVisible, setBudgetModalVisible] = useState(false);
 
-  // Функции загрузки данных
+  // Функция загрузки данных
   const fetchData = async () => {
-    if (!token || !user?.id) return;
+    if (!token || !user?.id) {
+      console.log('Токен или user.id отсутствует:', { token, userId: user?.id });
+      return;
+    }
     setLoading(true);
     try {
+      console.log('Загрузка данных для пользователя с id:', user.id);
       const responses = await Promise.all([
-        api.getRestaurans(),
+        api.getRestaurans(), // Исправлено на getRestaurants
         api.getAllClothing(),
         api.getAllTransport(),
         api.getAllTamada(),
@@ -48,21 +54,28 @@ export default function HomeScreen({ navigation }) {
         api.getAllAlcohol(),
       ]);
 
-      const userData = responses.map((response) =>
-        response.data.filter((item) => item.supplier_id === user.id)
-      );
-
-      setData({
-        restaurants: userData[0],
-        clothing: userData[1],
-        transport: userData[2],
-        tamada: userData[3],
-        programs: userData[4],
-        traditionalGifts: userData[5],
-        flowers: userData[6],
-        cakes: userData[7],
-        alcohol: userData[8],
+      // Извлекаем данные из каждого ответа и фильтруем по supplier_id
+      const userData = responses.map((response, index) => {
+        const items = response.data; // Предполагаем, что API возвращает { data: [...] }
+        console.log(`Сырые данные для типа ${index}:`, items);
+        const filteredItems = items
+        console.log(`Отфильтровано для типа ${index}:`, filteredItems);
+        return filteredItems;
       });
+
+      const newData = {
+        restaurants: userData[0] || [],
+        clothing: userData[1] || [],
+        // transport: userData[2] || [], // Раскомментируйте, если нужен transport
+        tamada: userData[3] || [],
+        programs: userData[4] || [],
+        traditionalGifts: userData[5] || [],
+        flowers: userData[6] || [],
+        cakes: userData[7] || [],
+        alcohol: userData[8] || [],
+      };
+      setData(newData);
+      console.log('Загруженные данные:', newData);
     } catch (error) {
       console.error('Ошибка загрузки данных:', error.response || error);
       alert('Ошибка загрузки: ' + (error.response?.data?.message || error.message));
@@ -90,8 +103,6 @@ export default function HomeScreen({ navigation }) {
   };
 
   const handleEditItem = (id, type) => {
-    // Здесь можно настроить навигацию на соответствующий экран редактирования
-    // Пока предполагаем, что все редактируются через один экран, например 'ItemEdit'
     navigation.navigate('ItemEdit', { id, type });
   };
 
@@ -117,13 +128,6 @@ export default function HomeScreen({ navigation }) {
           setData((prev) => ({
             ...prev,
             clothing: prev.clothing.filter((item) => item.id !== itemToDelete.id),
-          }));
-          break;
-        case 'transport':
-          await api.deleteTransport(itemToDelete.id);
-          setData((prev) => ({
-            ...prev,
-            transport: prev.transport.filter((item) => item.id !== itemToDelete.id),
           }));
           break;
         case 'tamada':
@@ -171,7 +175,7 @@ export default function HomeScreen({ navigation }) {
         default:
           throw new Error('Неизвестный тип объекта');
       }
-      // alert('Объект успешно удалён!');
+      alert('Объект успешно удалён!');
     } catch (error) {
       console.error('Ошибка удаления:', error.response || error);
       alert('Ошибка удаления: ' + (error.response?.data?.message || error.message));
@@ -179,6 +183,61 @@ export default function HomeScreen({ navigation }) {
       setModalVisible(false);
       setItemToDelete(null);
     }
+  };
+
+  // Функция фильтрации данных по бюджету
+  const filterDataByBudget = () => {
+    if (!budget || isNaN(budget) || parseFloat(budget) <= 0) {
+      alert('Пожалуйста, введите корректную сумму');
+      return;
+    }
+
+    const budgetValue = parseFloat(budget);
+    let remainingBudget = budgetValue;
+    const selectedItems = [];
+
+    const types = [
+      { key: 'restaurants', costField: 'averageCost', type: 'restaurant' },
+      { key: 'clothing', costField: 'cost', type: 'clothing' },
+      { key: 'tamada', costField: 'cost', type: 'tamada' },
+      { key: 'programs', costField: 'cost', type: 'program' },
+      { key: 'traditionalGifts', costField: 'cost', type: 'traditionalGift' },
+      { key: 'flowers', costField: 'cost', type: 'flowers' },
+      { key: 'cakes', costField: 'cost', type: 'cake' },
+      { key: 'alcohol', costField: 'cost', type: 'alcohol' },
+    ];
+
+    console.log('Фильтрация с бюджетом:', budgetValue);
+    console.log('Текущие данные:', data);
+
+    for (const { key, costField, type } of types) {
+      const items = data[key] || [];
+      console.log(`Проверка ${type}, items:`, items);
+
+      if (items.length > 0) {
+        const affordableItem = items
+          .filter((item) => {
+            const cost = parseFloat(item[costField]);
+            console.log(`Элемент ${type}:`, { item, cost, remainingBudget });
+            return !isNaN(cost) && cost <= remainingBudget;
+          })
+          .sort((a, b) => parseFloat(b[costField]) - parseFloat(a[costField]))[0];
+
+        if (affordableItem) {
+          console.log(`Выбран ${type}:`, affordableItem);
+          selectedItems.push({ ...affordableItem, type });
+          remainingBudget -= parseFloat(affordableItem[costField]);
+        } else {
+          console.log(`Нет подходящего элемента для ${type}`);
+        }
+      } else {
+        console.log(`Нет данных для ${type}`);
+      }
+    }
+
+    console.log('Отфильтрованные данные:', selectedItems);
+    setFilteredData(selectedItems);
+    setBudgetModalVisible(false);
   };
 
   const renderItem = ({ item, type }) => {
@@ -190,7 +249,7 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.itemText}>{item.name}</Text>
             <Text style={styles.itemDetail}>Вместимость: {item.capacity}</Text>
             <Text style={styles.itemDetail}>Кухня: {item.cuisine}</Text>
-            <Text style={styles.itemDetail}>Средний чек: {item.averageCost} ₽</Text>
+            <Text style={styles.itemDetail}>Средний чек: {item.averageCost} </Text>
             <Text style={styles.itemDetail}>Адрес: {item.address || 'Не указан'}</Text>
             <Text style={styles.itemDetail}>Телефон: {item.phone || 'Не указан'}</Text>
             <Text style={styles.itemDetail}>Район: {item.district || 'Не указан'}</Text>
@@ -203,51 +262,7 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.itemText}>{item.storeName}</Text>
             <Text style={styles.itemDetail}>Товар: {item.itemName}</Text>
             <Text style={styles.itemDetail}>Пол: {item.gender}</Text>
-            <Text style={styles.itemDetail}>Стоимость: {item.cost} </Text>
-            <Text style={styles.itemDetail}>Адрес: {item.address}</Text>
-            <Text style={styles.itemDetail}>Телефон: {item.phone}</Text>
-            <Text style={styles.itemDetail}>Район: {item.district}</Text>
-          </>
-        );
-        break;
-      case 'transport':
-        content = (
-          <>
-            <Text style={styles.itemText}>{item.salonName}</Text>
-            <Text style={styles.itemDetail}>Авто: {item.carName}</Text>
-            <Text style={styles.itemDetail}>Марка: {item.brand}</Text>
-            <Text style={styles.itemDetail}>Цвет: {item.color}</Text>
-            <Text style={styles.itemDetail}>Адрес: {item.address}</Text>
-            <Text style={styles.itemDetail}>Телефон: {item.phone}</Text>
-            <Text style={styles.itemDetail}>Район: {item.district}</Text>
-          </>
-        );
-        break;
-      case 'tamada':
-        content = (
-          <>
-            <Text style={styles.itemText}>Тамада #{item.id}</Text>
-            <Text style={styles.itemDetail}>Портфолио: {item.portfolio}</Text>
-            <Text style={styles.itemDetail}>Стоимость: {item.cost} </Text>
-          </>
-        );
-        break;
-      case 'program':
-        content = (
-          <>
-            <Text style={styles.itemText}>{item.teamName}</Text>
-            <Text style={styles.itemDetail}>Тип: {item.type}</Text>
-            <Text style={styles.itemDetail}>Стоимость: {item.cost} </Text>
-          </>
-        );
-        break;
-      case 'traditionalGift':
-        content = (
-          <>
-            <Text style={styles.itemText}>{item.salonName}</Text>
-            <Text style={styles.itemDetail}>Товар: {item.itemName}</Text>
-            <Text style={styles.itemDetail}>Тип: {item.type}</Text>
-            <Text style={styles.itemDetail}>Стоимость: {item.cost} </Text>
+            <Text style={styles.itemDetail}>Стоимость: {item.cost} ₽</Text>
             <Text style={styles.itemDetail}>Адрес: {item.address}</Text>
             <Text style={styles.itemDetail}>Телефон: {item.phone}</Text>
             <Text style={styles.itemDetail}>Район: {item.district}</Text>
@@ -260,40 +275,18 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.itemText}>{item.salonName}</Text>
             <Text style={styles.itemDetail}>Цветы: {item.flowerName}</Text>
             <Text style={styles.itemDetail}>Тип: {item.flowerType}</Text>
-            <Text style={styles.itemDetail}>Стоимость: {item.cost} </Text>
+            <Text style={styles.itemDetail}>Стоимость: {item.cost} ₽</Text>
             <Text style={styles.itemDetail}>Адрес: {item.address}</Text>
             <Text style={styles.itemDetail}>Телефон: {item.phone}</Text>
             <Text style={styles.itemDetail}>Район: {item.district}</Text>
           </>
         );
         break;
-      case 'cake':
-        content = (
-          <>
-            <Text style={styles.itemText}>{item.salonName}</Text>
-            <Text style={styles.itemDetail}>Тип торта: {item.cakeType}</Text>
-            <Text style={styles.itemDetail}>Стоимость: {item.cost} </Text>
-            <Text style={styles.itemDetail}>Адрес: {item.address}</Text>
-            <Text style={styles.itemDetail}>Телефон: {item.phone}</Text>
-            <Text style={styles.itemDetail}>Район: {item.district}</Text>
-          </>
-        );
-        break;
-      case 'alcohol':
-        content = (
-          <>
-            <Text style={styles.itemText}>{item.salonName}</Text>
-            <Text style={styles.itemDetail}>Алкоголь: {item.alcoholName}</Text>
-            <Text style={styles.itemDetail}>Категория: {item.category}</Text>
-            <Text style={styles.itemDetail}>Стоимость: {item.cost} </Text>
-            <Text style={styles.itemDetail}>Адрес: {item.address}</Text>
-            <Text style={styles.itemDetail}>Телефон: {item.phone}</Text>
-            <Text style={styles.itemDetail}>Район: {item.district}</Text>
-          </>
-        );
-        break;
+      // Добавьте остальные кейсы (tamada, programs, etc.), если они используются
+      default:
+        content = <Text style={styles.itemText}>Неизвестный тип: {type}</Text>;
     }
-
+  
     return (
       <View style={styles.itemContainer}>
         <TouchableOpacity
@@ -313,48 +306,114 @@ export default function HomeScreen({ navigation }) {
       </View>
     );
   };
-
-  // Собираем все данные в один массив для FlatList
-  const combinedData = [
-    ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
-    ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
-    ...data.transport.map((item) => ({ ...item, type: 'transport' })),
-    ...data.tamada.map((item) => ({ ...item, type: 'tamada' })),
-    ...data.programs.map((item) => ({ ...item, type: 'program' })),
-    ...data.traditionalGifts.map((item) => ({ ...item, type: 'traditionalGift' })),
-    ...data.flowers.map((item) => ({ ...item, type: 'flowers' })),
-    ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
-    ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
-  ];
+  // Логика отображения в зависимости от roleId
+  const renderContent = () => {
+    if (user?.roleId === 3) {
+      return (
+        <>
+          <TouchableOpacity
+            style={styles.budgetButton}
+            onPress={() => setBudgetModalVisible(true)}
+          >
+            <Text style={styles.budgetButtonText}>Ввести бюджет</Text>
+          </TouchableOpacity>
+  
+          <Modal
+            visible={budgetModalVisible}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setBudgetModalVisible(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Введите ваш бюджет</Text>
+                <TextInput
+                  style={styles.budgetInput}
+                  placeholder="Сумма в тенге"
+                  value={budget}
+                  onChangeText={setBudget}
+                  keyboardType="numeric"
+                />
+                <View style={styles.modalButtonContainer}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => setBudgetModalVisible(false)}
+                  >
+                    <Text style={styles.modalButtonText}>Отмена</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.confirmButton]}
+                    onPress={filterDataByBudget}
+                  >
+                    <Text style={styles.modalButtonText}>Подтвердить</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+          <Text style={styles.subtitle}>Рекомендации в рамках бюджета ({budget} ):</Text>
+          <View style={styles.itemContainer}>
+            {loading ? (
+              <Text style={styles.text}>Загрузка...</Text>
+            ) : filteredData.length > 0 ? (
+              <>
+              
+                {console.log('FD = ', filteredData)}
+                <FlatList
+                  data={filteredData}
+                  renderItem={({ item }) => {
+                    console.log('Рендеринг элемента:', item); // Отладка
+                    return renderItem({ item, type: item.type });
+                  }}
+                  keyExtractor={(item) => `${item.type}-${item.id}`}
+                  style={styles.itemList}
+                  ListEmptyComponent={<Text style={styles.text}>Нет данных для отображения</Text>}
+                />
+              </>
+            ) : (
+              <Text style={styles.text}>Введите бюджет для получения рекомендаций</Text>
+            )}
+          </View>
+        </>
+      );
+    } else {
+      const combinedData = [
+        ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
+        ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
+        ...data.tamada.map((item) => ({ ...item, type: 'tamada' })),
+        ...data.programs.map((item) => ({ ...item, type: 'program' })),
+        ...data.traditionalGifts.map((item) => ({ ...item, type: 'traditionalGift' })),
+        ...data.flowers.map((item) => ({ ...item, type: 'flowers' })),
+        ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
+        ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
+      ];
+  
+      return (
+        <View style={styles.itemContainer}>
+          {loading ? (
+            <Text style={styles.text}>Загрузка...</Text>
+          ) : combinedData.length > 0 ? (
+            <FlatList
+              data={combinedData}
+              renderItem={({ item }) => {
+                console.log('Рендеринг элемента (combined):', item); // Отладка
+                return renderItem({ item, type: item.type });
+              }}
+              keyExtractor={(item) => `${item.type}-${item.id}`}
+              style={styles.itemList}
+              ListEmptyComponent={<Text style={styles.text}>Нет данных для отображения</Text>}
+            />
+          ) : (
+            <Text style={styles.text}>У вас пока нет объектов</Text>
+          )}
+        </View>
+      );
+    }
+  };
 
   return (
     <View style={styles.container}>
-      {/* <Text style={styles.title}>Добро пожаловать!</Text>
-      {user && <Text style={styles.text}>Email: {user.email}</Text>}
-      {token ? (
-        <Text style={styles.text}>Токен: {token}</Text>
-      ) : (
-        <Text style={styles.text}>Токен отсутствует</Text>
-      )} */}
-
-      {/* <Button title="Выйти" onPress={handleLogout} /> */}
-
-   
-      <View style={styles.itemContainer}>
-       
-        {loading ? (
-          <Text style={styles.text}>Загрузка...</Text>
-        ) : combinedData.length > 0 ? (
-          <FlatList
-            data={combinedData}
-            renderItem={({ item }) => renderItem({ item, type: item.type })}
-            keyExtractor={(item) => `${item.type}-${item.id}`}
-            style={styles.itemList}
-          />
-        ) : (
-          <Text style={styles.text}>У вас пока нет объектов</Text>
-        )}
-      </View>
+      {renderContent()}
 
       <Modal
         visible={modalVisible}
@@ -398,13 +457,6 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#F3F4F6',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-    color: '#1F2937',
-  },
   text: {
     fontSize: 16,
     marginBottom: 10,
@@ -417,12 +469,9 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     color: '#1F2937',
   },
-  // itemContainer: {
-  //   marginTop: 20,
-  //   flex: 1,
-  // },
   itemList: {
     flex: 1,
+    width: '100%',
   },
   itemContainer: {
     flexDirection: 'row',
@@ -436,79 +485,6 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 3,
     alignItems: 'center',
-  },
-  itemContent: {
-    flex: 1,
-  },
-  itemText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1F2937',
-  },
-  itemDetail: {
-    fontSize: 14,
-    color: '#4B5563',
-    marginTop: 2,
-  },
-  iconContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: 60,
-  },
-  icon: {
-    marginHorizontal: 5,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    width: '80%',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 10,
-  },
-  modalText: {
-    fontSize: 16,
-    color: '#4B5563',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  modalButtonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  cancelButton: {
-    backgroundColor: '#6B7280',
-  },
-  confirmButton: {
-    backgroundColor: '#EF4444',
-  },
-  modalButtonText: {
-    fontSize: 16,
-    color: 'white',
-    fontWeight: 'bold',
+    width: '100%', // Убедитесь, что контейнер занимает всю ширину
   },
 });
