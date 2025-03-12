@@ -20,6 +20,6 @@ export default {
         createRestaurant: (data) => api.post('/api/restaurant', data),
         updateRestaurant: (id, data) => api.put(`/api/restaurant/${id}`, data),
         deleteRestaurant: (id) => api.delete(`/api/restaurant/${id}`),
-        getRestaurantById: (id) => api.get(`/api/restaurant/${id}`),
+        getRestaurantById: (id) => api.get(`/api/restaurantbyid/${id}`),
         getRestaurans: () => api.get(`/api/restaurants`),
 };

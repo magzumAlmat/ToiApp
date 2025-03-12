@@ -16,7 +16,8 @@ import api from '../api/api';
 export default function RestaurantScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const restaurantId = route.params?.id;
+  const restaurantId = route.params?.id; // ID ресторана для редактирования
+  console.log('Принимаю в скрине ресторан id ресторана - ', restaurantId);
   const { user, token } = useSelector((state) => state.auth);
 
   const [form, setForm] = useState({
@@ -27,11 +28,12 @@ export default function RestaurantScreen() {
     address: '',
     phone: '',
     district: '',
-    supplier_id:user.id,
+    supplier_id: '',
   });
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [districtModalVisible, setDistrictModalVisible] = useState(false); // Новое состояние для модального окна района
+  const [districtModalVisible, setDistrictModalVisible] = useState(false);
+
   const cuisineOptions = [
     'Русская',
     'Итальянская',
@@ -51,13 +53,33 @@ export default function RestaurantScreen() {
     'За пределами Алматы',
   ];
 
+  // Загрузка данных ресторана для редактирования
   useEffect(() => {
     if (restaurantId && token) {
       const fetchRestaurant = async () => {
         try {
-          const response = await api.getRestaurant(restaurantId);
-          setForm(response.data);
+          const response = await api.getRestaurantById(restaurantId); // Предполагаем, что метод называется getRestaurantById
+          console.log('Данные ресторана с сервера:', response.data);
+
+          // Берем первый элемент массива, так как данные приходят как [{...}]
+          const restaurantData = response.data[0];
+
+          // Приводим данные к строковому формату для TextInput
+          const formattedData = {
+            name: restaurantData.name || '',
+            capacity: String(restaurantData.capacity || ''),
+            cuisine: restaurantData.cuisine || '',
+            averageCost: String(restaurantData.averageCost || ''),
+            address: restaurantData.address || '',
+            phone: restaurantData.phone || '',
+            district: restaurantData.district || '',
+            supplier_id: String(restaurantData.supplier_id || ''),
+          };
+
+          console.log('Форматированные данные для формы:', formattedData);
+          setForm(formattedData);
         } catch (error) {
+          console.error('Ошибка загрузки данных:', error.response || error);
           alert('Ошибка загрузки данных: ' + (error.response?.data?.message || error.message));
         }
       };
@@ -69,26 +91,18 @@ export default function RestaurantScreen() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Форматирование телефона
   const formatPhoneNumber = (input) => {
-    // Удаляем все нечисловые символы, кроме первой "+"
     let cleaned = input.replace(/[^\d+]/g, '');
     if (cleaned.startsWith('+')) cleaned = '+' + cleaned.replace(/\+/g, '');
-
-    // Если начинается не с "+7", добавляем "+7"
     if (!cleaned.startsWith('+7')) {
       cleaned = '+7' + cleaned.replace(/^\+?\d*/g, '');
     }
-
-    // Ограничиваем до 12 символов (+7 и 10 цифр)
-    const digits = cleaned.slice(2, 12); // Берем только цифры после +7
+    const digits = cleaned.slice(2, 12);
     let formatted = '+7';
-
     if (digits.length > 0) formatted += ' (' + digits.slice(0, 3);
     if (digits.length > 3) formatted += ') ' + digits.slice(3, 6);
     if (digits.length > 6) formatted += '-' + digits.slice(6, 8);
     if (digits.length > 8) formatted += '-' + digits.slice(8, 10);
-
     return formatted;
   };
 
@@ -112,6 +126,8 @@ export default function RestaurantScreen() {
     const formattedForm = {
       ...form,
       averageCost: parseFloat(form.averageCost),
+      capacity: form.capacity,
+      // supplier_id: user.id,
     };
 
     console.log('Отправляемые данные:', formattedForm);
@@ -190,6 +206,7 @@ export default function RestaurantScreen() {
             placeholder="Вместимость (например, 50 человек)"
             value={form.capacity}
             onChangeText={(text) => handleChange('capacity', text)}
+            keyboardType="numeric"
           />
         </View>
 
@@ -238,7 +255,7 @@ export default function RestaurantScreen() {
         </Modal>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Средний чек  </Text>
+          <Text style={styles.inputLabel}>Средний чек</Text>
           <TextInput
             style={styles.input}
             placeholder="Средний чек (например, 1500)"
@@ -264,16 +281,16 @@ export default function RestaurantScreen() {
             style={styles.input}
             placeholder="+7 (XXX) XXX-XX-XX"
             value={form.phone}
-            onChangeText={handlePhoneChange} // Используем специальный обработчик
+            onChangeText={handlePhoneChange}
             keyboardType="phone-pad"
-            maxLength={18} // Ограничение длины для "+7 (XXX) XXX-XX-XX"
+            maxLength={18}
           />
         </View>
 
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Район:</Text>
           <TouchableOpacity
-            style={styles.cuisineButton} // Используем тот же стиль, что для кухни
+            style={styles.cuisineButton}
             onPress={() => setDistrictModalVisible(true)}
           >
             <Text style={styles.cuisineText}>

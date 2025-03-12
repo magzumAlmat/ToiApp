@@ -10,7 +10,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/authSlice';
 import api from '../api/api';
-import Icon from 'react-native-vector-icons/MaterialIcons'; // Импорт иконок
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function HomeScreen({ navigation }) {
   const dispatch = useDispatch();
@@ -23,16 +23,19 @@ export default function HomeScreen({ navigation }) {
     if (!token) {
       navigation.navigate('Login');
     }
-  }, [token, navigation]);
+  }, [token, navigation,restaurants]);
 
   useEffect(() => {
     if (token && user?.id) {
       const fetchRestaurants = async () => {
         setLoading(true);
         try {
-          const response = await api.getRestaurantById(user.id); // Предполагаемый эндпоинт
+          const response = await api.getRestaurans(); // Исправлено на getRestaurants
           console.log('Ответ список всех ресторанов:', response.data);
-          const userRestaurants = response.data;
+          const userRestaurants = response.data.filter(
+            (restaurant) => restaurant.supplier_id === user.id
+          );
+          console.log('Отфильтрованные рестораны пользователя:', userRestaurants);
           setRestaurants(userRestaurants);
         } catch (error) {
           console.error('Ошибка загрузки ресторанов:', error.response || error);
@@ -50,6 +53,7 @@ export default function HomeScreen({ navigation }) {
   };
 
   const handleEditRestaurant = (id) => {
+    console.log('id ресторана= ', id);
     navigation.navigate('Restaurant', { id });
   };
 
@@ -64,30 +68,33 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  const renderRestaurant = ({ item }) => (
-    <View style={styles.restaurantItem}>
-      <TouchableOpacity
-        style={styles.restaurantContent}
-        onPress={() => handleEditRestaurant(item.id)}
-      >
-        <Text style={styles.restaurantText}>{item.name}</Text>
-        <Text style={styles.restaurantDetail}>Вместимость: {item.capacity}</Text>
-        <Text style={styles.restaurantDetail}>Кухня: {item.cuisine}</Text>
-        <Text style={styles.restaurantDetail}>Средний чек: {item.averageCost} ₽</Text>
-        <Text style={styles.restaurantDetail}>Адрес: {item.address || 'Не указан'}</Text>
-        <Text style={styles.restaurantDetail}>Телефон: {item.phone || 'Не указан'}</Text>
-        <Text style={styles.restaurantDetail}>Район: {item.district || 'Не указан'}</Text>
-      </TouchableOpacity>
-      <View style={styles.iconContainer}>
-        <TouchableOpacity onPress={() => handleEditRestaurant(item.id)}>
-          <Icon name="edit" size={24} color="#2563EB" style={styles.icon} />
+  const renderRestaurant = ({ item }) => {
+    console.log('Рендеринг ресторана:', item);
+    return (
+      <View style={styles.restaurantItem}>
+        <TouchableOpacity
+          style={styles.restaurantContent}
+          onPress={() => handleEditRestaurant(item.id)}
+        >
+          <Text style={styles.restaurantText}>{item.name}</Text>
+          <Text style={styles.restaurantDetail}>Вместимость: {item.capacity}</Text>
+          <Text style={styles.restaurantDetail}>Кухня: {item.cuisine}</Text>
+          <Text style={styles.restaurantDetail}>Средний чек: {item.averageCost} ₽</Text>
+          <Text style={styles.restaurantDetail}>Адрес: {item.address || 'Не указан'}</Text>
+          <Text style={styles.restaurantDetail}>Телефон: {item.phone || 'Не указан'}</Text>
+          <Text style={styles.restaurantDetail}>Район: {item.district || 'Не указан'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleDeleteRestaurant(item.id)}>
-          <Icon name="delete" size={24} color="#EF4444" style={styles.icon} />
-        </TouchableOpacity>
+        <View style={styles.iconContainer}>
+          <TouchableOpacity onPress={() => handleEditRestaurant(item.id)}>
+            <Icon name="edit" size={24} color="#2563EB" style={styles.icon} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleDeleteRestaurant(item.id)}>
+            <Icon name="delete" size={24} color="#EF4444" style={styles.icon} />
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -160,7 +167,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   restaurantItem: {
-    flexDirection: 'row', // Для размещения контента и иконок рядом
+    flexDirection: 'row',
     backgroundColor: 'white',
     padding: 15,
     borderRadius: 8,
@@ -173,7 +180,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   restaurantContent: {
-    flex: 1, // Занимает основное пространство
+    flex: 1,
   },
   restaurantText: {
     fontSize: 18,
@@ -188,7 +195,7 @@ const styles = StyleSheet.create({
   iconContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: 60, // Фиксированная ширина для иконок
+    width: 60,
   },
   icon: {
     marginHorizontal: 5,
