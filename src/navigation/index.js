@@ -1,4 +1,4 @@
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSelector } from 'react-redux';
@@ -9,15 +9,25 @@ import Item3Screen from '../screens/Item3Screen';
 import Item4Screen from '../screens/Item4Screen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import { View, Text } from 'react-native';
+import { useEffect } from 'react';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
+// Экран загрузки
+const LoadingScreen = () => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <Text>Загрузка...</Text>
+  </View>
+);
+
 // Компонент для авторизованных экранов с нижним меню
 function AuthenticatedTabs() {
   const { user, token } = useSelector((state) => state.auth);
-  const roleId = user?.roleId; // Получаем roleId из пользователя
+  const roleId = user?.roleId; // Безопасно получаем roleId
 
+  console.log('user= ',user)
   // Общие стили для Tab.Navigator
   const tabBarOptions = {
     tabBarStyle: {
@@ -34,27 +44,33 @@ function AuthenticatedTabs() {
     tabBarInactiveTintColor: '#888',
   };
 
+  // Если user ещё не загружен, показываем экран загрузки
+  if (!user || roleId === undefined) {
+    return <LoadingScreen />;
+  }
+
+  console.log('roleId:', roleId, 'user:', user);
+
   return (
     <Tab.Navigator screenOptions={tabBarOptions}>
       {roleId === 2 ? ( // Меню для Поставщика (roleId = 2)
         <>
-          <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная' ,headerShown:false}} />
-          <Tab.Screen name="Restaurant" component={RestaurantScreen} options={{ title: 'Ресторан' ,headerShown:false}} />
-          <Tab.Screen name="Item2" component={Item2Screen} options={{ title: 'Товары' ,headerShown:false}} />
-          <Tab.Screen name="Item4" component={Item4Screen} options={{ title: 'Профиль' ,headerShown:false}} />
+          <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная', headerShown: false }} />
+          <Tab.Screen name="Restaurant" component={RestaurantScreen} options={{ title: 'Ресторан', headerShown: false }} />
+          <Tab.Screen name="Item2" component={Item2Screen} options={{ title: 'Товары', headerShown: false }} />
+          <Tab.Screen name="Item4" component={Item4Screen} options={{ title: 'Профиль', headerShown: false }} />
         </>
       ) : roleId === 3 ? ( // Меню для Клиента (roleId = 3)
         <>
-          <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная' ,headerShown:false}} />
-         
-          <Tab.Screen name="Item3" component={Item3Screen} options={{ title: 'Пункт 3' ,headerShown:false}} />
-          <Tab.Screen name="Item4" component={Item4Screen} options={{ title: 'Профиль' ,headerShown:false}} />
+          <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная', headerShown: false }} />
+          <Tab.Screen name="Item3" component={Item3Screen} options={{ title: 'Пункт 3', headerShown: false }} />
+          <Tab.Screen name="Item4" component={Item4Screen} options={{ title: 'Профиль', headerShown: false }} />
         </>
       ) : (
-        // Если roleId не определён (например, пользователь ещё не загружен)
+        // Если roleId неизвестен (например, ошибка данных)
         <>
-          <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная' ,headerShown:false}} />
-          <Tab.Screen name="Item4" component={Item4Screen} options={{ title: 'Профиль' ,headerShown:false}} />
+          <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная', headerShown: false }} />
+          <Tab.Screen name="Item4" component={Item4Screen} options={{ title: 'Профиль', headerShown: false }} />
         </>
       )}
     </Tab.Navigator>
@@ -62,10 +78,23 @@ function AuthenticatedTabs() {
 }
 
 export default function Navigation() {
-  const { token } = useSelector((state) => state.auth);
+  const { token, user } = useSelector((state) => state.auth);
+  console.log('Navigation state:', { token, user });
+
+  const navigationRef = useNavigationContainerRef();
+
+  useEffect(() => {
+    if (token && !user) {
+      console.log('Token exists but user is missing, redirecting to Login in 5s');
+      const timer = setTimeout(() => {
+        navigationRef.current?.navigate('Login');
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [token, user]);
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         initialRouteName={token ? 'Authenticated' : 'Login'}
         screenOptions={{ headerShown: false }}

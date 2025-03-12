@@ -8,39 +8,49 @@ const authSlice = createSlice({
     token: null,
     loading: false,
     error: null,
+    isLoading: true, // Флаг загрузки
   },
   reducers: {
-    // Начало запроса (например, регистрация или логин)
     startLoading: (state) => {
       state.loading = true;
       state.error = null;
     },
-    // Успешная регистрация (без сохранения токена, так как это обычно просто подтверждение)
     registerSuccess: (state) => {
       state.loading = false;
     },
-    // Успешный логин с сохранением данных пользователя и токена
     loginSuccess: (state, action) => {
       state.loading = false;
       state.user = action.payload.user;
       state.token = action.payload.token;
-      SecureStore.setItemAsync('token', action.payload.token); // Сохранение токена
+      state.isLoading = false;
+      console.log(state.user)
+      console.log('loginSuccess - New state:', {
+        user: state.user,
+        token: state.token,
+      }); // Логируем состояние после обновления
+      SecureStore.setItemAsync('token', action.payload.token);
     },
-    // Ошибка при запросе
     setError: (state, action) => {
       state.loading = false;
       state.error = action.payload;
     },
-    // Выход из системы
     logout: (state) => {
       state.user = null;
       state.token = null;
       state.error = null;
+      state.isLoading = false;
       SecureStore.deleteItemAsync('token'); // Удаление токена
-      
+    },
+    setCredentials: (state, action) => {
+      state.token = action.payload.token;
+      state.user = action.payload.user;
+      state.isLoading = false;
+    },
+    setLoading: (state, action) => {
+      state.isLoading = action.payload;
     },
   },
 });
 
-export const { startLoading, registerSuccess, loginSuccess, setError, logout } = authSlice.actions;
+export const { startLoading, registerSuccess, loginSuccess, setError, setCredentials, logout, setLoading } = authSlice.actions;
 export default authSlice.reducer;

@@ -60,6 +60,7 @@ export default function HomeScreen({ navigation }) {
 
   const handleLogout = () => {
     dispatch(logout());
+    navigation.navigate('Login');
   };
 
   const handleEditRestaurant = (id) => {

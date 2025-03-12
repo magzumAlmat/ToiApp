@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { startLoading, loginSuccess, setError } from '../store/authSlice';
+import { startLoading, loginSuccess, setError, setLoading } from '../store/authSlice';
 import api from '../api/api';
 import * as SecureStore from 'expo-secure-store';
 
@@ -11,32 +11,47 @@ export default function LoginScreen({ navigation }) {
   const dispatch = useDispatch();
   const { loading, error, token } = useSelector((state) => state.auth);
 
-  // Проверка токена при загрузке
-  useEffect(() => {
-    const checkToken = async () => {
-      const storedToken = await SecureStore.getItemAsync('token');
-      if (storedToken) {
-        // Здесь можно добавить запрос к API для проверки валидности токена
-        dispatch(loginSuccess({ user: { email: 'loaded' }, token: storedToken })); // Пример
-        navigation.navigate('Authenticated');
-      }
-    };
-    checkToken();
-  }, [dispatch, navigation]);
-
+  // Проверка токена при загрузке и получение данных пользователя
   const handleLogin = async () => {
     dispatch(startLoading());
+    console.log('Login attempt:', { email, password });
     try {
-      const response = await api.login({ email, password });
-      dispatch(loginSuccess({ user: response.data.user, token: response.data.token }));
-      await SecureStore.setItemAsync('token', response.data.token); // Сохраняем токен
-      Alert.alert('Успех', 'Вы вошли в систему!');
+      const loginResponse = await api.login({ email, password });
+      console.log('Login response (full):', JSON.stringify(loginResponse.data, null, 2));
+      await SecureStore.setItemAsync('token', loginResponse.data.token);
+      const userResponse = await api.getUser(); // Запрашиваем данные пользователя
+      console.log('Get user response:', userResponse.data);
+
+      dispatch(loginSuccess({ user: userResponse.data, token: loginResponse.data.token }));
       navigation.navigate('Authenticated');
     } catch (error) {
+      console.error('Login error:', error.response?.data || error.message);
       dispatch(setError(error.response?.data?.error || 'Ошибка входа'));
       Alert.alert('Ошибка', error.response?.data?.error || 'Не удалось войти');
     }
   };
+  useEffect(() => {
+    const checkToken = async () => {
+      dispatch(setLoading(true));
+      const storedToken = await SecureStore.getItemAsync('token');
+      console.log('Stored token:', storedToken);
+      if (storedToken && !token) { // Проверяем только если token ещё не в сторе
+        try {
+          const response = await api.getUser();
+          console.log('Get user response:', response.data);
+          dispatch(loginSuccess({ user: response.data.user, token: storedToken }));
+          navigation.navigate('Authenticated');
+        } catch (err) {
+          console.error('Token check error:', err.response?.data || err.message);
+          dispatch(setError('Невалидный токен или ошибка сервера'));
+          await SecureStore.deleteItemAsync('token');
+          navigation.navigate('Login');
+        }
+      }
+      dispatch(setLoading(false));
+    };
+    checkToken();
+  }, [dispatch, navigation, token]);
 
   return (
     <View style={styles.container}>
