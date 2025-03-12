@@ -51,4 +51,43 @@ export default {
         createFlowers: (data) => api.post('/api/flowers', data),
         createCake: (data) => api.post('/api/cakes', data),
         createAlcohol: (data) => api.post('/api/alcohol', data),
+
+
+
+        
+
+        // Одежда
+        getAllClothing: () => api.get('/api/clothing'),
+        deleteClothing: (id) => api.delete(`/api/clothing/${id}`),
+
+        // Транспорт
+        getTransportById: (id) => api.get(`/api/transport/${id}`),
+        getAllTransport: () => api.get('/api/transport'),
+        deleteTransport: (id) => api.delete(`/api/transport/${id}`),
+        updateTransport:(id,data)=>api.put(`/api/transport/${id}`,data),
+        // Тамада
+        getTamadaById: (id) => api.get(`/api/tamada/${id}`),
+        getAllTamada: () => api.get('/api/tamada'),
+        deleteTamada: (id) => api.delete(`/api/tamada/${id}`),
+        updateTamada:(id,data)=>api.put(`/api/tamada/${id}`,data),
+        // Программа
+        getProgramById: (id) => api.get(`/api/programs/${id}`),
+        getAllPrograms: () => api.get('/api/programs'),
+        deleteProgram: (id) => api.delete(`/api/programs/${id}`),
+        updateProgram:(id,data)=>api.put(`/api/programs/${id}`,data),
+        // Традиционные подарки
+        getAllTraditionalGifts: () => api.get('/api/traditional-gifts'),
+        deleteTraditionalGift: (id) => api.delete(`/api/traditional-gifts/${id}`),
+        updateTraditionalGift:(id,data)=>api.put(`/api/traditional-gifts/${id}`,data),
+        // Цветы
+        getAllFlowers: () => api.get('/api/flowers'),
+        deleteFlowers: (id) => api.delete(`/api/flowers/${id}`),
+
+        // Торты
+        getAllCakes: () => api.get('/api/cakes'),
+        deleteCake: (id) => api.delete(`/api/cakes/${id}`),
+
+        // Алкоголь
+        getAllAlcohol: () => api.get('/api/alcohol'),
+        deleteAlcohol: (id) => api.delete(`/api/alcohol/${id}`),
 };

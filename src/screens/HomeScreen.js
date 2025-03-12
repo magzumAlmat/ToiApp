@@ -16,27 +16,56 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 export default function HomeScreen({ navigation }) {
   const dispatch = useDispatch();
   const { token, user } = useSelector((state) => state.auth);
-  const [restaurants, setRestaurants] = useState([]);
+  const [data, setData] = useState({
+    restaurants: [],
+    clothing: [],
+    transport: [],
+    tamada: [],
+    programs: [],
+    traditionalGifts: [],
+    flowers: [],
+    cakes: [],
+    alcohol: [],
+  });
   const [loading, setLoading] = useState(false);
-  const [restaurantToDelete, setRestaurantToDelete] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null); // Объект для удаления: { id, type }
   const [modalVisible, setModalVisible] = useState(false);
-  const host = process.env.BACKEND_URL || 'http://localhost:6666';
 
-  // Функция загрузки ресторанов
-  const fetchRestaurants = async () => {
+  // Функции загрузки данных
+  const fetchData = async () => {
     if (!token || !user?.id) return;
     setLoading(true);
     try {
-      const response = await api.getRestaurans(); // Исправлено с getRestaurans на getRestaurants
-      console.log('Ответ список всех ресторанов:', response.data);
-      const userRestaurants = response.data.filter(
-        (restaurant) => restaurant.supplier_id === user.id
+      const responses = await Promise.all([
+        api.getRestaurans(),
+        api.getAllClothing(),
+        api.getAllTransport(),
+        api.getAllTamada(),
+        api.getAllPrograms(),
+        api.getAllTraditionalGifts(),
+        api.getAllFlowers(),
+        api.getAllCakes(),
+        api.getAllAlcohol(),
+      ]);
+
+      const userData = responses.map((response) =>
+        response.data.filter((item) => item.supplier_id === user.id)
       );
-      console.log('Отфильтрованные рестораны пользователя:', userRestaurants);
-      setRestaurants(userRestaurants);
+
+      setData({
+        restaurants: userData[0],
+        clothing: userData[1],
+        transport: userData[2],
+        tamada: userData[3],
+        programs: userData[4],
+        traditionalGifts: userData[5],
+        flowers: userData[6],
+        cakes: userData[7],
+        alcohol: userData[8],
+      });
     } catch (error) {
-      console.error('Ошибка загрузки ресторанов:', error.response || error);
-      alert('Ошибка загрузки ресторанов: ' + (error.response?.data?.message || error.message));
+      console.error('Ошибка загрузки данных:', error.response || error);
+      alert('Ошибка загрузки: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
@@ -46,16 +75,13 @@ export default function HomeScreen({ navigation }) {
     if (!token) {
       navigation.navigate('Login');
     } else {
-      fetchRestaurants(); // Загружаем рестораны при монтировании
+      fetchData();
     }
   }, [token, user]);
 
-  // Обновляем список ресторанов при возвращении на экран
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      fetchRestaurants(); // Повторно загружаем рестораны при фокусе экрана
-    });
-    return unsubscribe; // Очищаем слушатель при размонтировании
+    const unsubscribe = navigation.addListener('focus', fetchData);
+    return unsubscribe;
   }, [navigation, token, user]);
 
   const handleLogout = () => {
@@ -63,53 +89,224 @@ export default function HomeScreen({ navigation }) {
     navigation.navigate('Login');
   };
 
-  const handleEditRestaurant = (id) => {
-    console.log('id ресторана= ', id);
-    navigation.navigate('Restaurant', { id });
+  const handleEditItem = (id, type) => {
+    // Здесь можно настроить навигацию на соответствующий экран редактирования
+    // Пока предполагаем, что все редактируются через один экран, например 'ItemEdit'
+    navigation.navigate('ItemEdit', { id, type });
   };
 
-  const confirmDeleteRestaurant = (id) => {
-    setRestaurantToDelete(id);
+  const confirmDeleteItem = (id, type) => {
+    setItemToDelete({ id, type });
     setModalVisible(true);
   };
 
-  const handleDeleteRestaurant = async () => {
-    if (!restaurantToDelete) return;
+  const handleDeleteItem = async () => {
+    if (!itemToDelete) return;
 
     try {
-      await api.deleteRestaurant(restaurantToDelete);
-      setRestaurants(restaurants.filter((restaurant) => restaurant.id !== restaurantToDelete));
-      // alert('Ресторан успешно удалён!');
+      switch (itemToDelete.type) {
+        case 'restaurant':
+          await api.deleteRestaurant(itemToDelete.id);
+          setData((prev) => ({
+            ...prev,
+            restaurants: prev.restaurants.filter((item) => item.id !== itemToDelete.id),
+          }));
+          break;
+        case 'clothing':
+          await api.deleteClothing(itemToDelete.id);
+          setData((prev) => ({
+            ...prev,
+            clothing: prev.clothing.filter((item) => item.id !== itemToDelete.id),
+          }));
+          break;
+        case 'transport':
+          await api.deleteTransport(itemToDelete.id);
+          setData((prev) => ({
+            ...prev,
+            transport: prev.transport.filter((item) => item.id !== itemToDelete.id),
+          }));
+          break;
+        case 'tamada':
+          await api.deleteTamada(itemToDelete.id);
+          setData((prev) => ({
+            ...prev,
+            tamada: prev.tamada.filter((item) => item.id !== itemToDelete.id),
+          }));
+          break;
+        case 'program':
+          await api.deleteProgram(itemToDelete.id);
+          setData((prev) => ({
+            ...prev,
+            programs: prev.programs.filter((item) => item.id !== itemToDelete.id),
+          }));
+          break;
+        case 'traditionalGift':
+          await api.deleteTraditionalGift(itemToDelete.id);
+          setData((prev) => ({
+            ...prev,
+            traditionalGifts: prev.traditionalGifts.filter((item) => item.id !== itemToDelete.id),
+          }));
+          break;
+        case 'flowers':
+          await api.deleteFlowers(itemToDelete.id);
+          setData((prev) => ({
+            ...prev,
+            flowers: prev.flowers.filter((item) => item.id !== itemToDelete.id),
+          }));
+          break;
+        case 'cake':
+          await api.deleteCake(itemToDelete.id);
+          setData((prev) => ({
+            ...prev,
+            cakes: prev.cakes.filter((item) => item.id !== itemToDelete.id),
+          }));
+          break;
+        case 'alcohol':
+          await api.deleteAlcohol(itemToDelete.id);
+          setData((prev) => ({
+            ...prev,
+            alcohol: prev.alcohol.filter((item) => item.id !== itemToDelete.id),
+          }));
+          break;
+        default:
+          throw new Error('Неизвестный тип объекта');
+      }
+      // alert('Объект успешно удалён!');
     } catch (error) {
-      console.error('Ошибка удаления ресторана:', error.response || error);
+      console.error('Ошибка удаления:', error.response || error);
       alert('Ошибка удаления: ' + (error.response?.data?.message || error.message));
     } finally {
       setModalVisible(false);
-      setRestaurantToDelete(null);
+      setItemToDelete(null);
     }
   };
 
-  const renderRestaurant = ({ item }) => {
-    console.log('Рендеринг ресторана:', item);
+  const renderItem = ({ item, type }) => {
+    let content;
+    switch (type) {
+      case 'restaurant':
+        content = (
+          <>
+            <Text style={styles.itemText}>{item.name}</Text>
+            <Text style={styles.itemDetail}>Вместимость: {item.capacity}</Text>
+            <Text style={styles.itemDetail}>Кухня: {item.cuisine}</Text>
+            <Text style={styles.itemDetail}>Средний чек: {item.averageCost} ₽</Text>
+            <Text style={styles.itemDetail}>Адрес: {item.address || 'Не указан'}</Text>
+            <Text style={styles.itemDetail}>Телефон: {item.phone || 'Не указан'}</Text>
+            <Text style={styles.itemDetail}>Район: {item.district || 'Не указан'}</Text>
+          </>
+        );
+        break;
+      case 'clothing':
+        content = (
+          <>
+            <Text style={styles.itemText}>{item.storeName}</Text>
+            <Text style={styles.itemDetail}>Товар: {item.itemName}</Text>
+            <Text style={styles.itemDetail}>Пол: {item.gender}</Text>
+            <Text style={styles.itemDetail}>Стоимость: {item.cost} </Text>
+            <Text style={styles.itemDetail}>Адрес: {item.address}</Text>
+            <Text style={styles.itemDetail}>Телефон: {item.phone}</Text>
+            <Text style={styles.itemDetail}>Район: {item.district}</Text>
+          </>
+        );
+        break;
+      case 'transport':
+        content = (
+          <>
+            <Text style={styles.itemText}>{item.salonName}</Text>
+            <Text style={styles.itemDetail}>Авто: {item.carName}</Text>
+            <Text style={styles.itemDetail}>Марка: {item.brand}</Text>
+            <Text style={styles.itemDetail}>Цвет: {item.color}</Text>
+            <Text style={styles.itemDetail}>Адрес: {item.address}</Text>
+            <Text style={styles.itemDetail}>Телефон: {item.phone}</Text>
+            <Text style={styles.itemDetail}>Район: {item.district}</Text>
+          </>
+        );
+        break;
+      case 'tamada':
+        content = (
+          <>
+            <Text style={styles.itemText}>Тамада #{item.id}</Text>
+            <Text style={styles.itemDetail}>Портфолио: {item.portfolio}</Text>
+            <Text style={styles.itemDetail}>Стоимость: {item.cost} </Text>
+          </>
+        );
+        break;
+      case 'program':
+        content = (
+          <>
+            <Text style={styles.itemText}>{item.teamName}</Text>
+            <Text style={styles.itemDetail}>Тип: {item.type}</Text>
+            <Text style={styles.itemDetail}>Стоимость: {item.cost} </Text>
+          </>
+        );
+        break;
+      case 'traditionalGift':
+        content = (
+          <>
+            <Text style={styles.itemText}>{item.salonName}</Text>
+            <Text style={styles.itemDetail}>Товар: {item.itemName}</Text>
+            <Text style={styles.itemDetail}>Тип: {item.type}</Text>
+            <Text style={styles.itemDetail}>Стоимость: {item.cost} </Text>
+            <Text style={styles.itemDetail}>Адрес: {item.address}</Text>
+            <Text style={styles.itemDetail}>Телефон: {item.phone}</Text>
+            <Text style={styles.itemDetail}>Район: {item.district}</Text>
+          </>
+        );
+        break;
+      case 'flowers':
+        content = (
+          <>
+            <Text style={styles.itemText}>{item.salonName}</Text>
+            <Text style={styles.itemDetail}>Цветы: {item.flowerName}</Text>
+            <Text style={styles.itemDetail}>Тип: {item.flowerType}</Text>
+            <Text style={styles.itemDetail}>Стоимость: {item.cost} </Text>
+            <Text style={styles.itemDetail}>Адрес: {item.address}</Text>
+            <Text style={styles.itemDetail}>Телефон: {item.phone}</Text>
+            <Text style={styles.itemDetail}>Район: {item.district}</Text>
+          </>
+        );
+        break;
+      case 'cake':
+        content = (
+          <>
+            <Text style={styles.itemText}>{item.salonName}</Text>
+            <Text style={styles.itemDetail}>Тип торта: {item.cakeType}</Text>
+            <Text style={styles.itemDetail}>Стоимость: {item.cost} </Text>
+            <Text style={styles.itemDetail}>Адрес: {item.address}</Text>
+            <Text style={styles.itemDetail}>Телефон: {item.phone}</Text>
+            <Text style={styles.itemDetail}>Район: {item.district}</Text>
+          </>
+        );
+        break;
+      case 'alcohol':
+        content = (
+          <>
+            <Text style={styles.itemText}>{item.salonName}</Text>
+            <Text style={styles.itemDetail}>Алкоголь: {item.alcoholName}</Text>
+            <Text style={styles.itemDetail}>Категория: {item.category}</Text>
+            <Text style={styles.itemDetail}>Стоимость: {item.cost} </Text>
+            <Text style={styles.itemDetail}>Адрес: {item.address}</Text>
+            <Text style={styles.itemDetail}>Телефон: {item.phone}</Text>
+            <Text style={styles.itemDetail}>Район: {item.district}</Text>
+          </>
+        );
+        break;
+    }
+
     return (
-      <View style={styles.restaurantItem}>
+      <View style={styles.itemContainer}>
         <TouchableOpacity
-          style={styles.restaurantContent}
-          onPress={() => handleEditRestaurant(item.id)}
+          style={styles.itemContent}
+          onPress={() => handleEditItem(item.id, type)}
         >
-          <Text style={styles.restaurantText}>{item.name}</Text>
-          <Text style={styles.restaurantDetail}>Вместимость: {item.capacity}</Text>
-          <Text style={styles.restaurantDetail}>Кухня: {item.cuisine}</Text>
-          <Text style={styles.restaurantDetail}>Средний чек: {item.averageCost} ₽</Text>
-          <Text style={styles.restaurantDetail}>Адрес: {item.address || 'Не указан'}</Text>
-          <Text style={styles.restaurantDetail}>Телефон: {item.phone || 'Не указан'}</Text>
-          <Text style={styles.restaurantDetail}>Район: {item.district || 'Не указан'}</Text>
+          {content}
         </TouchableOpacity>
         <View style={styles.iconContainer}>
-          <TouchableOpacity onPress={() => handleEditRestaurant(item.id)}>
+          <TouchableOpacity onPress={() => handleEditItem(item.id, type)}>
             <Icon name="edit" size={24} color="#2563EB" style={styles.icon} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => confirmDeleteRestaurant(item.id)}>
+          <TouchableOpacity onPress={() => confirmDeleteItem(item.id, type)}>
             <Icon name="delete" size={24} color="#EF4444" style={styles.icon} />
           </TouchableOpacity>
         </View>
@@ -117,38 +314,45 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
+  // Собираем все данные в один массив для FlatList
+  const combinedData = [
+    ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
+    ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
+    ...data.transport.map((item) => ({ ...item, type: 'transport' })),
+    ...data.tamada.map((item) => ({ ...item, type: 'tamada' })),
+    ...data.programs.map((item) => ({ ...item, type: 'program' })),
+    ...data.traditionalGifts.map((item) => ({ ...item, type: 'traditionalGift' })),
+    ...data.flowers.map((item) => ({ ...item, type: 'flowers' })),
+    ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
+    ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
+  ];
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Добро пожаловать!</Text>
+      {/* <Text style={styles.title}>Добро пожаловать!</Text>
       {user && <Text style={styles.text}>Email: {user.email}</Text>}
       {token ? (
         <Text style={styles.text}>Токен: {token}</Text>
       ) : (
         <Text style={styles.text}>Токен отсутствует</Text>
-      )}
+      )} */}
 
-      <Button title="Выйти" onPress={handleLogout} />
+      {/* <Button title="Выйти" onPress={handleLogout} /> */}
 
-      <TouchableOpacity
-        style={styles.createButton}
-        onPress={() => navigation.navigate('Restaurant')}
-      >
-        <Text style={styles.createButtonText}>Создать новый ресторан</Text>
-      </TouchableOpacity>
-
-      <View style={styles.restaurantContainer}>
-        <Text style={styles.subtitle}>Ваши рестораны:</Text>
+      <Text style={styles.subtitle}>Ваш бизнес:</Text>
+      <View style={styles.itemContainer}>
+       
         {loading ? (
           <Text style={styles.text}>Загрузка...</Text>
-        ) : restaurants.length > 0 ? (
+        ) : combinedData.length > 0 ? (
           <FlatList
-            data={restaurants}
-            renderItem={renderRestaurant}
-            keyExtractor={(item) => item.id.toString()}
-            style={styles.restaurantList}
+            data={combinedData}
+            renderItem={({ item }) => renderItem({ item, type: item.type })}
+            keyExtractor={(item) => `${item.type}-${item.id}`}
+            style={styles.itemList}
           />
         ) : (
-          <Text style={styles.text}>У вас пока нет ресторанов</Text>
+          <Text style={styles.text}>У вас пока нет объектов</Text>
         )}
       </View>
 
@@ -162,21 +366,21 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Подтверждение удаления</Text>
             <Text style={styles.modalText}>
-              Вы уверены, что хотите удалить этот ресторан? Это действие нельзя отменить.
+              Вы уверены, что хотите удалить этот объект? Это действие нельзя отменить.
             </Text>
             <View style={styles.modalButtonContainer}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => {
                   setModalVisible(false);
-                  setRestaurantToDelete(null);
+                  setItemToDelete(null);
                 }}
               >
                 <Text style={styles.modalButtonText}>Отмена</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.confirmButton]}
-                onPress={handleDeleteRestaurant}
+                onPress={handleDeleteItem}
               >
                 <Text style={styles.modalButtonText}>Удалить</Text>
               </TouchableOpacity>
@@ -213,14 +417,14 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     color: '#1F2937',
   },
-  restaurantContainer: {
-    marginTop: 20,
+  // itemContainer: {
+  //   marginTop: 20,
+  //   flex: 1,
+  // },
+  itemList: {
     flex: 1,
   },
-  restaurantList: {
-    flex: 1,
-  },
-  restaurantItem: {
+  itemContainer: {
     flexDirection: 'row',
     backgroundColor: 'white',
     padding: 15,
@@ -233,15 +437,15 @@ const styles = StyleSheet.create({
     elevation: 3,
     alignItems: 'center',
   },
-  restaurantContent: {
+  itemContent: {
     flex: 1,
   },
-  restaurantText: {
+  itemText: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1F2937',
   },
-  restaurantDetail: {
+  itemDetail: {
     fontSize: 14,
     color: '#4B5563',
     marginTop: 2,
@@ -253,19 +457,6 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginHorizontal: 5,
-  },
-  createButton: {
-    backgroundColor: '#2563EB',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    marginVertical: 10,
-    alignItems: 'center',
-  },
-  createButtonText: {
-    fontSize: 16,
-    color: 'white',
-    fontWeight: 'bold',
   },
   modalOverlay: {
     flex: 1,

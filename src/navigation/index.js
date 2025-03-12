@@ -3,7 +3,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSelector } from 'react-redux';
 import HomeScreen from '../screens/HomeScreen';
-import RestaurantScreen from '../screens/RestaurantScreen';
+import ItemEditScreen from '../screens/ItemEditScreen';
 import Item2Screen from '../screens/Item2Screen';
 import Item3Screen from '../screens/Item3Screen';
 import Item4Screen from '../screens/Item4Screen';
@@ -27,7 +27,8 @@ function AuthenticatedTabs() {
   const { user, token } = useSelector((state) => state.auth);
   const roleId = user?.roleId; // Безопасно получаем roleId
 
-  console.log('user= ',user)
+  console.log('user= ', user);
+
   // Общие стили для Tab.Navigator
   const tabBarOptions = {
     tabBarStyle: {
@@ -53,21 +54,19 @@ function AuthenticatedTabs() {
 
   return (
     <Tab.Navigator screenOptions={tabBarOptions}>
-      {roleId === 2 ? ( // Меню для Поставщика (roleId = 2)
+      {roleId === 2 ? (
         <>
           <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная', headerShown: false }} />
-          <Tab.Screen name="Restaurant" component={RestaurantScreen} options={{ title: 'Ресторан', headerShown: false }} />
-          <Tab.Screen name="Item2" component={Item2Screen} options={{ title: 'Товары', headerShown: false }} />
+          <Tab.Screen name="Item2" component={Item2Screen} options={{ title: 'Добавить', headerShown: false }} />
           <Tab.Screen name="Item4" component={Item4Screen} options={{ title: 'Профиль', headerShown: false }} />
         </>
-      ) : roleId === 3 ? ( // Меню для Клиента (roleId = 3)
+      ) : roleId === 3 ? (
         <>
           <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная', headerShown: false }} />
           <Tab.Screen name="Item3" component={Item3Screen} options={{ title: 'Пункт 3', headerShown: false }} />
           <Tab.Screen name="Item4" component={Item4Screen} options={{ title: 'Профиль', headerShown: false }} />
         </>
       ) : (
-        // Если roleId неизвестен (например, ошибка данных)
         <>
           <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная', headerShown: false }} />
           <Tab.Screen name="Item4" component={Item4Screen} options={{ title: 'Профиль', headerShown: false }} />
@@ -95,13 +94,11 @@ export default function Navigation() {
 
   return (
     <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator
-        initialRouteName={token ? 'Authenticated' : 'Login'}
-        screenOptions={{ headerShown: false }}
-      >
+      <Stack.Navigator initialRouteName={token ? 'Authenticated' : 'Login'} screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Authenticated" component={AuthenticatedTabs} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="ItemEdit" component={ItemEditScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

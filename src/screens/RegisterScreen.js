@@ -6,6 +6,7 @@ import api from '../api/api';
 import { Picker } from '@react-native-picker/picker';
 
 export default function RegisterScreen({ navigation }) {
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
