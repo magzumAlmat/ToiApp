@@ -38,8 +38,9 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.error = null;
-      state.isLoading = false;
+      
       SecureStore.deleteItemAsync('token'); // Удаление токена
+      state.isLoading = false;
     },
     setCredentials: (state, action) => {
       state.token = action.payload.token;

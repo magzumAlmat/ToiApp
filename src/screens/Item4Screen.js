@@ -72,8 +72,8 @@ export default function Item4Screen({ navigation }) {
     }
   };
 
-    const handleLogout = () => {
-      dispatch(logout());
+    const handleLogout = async() => {
+      await dispatch(logout());
     };
 
   return (

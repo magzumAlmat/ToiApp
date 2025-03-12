@@ -87,7 +87,7 @@ export default function Navigation() {
       console.log('Token exists but user is missing, redirecting to Login in 5s');
       const timer = setTimeout(() => {
         navigationRef.current?.navigate('Login');
-      }, 5000);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [token, user]);

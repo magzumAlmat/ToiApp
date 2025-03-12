@@ -339,7 +339,7 @@ export default function HomeScreen({ navigation }) {
 
       {/* <Button title="Выйти" onPress={handleLogout} /> */}
 
-      <Text style={styles.subtitle}>Ваш бизнес:</Text>
+   
       <View style={styles.itemContainer}>
        
         {loading ? (
