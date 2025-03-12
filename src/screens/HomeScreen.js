@@ -5,7 +5,8 @@ import {
   Button,
   StyleSheet,
   FlatList,
-  TouchableOpacity,Modal
+  TouchableOpacity,
+  Modal,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/authSlice';
@@ -21,35 +22,41 @@ export default function HomeScreen({ navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const host = process.env.BACKEND_URL || 'http://localhost:6666';
 
+  // Функция загрузки ресторанов
+  const fetchRestaurants = async () => {
+    if (!token || !user?.id) return;
+    setLoading(true);
+    try {
+      const response = await api.getRestaurans(); // Исправлено с getRestaurans на getRestaurants
+      console.log('Ответ список всех ресторанов:', response.data);
+      const userRestaurants = response.data.filter(
+        (restaurant) => restaurant.supplier_id === user.id
+      );
+      console.log('Отфильтрованные рестораны пользователя:', userRestaurants);
+      setRestaurants(userRestaurants);
+    } catch (error) {
+      console.error('Ошибка загрузки ресторанов:', error.response || error);
+      alert('Ошибка загрузки ресторанов: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!token) {
       navigation.navigate('Login');
-    }
-    console.log(restaurants)
-  }, [token, navigation,restaurants]);
-
-  useEffect(() => {
-    if (token && user?.id) {
-      const fetchRestaurants = async () => {
-        setLoading(true);
-        try {
-          const response = await api.getRestaurans(); // Исправлено на getRestaurants
-          console.log('Ответ список всех ресторанов:', response.data);
-          const userRestaurants = response.data.filter(
-            (restaurant) => restaurant.supplier_id === user.id
-          );
-          console.log('Отфильтрованные рестораны пользователя:', userRestaurants);
-          setRestaurants(userRestaurants);
-        } catch (error) {
-          console.error('Ошибка загрузки ресторанов:', error.response || error);
-          alert('Ошибка загрузки ресторанов: ' + (error.response?.data?.message || error.message));
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchRestaurants();
+    } else {
+      fetchRestaurants(); // Загружаем рестораны при монтировании
     }
   }, [token, user]);
+
+  // Обновляем список ресторанов при возвращении на экран
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchRestaurants(); // Повторно загружаем рестораны при фокусе экрана
+    });
+    return unsubscribe; // Очищаем слушатель при размонтировании
+  }, [navigation, token, user]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -61,8 +68,8 @@ export default function HomeScreen({ navigation }) {
   };
 
   const confirmDeleteRestaurant = (id) => {
-    setRestaurantToDelete(id); // Устанавливаем ID ресторана для удаления
-    setModalVisible(true); // Показываем модальное окно
+    setRestaurantToDelete(id);
+    setModalVisible(true);
   };
 
   const handleDeleteRestaurant = async () => {
@@ -76,8 +83,8 @@ export default function HomeScreen({ navigation }) {
       console.error('Ошибка удаления ресторана:', error.response || error);
       alert('Ошибка удаления: ' + (error.response?.data?.message || error.message));
     } finally {
-      setModalVisible(false); // Закрываем модальное окно
-      setRestaurantToDelete(null); // Сбрасываем ID
+      setModalVisible(false);
+      setRestaurantToDelete(null);
     }
   };
 
