@@ -1628,6 +1628,12 @@ export default function HomeScreen({ navigation }) {
               keyboardType="numeric"
             />
             <Text style={styles.totalCost}>Итого: {totalCost} ₸</Text>
+            <TouchableOpacity
+                style={styles.detailsButton}
+                onPress={() => navigation.navigate("Details", { item })}
+              >
+                <Text style={styles.detailsButtonText}>Подробнее</Text>
+              </TouchableOpacity>
           </View>
         )}
         {user?.roleId === 2 && (

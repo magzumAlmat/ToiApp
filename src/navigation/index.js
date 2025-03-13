@@ -11,7 +11,7 @@ import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import { View, Text } from 'react-native';
 import { useEffect } from 'react';
-
+import DetailsScreen from '../screens/DetailsScreen';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -95,6 +95,11 @@ export default function Navigation() {
   return (
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator initialRouteName={token ? 'Authenticated' : 'Login'} screenOptions={{ headerShown: false }}>
+      <Stack.Screen
+          name="Details"
+          component={DetailsScreen}
+          options={{ title: "Подробности" }}
+        />
         <Stack.Screen name="Authenticated" component={AuthenticatedTabs} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
