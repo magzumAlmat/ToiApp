@@ -12,7 +12,14 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import { useSelector } from 'react-redux';
 import api from '../api/api';
-
+import {
+  Card,
+  Button as PaperButton,
+  Appbar,
+  Caption,
+  Title,
+  Paragraph,
+} from "react-native-paper";
 export default function ItemEditScreen() {
   const navigation = useNavigation();
   const route = useRoute();
@@ -22,7 +29,11 @@ export default function ItemEditScreen() {
   const { user, token } = useSelector((state) => state.auth);
 
   const [form, setForm] = useState({});
-  const [modalVisible, setModalVisible] = useState({}); // Для управления всеми модальными окнами
+  const [modalVisible, setModalVisible] = useState({
+    cuisine: false,
+    district:false,
+    gender:false,
+  }); // Для управления всеми модальными окнами
 
   const cuisineOptions = ['Русская', 'Итальянская', 'Азиатская', 'Французская', 'Американская'];
   const districtOptions = [
@@ -590,6 +601,10 @@ export default function ItemEditScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
+         <Appbar.Header style={styles.header}>
+        <Appbar.BackAction onPress={() => navigation.goBack()} />
+        <Appbar.Content title="Детали" />
+      </Appbar.Header>
       <View style={styles.header}>
         <Text style={styles.title}>
           {itemId ? `Редактировать ${type}` : `Создать ${type || 'объект'}`}

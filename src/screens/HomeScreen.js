@@ -14,7 +14,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/authSlice';
 import api from '../api/api';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Appbar } from 'react-native-paper';
+import { Appbar, Button } from 'react-native-paper';
 import * as Animatable from 'react-native-animatable';
 import { ActivityIndicator } from 'react-native';
 // Custom color palette
@@ -412,7 +412,7 @@ export default function HomeScreen({ navigation }) {
                 style={styles.detailsButton}
                 onPress={() => navigation.navigate("Details", { item })}
               >
-                <Text style={styles.detailsButtonText}>Подробнее</Text>
+                <Button style={styles.detailsButtonText}>Подробнее</Button>
               </TouchableOpacity>
           </View>
         )}

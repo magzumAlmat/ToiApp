@@ -63,7 +63,8 @@ export default {
         // Одежда
         getAllClothing: () => api.get('/api/clothing'),
         deleteClothing: (id) => api.delete(`/api/clothing/${id}`),
-
+        getClothingById:(id) => api.get(`/api/clothing/${id}`),
+        updateClothing:(id,data)=>api.put(`/api/clothing/${id}`,data),
         // Транспорт
         getTransportById: (id) => api.get(`/api/transport/${id}`),
         getAllTransport: () => api.get('/api/transport'),
