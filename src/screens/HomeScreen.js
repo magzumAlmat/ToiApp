@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
-  ScrollView,
+  ScrollView,SafeAreaView
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/authSlice';
@@ -392,7 +392,7 @@ export default function HomeScreen({ navigation }) {
           transparent={true}
           animationType="slide"
         >
-          <View style={styles.modalOverlay}>
+          <SafeAreaView style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Ваш бюджет</Text>
               <TextInput
@@ -417,9 +417,9 @@ export default function HomeScreen({ navigation }) {
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </SafeAreaView>
         </Modal>
-        <Text style={styles.sectionTitle}>
+        {/* <Text style={styles.sectionTitle}>
           {filteredData.length > 0 ? `Рекомендации (${budget} ₸)` : 'Все объекты'}
         </Text>
         {filteredData.length > 0 && (
@@ -478,18 +478,80 @@ export default function HomeScreen({ navigation }) {
             </View>
           </View>
         </Modal>
+       */}
+      
+        {budget && ( // Условие: показываем записи только если бюджет задан
+          <>
+            <Text style={styles.sectionTitle}>
+              {filteredData.length > 0 ? `Рекомендации (${budget} ₸)` : 'Все объекты'}
+            </Text>
+            {filteredData.length > 0 && (
+              <Text style={[styles.budgetInfo, remainingBudget < 0 && styles.budgetError]}>
+                Остаток: {remainingBudget} ₸
+              </Text>
+            )}
+            {loading ? (
+              <Text style={styles.loadingText}>Загрузка...</Text>
+            ) : filteredData.length > 0 ? (
+              <>
+                <FlatList
+                  data={filteredData}
+                  renderItem={renderItem}
+                  keyExtractor={(item) => `${item.type}-${item.id}`}
+                  style={styles.list}
+                />
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={() => setAddItemModalVisible(true)}
+                >
+                  <Text style={styles.addButtonText}>Добавить еще</Text>
+                </TouchableOpacity>
+              </>
+            ) : combinedData.length > 0 ? (
+              <FlatList
+                data={combinedData}
+                renderItem={renderItem}
+                keyExtractor={(item) => `${item.type}-${item.id}`}
+                style={styles.list}
+              />
+            ) : (
+              <Text style={styles.emptyText}>Нет данных для отображения</Text>
+            )}
+            <Modal visible={addItemModalVisible} transparent={true} animationType="slide">
+              <View style={styles.modalOverlay}>
+                <View style={styles.addModalContent}>
+                  <Text style={styles.modalTitle}>Добавить элемент</Text>
+                  <ScrollView style={styles.addItemList}>
+                    {combinedData.map((item) => (
+                      <View key={`${item.type}-${item.id}`}>{renderAddItem({ item })}</View>
+                    ))}
+                  </ScrollView>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => setAddItemModalVisible(false)}
+                  >
+                    <Text style={styles.modalButtonText}>Закрыть</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
+          </>
+        )}
+        {!budget && ( // Если бюджет не задан, показываем только сообщение
+          <Text style={styles.emptyText}>Пожалуйста, задайте бюджет для отображения записей</Text>
+        )}
       </>
     );
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Планировщик бюджета</Text>
      
       </View>
       {renderContent()}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -497,18 +559,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    padding: 16,
+
+    // marginBottom: 50,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
   },
   headerTitle: {
+    padding: 16,
     fontSize: 24,
     fontWeight: '700',
     color: COLORS.textPrimary,
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 20,
@@ -614,7 +679,7 @@ const styles = StyleSheet.create({
     width: '85%',
     backgroundColor: COLORS.card,
     borderRadius: 16,
-    padding: 24,
+    padding: 40,
     alignItems: 'center',
   },
   addModalContent: {
@@ -628,7 +693,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     color: COLORS.textPrimary,
-    marginBottom: 16,
+    marginBottom: 40,
     textAlign: 'center',
   },
   budgetInput: {
@@ -647,10 +712,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     width: '100%',
+    height:'60'
   },
   modalButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 0,
     borderRadius: 10,
     alignItems: 'center',
   },
