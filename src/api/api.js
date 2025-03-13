@@ -95,4 +95,7 @@ export default {
         // Алкоголь
         getAllAlcohol: () => api.get('/api/alcohol'),
         deleteAlcohol: (id) => api.delete(`/api/alcohol/${id}`),
+
+
+
 };
