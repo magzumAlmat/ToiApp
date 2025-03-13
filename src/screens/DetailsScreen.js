@@ -38,6 +38,7 @@ const DetailsScreen = ({ route }) => {
       const response = await axios.get(
         `${BASE_URL}/api/${item.type}/${item.id}/files`
       );
+      console.log('RD',response.data)
       setFiles(response.data);
     } catch (err) {
       setError("Ошибка загрузки файлов: " + err.message);
@@ -52,6 +53,7 @@ const DetailsScreen = ({ route }) => {
 
   const renderFileItem = ({ item: file }) => {
     const fileUrl = `${BASE_URL}/${file.path}`;
+    console.log('fileUrl',fileUrl)
 
     if (file.mimetype.startsWith("image/")) {
       return (
