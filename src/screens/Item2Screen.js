@@ -20,10 +20,10 @@ export default function Item2Screen({ navigation }) {
   console.log('Received restaurant ID:', restaurantId);
   const { user, token } = useSelector((state) => state.auth);
 
-  const BASE_URL = "http://10.0.2.2:6666"; // Для Android эмулятора
+  const BASE_URL = "http://localhost:6666"; // Для Android эмулятора
 
   const items = [
-    'Ресторан', 'Одежда', 'Транспорт', 'Тамада', 'Программа',
+    'restaurant', 'Одежда', 'Транспорт', 'Тамада', 'Программа',
     'Традиционные подарки', 'Цветы', 'Торты', 'Алкоголь',
   ];
 
@@ -89,9 +89,9 @@ export default function Item2Screen({ navigation }) {
         name: file.uri.split('/').pop(),
       });
 
+
       try {
-        const response = await axios.post(
-          `${BASE_URL}/api/${entityTypeLower}/${entityId}/files`,
+        const response = await axios.post(`${BASE_URL}/api/${entityTypeLower}/${entityId}/files`,
           formData,
           {
             headers: {
@@ -101,6 +101,7 @@ export default function Item2Screen({ navigation }) {
           }
         );
         console.log(`File ${file.uri} uploaded successfully:`, response.data);
+        
       } catch (error) {
         console.error('File upload error:', error.response?.data || error.message);
         throw new Error('Ошибка загрузки файла');
@@ -126,7 +127,7 @@ export default function Item2Screen({ navigation }) {
       let entityTypeLower;
 
       switch (selectedItem) {
-        case 'Ресторан':
+        case 'restaurant':
           console.log('Form data before submission:', formData);
           console.log('Types in formData:', Object.keys(formData).map(key => `${key}: ${typeof formData[key]}`));
 
@@ -213,7 +214,7 @@ export default function Item2Screen({ navigation }) {
 
   const renderForm = () => {
     switch (selectedItem) {
-      case 'Ресторан':
+      case 'restaurant':
         return (
           <>
             <TextInput style={styles.input} placeholder="Название" value={formData.name || ''} onChangeText={(value) => handleInputChange('name', value)} />
