@@ -7,188 +7,240 @@ import {
   Image,
   ActivityIndicator,
   TouchableOpacity,
-  Button,
+  Modal,
+  ScrollView,
 } from "react-native";
-import { Video } from "expo-av"; // Импортируем Video из expo-av
+import { Video } from "expo-av";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
+import {
+  Card,
+  Button as PaperButton,
+  Appbar,
+  Caption,
+  Title,
+  Paragraph,
+} from "react-native-paper";
 
 const DetailsScreen = ({ route }) => {
   const { item } = route.params;
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null); // Для хранения выбранного изображения
   const navigation = useNavigation();
 
   const BASE_URL = "http://localhost:6666"; // Замените на ваш реальный IP-адрес сервера
 
   const fetchFiles = async () => {
     console.log("Starting fetchFiles...");
-    console.log(`Item type: ${item.type}, Item ID: ${item.id}`);
-    console.log(`Request URL: ${BASE_URL}/api/${item.type}/${item.id}/files`);
-
     try {
       const response = await axios.get(
         `${BASE_URL}/api/${item.type}/${item.id}/files`
       );
-      console.log("Fetch successful. Response status:", response.status);
-      console.log("Response data:", JSON.stringify(response.data, null, 2));
       setFiles(response.data);
     } catch (err) {
-      console.error("Fetch error:", err.message);
-      console.error("Error details:", err.response ? err.response.data : err);
       setError("Ошибка загрузки файлов: " + err.message);
     } finally {
-      console.log("Fetch completed. Loading set to false.");
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    console.log("useEffect triggered. Fetching files...");
     fetchFiles();
   }, []);
 
   const renderFileItem = ({ item: file }) => {
     const fileUrl = `${BASE_URL}/${file.path}`;
-    console.log(`Rendering file: ${file.id}`);
-    console.log(`File name: ${file.name}, MIME type: ${file.mimetype}`);
-    console.log(`File URL: ${fileUrl}`);
 
     if (file.mimetype.startsWith("image/")) {
-      console.log("Rendering as image...");
       return (
-        <Image
-          source={{ uri: fileUrl }}
-          style={styles.media}
-          resizeMode="cover"
-          onError={(e) => console.log("Image load error:", e.nativeEvent.error)}
-          onLoad={() => console.log(`Image loaded: ${fileUrl}`)}
-        />
+        <Card style={styles.card}>
+          <TouchableOpacity onPress={() => setSelectedImage(fileUrl)}>
+            <Image source={{ uri: fileUrl }} style={styles.media} />
+          </TouchableOpacity>
+          <Card.Content>
+            <Caption style={styles.caption}>{file.name}</Caption>
+          </Card.Content>
+        </Card>
       );
     } else if (file.mimetype === "video/mp4") {
-      console.log("Rendering as video...");
       return (
-        <View style={styles.videoContainer}>
+        <Card style={styles.card}>
           <Video
             source={{ uri: fileUrl }}
             style={styles.video}
             useNativeControls
             resizeMode="contain"
             isLooping
-            onError={(e) => console.log("Video load error:", e)}
-            onLoad={() => console.log(`Video loaded: ${fileUrl}`)}
-            onPlaybackStatusUpdate={(status) =>
-              console.log("Video playback status:", status)
-            }
           />
-        </View>
+          <Card.Content>
+            <Caption style={styles.caption}>{file.name}</Caption>
+          </Card.Content>
+        </Card>
       );
     } else {
-      console.log("Unsupported file type.");
-      return <Text style={styles.detail}>Неподдерживаемый формат: {file.mimetype}</Text>;
+      return (
+        <Card style={styles.card}>
+          <Card.Content>
+            <Paragraph>Неподдерживаемый формат: {file.mimetype}</Paragraph>
+          </Card.Content>
+        </Card>
+      );
     }
   };
 
-  console.log("Rendering DetailsScreen...");
-  console.log(`Current state - Loading: ${loading}, Error: ${error}, Files: ${files.length}`);
-
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => {
-          console.log("Back button pressed.");
-          navigation.goBack();
-        }}
-      >
-        <Text style={styles.backButtonText}>Назад</Text>
-      </TouchableOpacity>
+      {/* Header */}
+      <Appbar.Header style={styles.header}>
+        <Appbar.BackAction onPress={() => navigation.goBack()} />
+        <Appbar.Content title="Детали" />
+      </Appbar.Header>
 
-      <Text style={styles.title}>{item.name || "Без названия"}</Text>
-      <Text style={styles.detail}>Тип: {item.type}</Text>
-      <Text style={styles.detail}>
-        Стоимость: {(item.cost || item.averageCost || 0)} ₸
-      </Text>
+      {/* Main Content */}
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Item Details */}
+        <Card style={styles.itemCard}>
+          <Card.Cover source={{ uri: `${BASE_URL}/${files[0]?.path}` }} />
+          <Card.Content>
+            <Title style={styles.title}>{item.name || "Без названия"}</Title>
+            <Paragraph style={styles.detail}>Тип: {item.type}</Paragraph>
+            <Paragraph style={styles.detail}>
+              Стоимость: {(item.cost || item.averageCost || 0)} ₸
+            </Paragraph>
+            {item.type === "restaurant" && (
+              <>
+                <Paragraph style={styles.detail}>
+                  Вместимость: {item.capacity}
+                </Paragraph>
+                <Paragraph style={styles.detail}>Кухня: {item.cuisine}</Paragraph>
+                <Paragraph style={styles.detail}>Адрес: {item.address}</Paragraph>
+                <Paragraph style={styles.detail}>Телефон: {item.phone}</Paragraph>
+                <Paragraph style={styles.detail}>Район: {item.district}</Paragraph>
+              </>
+            )}
+          </Card.Content>
+        </Card>
 
-      {item.type === "restaurant" && (
-        <>
-          <Text style={styles.detail}>Вместимость: {item.capacity}</Text>
-          <Text style={styles.detail}>Кухня: {item.cuisine}</Text>
-          <Text style={styles.detail}>Адрес: {item.address}</Text>
-          <Text style={styles.detail}>Телефон: {item.phone}</Text>
-          <Text style={styles.detail}>Район: {item.district}</Text>
-        </>
-      )}
-      {item.type === "clothing" && (
-        <>
-          <Text style={styles.detail}>Магазин: {item.storeName}</Text>
-          <Text style={styles.detail}>Адрес: {item.address}</Text>
-          <Text style={styles.detail}>Телефон: {item.phone}</Text>
-          <Text style={styles.detail}>Район: {item.district}</Text>
-          <Text style={styles.detail}>Пол: {item.gender}</Text>
-          <Text style={styles.detail}>Название товара: {item.itemName}</Text>
-        </>
-      )}
+        {/* Media Section */}
+        <View style={styles.mediaSection}>
+          <Title style={styles.subtitle}>Фото и видео:</Title>
+          {loading ? (
+            <ActivityIndicator size="large" color="#007AFF" />
+          ) : error ? (
+            <Text style={styles.error}>{error}</Text>
+          ) : files.length > 0 ? (
+            <FlatList
+              data={files}
+              renderItem={renderFileItem}
+              keyExtractor={(file) => file.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.mediaList}
+            />
+          ) : (
+            <Paragraph style={styles.detail}>Файлы отсутствуют</Paragraph>
+          )}
+        </View>
+      </ScrollView>
 
-      <Text style={styles.subtitle}>Фото и видео:</Text>
-      {loading ? (
-        <ActivityIndicator size="large" color="#007AFF" />
-      ) : error ? (
-        <Text style={styles.error}>{error}</Text>
-      ) : files.length > 0 ? (
-        <FlatList
-          data={files}
-          renderItem={renderFileItem}
-          keyExtractor={(file) => {
-            console.log(`Key extractor for file: ${file.id}`);
-            return file.id;
-          }}
-          horizontal
-          style={styles.mediaList}
-        />
-      ) : (
-        <Text style={styles.detail}>Файлы отсутствуют</Text>
-      )}
+      {/* Modal for Zoomed Image */}
+      <Modal visible={!!selectedImage} transparent={true} onRequestClose={() => setSelectedImage(null)}>
+        <View style={styles.modalContainer}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setSelectedImage(null)}
+          >
+            <Text style={styles.closeButtonText}>Закрыть</Text>
+          </TouchableOpacity>
+          <Image source={{ uri: selectedImage }} style={styles.fullscreenImage} />
+        </View>
+      </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  backButton: {
+  container: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+  },
+  header: {
     backgroundColor: "#007AFF",
-    padding: 10,
-    borderRadius: 5,
-    alignSelf: "flex-start",
-    marginBottom: 20,
   },
-  backButtonText: {
-    color: "#fff",
-    fontSize: 16,
+  scrollContent: {
+    flexGrow: 1,
+    padding: 16,
+  },
+  itemCard: {
+    marginBottom: 16,
+    elevation: 2,
+  },
+  mediaSection: {
+    marginTop: 16,
+  },
+  subtitle: {
+    fontSize: 18,
     fontWeight: "bold",
+    marginBottom: 8,
   },
-  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
-  subtitle: { fontSize: 18, fontWeight: "bold", marginVertical: 10 },
-  detail: { fontSize: 16, marginBottom: 10 },
-  mediaList: { marginTop: 10 },
-  media: {
+  card: {
     width: 200,
-    height: 200,
-    marginRight: 10,
-    borderRadius: 5,
-  },
-  error: { fontSize: 16, color: "red", marginTop: 10 },
-  videoContainer: {
-    width: 200,
-    height: 200,
-    marginRight: 10,
-    borderRadius: 5,
+    marginRight: 16,
+    borderRadius: 8,
     overflow: "hidden",
+    backgroundColor: "#fff",
+  },
+  media: {
+    width: "100%",
+    height: 200,
   },
   video: {
     width: "100%",
+    height: 200,
+  },
+  caption: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 4,
+  },
+  detail: {
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 4,
+  },
+  error: {
+    fontSize: 16,
+    color: "red",
+    marginTop: 10,
+  },
+  mediaList: {
+    paddingHorizontal: 8,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  closeButton: {
+    position: "absolute",
+    top: 40,
+    right: 20,
+    backgroundColor: "#fff",
+    padding: 10,
+    borderRadius: 5,
+    zIndex: 1,
+  },
+  closeButtonText: {
+    color: "#007AFF",
+    fontWeight: "bold",
+  },
+  fullscreenImage: {
+    width: "100%",
     height: "100%",
+    resizeMode: "contain",
   },
 });
 
