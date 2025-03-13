@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { startLoading, setError, loginSuccess } from '../store/authSlice';
+import { startLoading, setError, loginSuccess, logout } from '../store/authSlice';
 import api from '../api/api';
-import { logout } from '../store/authSlice';
+import * as SecureStore from 'expo-secure-store';
+
 export default function Item4Screen({ navigation }) {
   const dispatch = useDispatch();
   const { user, token, loading, error } = useSelector((state) => state.auth);
@@ -22,10 +23,10 @@ export default function Item4Screen({ navigation }) {
         navigation.navigate('Login');
         return;
       }
-      if (!user || !user.phone) { // Если данных нет или они неполные
+      if (!user || !user.phone) {
         dispatch(startLoading());
         try {
-          const response = await api.getProfile(token); // Предполагаемый эндпоинт для получения профиля
+          const response = await api.getProfile(token); // Предполагаемый эндпоинт
           dispatch(loginSuccess({ user: response.data, token }));
         } catch (err) {
           dispatch(setError(err.response?.data?.message || 'Ошибка загрузки профиля'));
@@ -39,7 +40,7 @@ export default function Item4Screen({ navigation }) {
   // Заполнение формы текущими данными пользователя
   useEffect(() => {
     if (user) {
-      setPassword(''); // Пароль обычно не заполняется из соображений безопасности
+      setPassword(''); // Пароль не заполняется
       setPhone(user.phone || '');
       setName(user.name || '');
       setLastname(user.lastname || '');
@@ -72,9 +73,19 @@ export default function Item4Screen({ navigation }) {
     }
   };
 
-    const handleLogout = async() => {
-      await dispatch(logout());
-    };
+  const handleLogout = async () => {
+    try {
+      dispatch(startLoading()); // Устанавливаем состояние загрузки
+      await SecureStore.deleteItemAsync('token'); // Удаляем токен асинхронно
+      console.log('Token removed from SecureStore');
+      dispatch(logout()); // Обновляем состояние в Redux
+      navigation.navigate('Login'); // Перенаправляем на экран логина
+    } catch (error) {
+      console.error('Logout error:', error);
+      dispatch(setError('Ошибка при выходе'));
+      Alert.alert('Ошибка', 'Не удалось выйти из аккаунта');
+    }
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -84,8 +95,6 @@ export default function Item4Screen({ navigation }) {
         {user ? (
           <>
             <Text style={styles.label}>Email: {user.email}</Text>
-           
-          
             <TextInput
               style={styles.input}
               placeholder="Имя"
@@ -98,21 +107,25 @@ export default function Item4Screen({ navigation }) {
               value={lastname}
               onChangeText={setLastname}
             />
-              <TextInput
+            <TextInput
               style={styles.input}
               placeholder="Телефон"
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
             />
-          
             {error && <Text style={styles.error}>{error}</Text>}
             <Button
               title={loading ? 'Сохранение...' : 'Сохранить изменения'}
               onPress={handleUpdateProfile}
               disabled={loading}
             />
-             <Button title="Выйти" onPress={handleLogout} />
+            <Button
+              title={loading ? 'Выход...' : 'Выйти'}
+              onPress={handleLogout}
+              disabled={loading}
+              color="#FF6F61" // Опционально: цвет кнопки выхода
+            />
           </>
         ) : (
           <Text style={styles.text}>Данные пользователя недоступны</Text>

@@ -11,18 +11,28 @@ export default function LoginScreen({ navigation }) {
   const dispatch = useDispatch();
   const { loading, error, token } = useSelector((state) => state.auth);
 
-  // Проверка токена при загрузке и получение данных пользователя
+  // Обработка логина
   const handleLogin = async () => {
     dispatch(startLoading());
     console.log('Login attempt:', { email, password });
     try {
       const loginResponse = await api.login({ email, password });
-      console.log('Login response (full):', JSON.stringify(loginResponse.data, null, 2));
-      await SecureStore.setItemAsync('token', loginResponse.data.token);
-      const userResponse = await api.getUser(); // Запрашиваем данные пользователя
-      console.log('Get user response:', userResponse.data);
+      console.log('Login response:', JSON.stringify(loginResponse.data, null, 2));
+      const authToken = loginResponse.data.token;
 
-      dispatch(loginSuccess({ user: userResponse.data, token: loginResponse.data.token }));
+      // Сохраняем токен
+      await SecureStore.setItemAsync('token', authToken);
+      console.log('Token saved to SecureStore:', authToken);
+
+      // Устанавливаем токен в api для последующих запросов
+      api.setToken(authToken);
+
+      // Получаем данные пользователя
+      const userResponse = await api.getUser();
+      console.log('Get user response:', JSON.stringify(userResponse.data, null, 2));
+
+      // Сохраняем в Redux
+      dispatch(loginSuccess({ user: userResponse.data, token: authToken }));
       navigation.navigate('Authenticated');
     } catch (error) {
       console.error('Login error:', error.response?.data || error.message);
@@ -30,28 +40,41 @@ export default function LoginScreen({ navigation }) {
       Alert.alert('Ошибка', error.response?.data?.error || 'Не удалось войти');
     }
   };
+
+  // Проверка токена при загрузке компонента
   useEffect(() => {
     const checkToken = async () => {
+      console.log('Checking stored token...');
       dispatch(setLoading(true));
-      const storedToken = await SecureStore.getItemAsync('token');
-      console.log('Stored token:', storedToken);
-      if (storedToken && !token) { // Проверяем только если token ещё не в сторе
-        try {
-          const response = await api.getUser();
-          console.log('Get user response:', response.data);
-          dispatch(loginSuccess({ user: response.data.user, token: storedToken }));
+      try {
+        const storedToken = await SecureStore.getItemAsync('token');
+        console.log('Stored token found:', storedToken);
+
+        if (storedToken) {
+          // Устанавливаем токен в api
+          api.setToken(storedToken);
+
+          // Проверяем валидность токена через запрос пользователя
+          const userResponse = await api.getUser();
+          console.log('User data from token:', JSON.stringify(userResponse.data, null, 2));
+
+          dispatch(loginSuccess({ user: userResponse.data, token: storedToken }));
           navigation.navigate('Authenticated');
-        } catch (err) {
-          console.error('Token check error:', err.response?.data || err.message);
-          dispatch(setError('Невалидный токен или ошибка сервера'));
-          await SecureStore.deleteItemAsync('token');
-          navigation.navigate('Login');
+        } else {
+          console.log('No token found, staying on Login screen');
         }
+      } catch (err) {
+        console.error('Token validation error:', err.response?.data || err.message);
+        dispatch(setError('Невалидный токен или ошибка сервера'));
+        await SecureStore.deleteItemAsync('token');
+        console.log('Token removed from SecureStore due to invalidity');
+      } finally {
+        dispatch(setLoading(false));
       }
-      dispatch(setLoading(false));
     };
+
     checkToken();
-  }, [dispatch, navigation, token]);
+  }, [dispatch, navigation]); // Убрал token из зависимостей, чтобы избежать лишних вызовов
 
   return (
     <View style={styles.container}>
@@ -71,8 +94,15 @@ export default function LoginScreen({ navigation }) {
         secureTextEntry
       />
       {error && <Text style={styles.error}>{error}</Text>}
-      <Button title={loading ? 'Загрузка...' : 'Войти'} onPress={handleLogin} disabled={loading} />
-      <Button title="Нет аккаунта? Зарегистрироваться" onPress={() => navigation.navigate('Register')} />
+      <Button
+        title={ 'Войти'}
+        onPress={handleLogin}
+       
+      />
+      <Button
+        title="Нет аккаунта? Зарегистрироваться"
+        onPress={() => navigation.navigate('Register')}
+      />
     </View>
   );
 }

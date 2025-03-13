@@ -26,6 +26,10 @@ export default {
   //login: (credentials) => api.post('/api/auth/getAuthentificatedUserInfo', credentials), // Предполагаемый эндпоинт для логина
   login: (credentials) => api.post('/api/auth/login', credentials), // Предполагаемый эндпоинт для логина
   getUser: (token) => api.get('/api/auth/getAuthentificatedUserInfo', { headers: { Authorization: `Bearer ${token}` } }),
+  setToken: (token) => {
+    // Устанавливаем заголовок Authorization для всех будущих запросов
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  },
   updateProfile: (data, token) =>
     api.post('/api/auth/addfullprofile', data, {
       headers: { Authorization: `Bearer ${token}` },

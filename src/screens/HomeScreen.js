@@ -486,9 +486,7 @@ export default function HomeScreen({ navigation }) {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Планировщик бюджета</Text>
-        <TouchableOpacity onPress={handleLogout}>
-          <Icon name="logout" size={24} color={COLORS.primary} />
-        </TouchableOpacity>
+     
       </View>
       {renderContent()}
     </View>
