@@ -107,9 +107,9 @@ export default function RegisterScreen({ navigation }) {
 
       {error && <Text style={styles.error}>{error}</Text>}
       <Button
-        title={loading ? 'Загрузка...' : 'Зарегистрироваться'}
+        title={'Зарегистрироваться'}
         onPress={handleRegister}
-        disabled={loading}
+        // disabled={loading}
       />
       <Button title="Уже есть аккаунт? Войти" onPress={() => navigation.navigate('Login')} />
     </View>
