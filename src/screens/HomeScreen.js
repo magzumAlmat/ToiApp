@@ -6,7 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   Modal,
-  TextInput,
+  TextInput,ScrollView
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/authSlice';
@@ -150,27 +150,42 @@ export default function HomeScreen({ navigation }) {
 
   // Обновление количества и пересчёт общей стоимости
   const handleQuantityChange = (itemKey, value) => {
-    const quantity = value === '' ? 0 : parseFloat(value);
-    if (isNaN(quantity) || quantity < 0) return;
-
+    // Always update the quantities state with the raw input
     setQuantities((prev) => ({ ...prev, [itemKey]: value }));
-
-    const updatedFilteredData = filteredData.map((item) => {
-      const key = `${item.type}-${item.id}`;
-      if (key === itemKey) {
-        const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
-        const totalCost = cost * quantity;
-        return { ...item, totalCost };
-      }
-      return item;
-    });
-
-    setFilteredData(updatedFilteredData);
-
-    const totalSpent = updatedFilteredData.reduce((sum, item) => sum + (item.totalCost || 0), 0);
+  
+    // Convert input value to a number for calculations, treat empty string as 0
+    const quantity = value === '' ? 0 : parseFloat(value);
+  
+    // Only proceed with calculations if quantity is valid and within range
+    if (isNaN(quantity) || quantity > 1000) {
+      // If invalid, reset totalCost to 0 for this item
+      const updatedFilteredData = filteredData.map((item) => {
+        const key = `${item.type}-${item.id}`;
+        if (key === itemKey) {
+          return { ...item, totalCost: 0 };
+        }
+        return item;
+      });
+      setFilteredData(updatedFilteredData);
+    } else {
+      // Update filteredData with the new totalCost
+      const updatedFilteredData = filteredData.map((item) => {
+        const key = `${item.type}-${item.id}`;
+        if (key === itemKey) {
+          const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
+          const totalCost = cost * quantity;
+          return { ...item, totalCost };
+        }
+        return item;
+      });
+      setFilteredData(updatedFilteredData);
+    }
+  
+    // Recalculate total spent and remaining budget
+    const totalSpent = filteredData.reduce((sum, item) => sum + (item.totalCost || 0), 0);
     setRemainingBudget(parseFloat(budget) - totalSpent);
   };
-
+  
   const renderItem = ({ item }) => {
     const itemKey = `${item.type}-${item.id}`;
     const quantity = quantities[itemKey] || '1';
@@ -182,6 +197,8 @@ export default function HomeScreen({ navigation }) {
       case 'restaurant':
         content = (
           <>
+          <ScrollView>
+          <Text style={styles.itemText}>{item.type}</Text>
             <Text style={styles.itemText}>{item.name}</Text>
             <Text style={styles.itemDetail}>Вместимость: {item.capacity}</Text>
             <Text style={styles.itemDetail}>Кухня: {item.cuisine}</Text>
@@ -189,6 +206,7 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.itemDetail}>Адрес: {item.address || 'Не указан'}</Text>
             <Text style={styles.itemDetail}>Телефон: {item.phone || 'Не указан'}</Text>
             <Text style={styles.itemDetail}>Район: {item.district || 'Не указан'}</Text>
+            </ScrollView>
           </>
         );
         break;
@@ -229,7 +247,7 @@ export default function HomeScreen({ navigation }) {
           <TextInput
             style={styles.quantityInput}
             placeholder="Количество"
-            value={quantity}
+            value={quantities[itemKey] || ''} // Use the specific item's quantity from state
             onChangeText={(value) => handleQuantityChange(itemKey, value)}
             keyboardType="numeric"
           />
@@ -297,22 +315,20 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.subtitle}>Рекомендации в рамках бюджета ({budget} ₸):</Text>
           <Text style={styles.text}>Остаток бюджета: {remainingBudget} ₸</Text>
           <View style={styles.itemContainer}>
-            {loading ? (
-              <Text style={styles.text}>Загрузка...</Text>
-            ) : filteredData.length > 0 ? (
-              <>
-                <FlatList
-                  data={filteredData}
-                  renderItem={renderItem}
-                  keyExtractor={(item) => `${item.type}-${item.id}`}
-                  style={styles.itemList}
-                />
-               
-              </>
-            ) : (
-              <Text style={styles.text}>Введите бюджет для получения рекомендаций</Text>
-            )}
-          </View>
+          {loading ? (
+            <Text style={styles.text}>Загрузка...</Text>
+          ) : filteredData.length > 0 ? (
+            <FlatList
+              data={filteredData}
+              renderItem={renderItem}
+              keyExtractor={(item) => `${item.type}-${item.id}`}
+              style={styles.itemList}
+            />
+           
+          ) : (
+            <Text style={styles.text}>Введите бюджет для получения рекомендаций</Text>
+          )}
+        </View>
         </>
       );
     } else {
@@ -370,6 +386,7 @@ const styles = StyleSheet.create({
   itemList: {
     flex: 1,
     width: '100%',
+    height:'400'
   },
   itemContainer: {
     flexDirection: 'row',
