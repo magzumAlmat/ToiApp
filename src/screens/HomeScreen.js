@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
+  ScrollView,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/authSlice';
@@ -23,7 +24,7 @@ const COLORS = {
   textSecondary: '#718096',
   accent: '#FBBF24',
   shadow: 'rgba(0, 0, 0, 0.1)',
-  error: '#FF0000', // Добавлен красный цвет для отрицательного остатка
+  error: '#FF0000',
 };
 
 export default function HomeScreen({ navigation }) {
@@ -46,6 +47,7 @@ export default function HomeScreen({ navigation }) {
   const [budget, setBudget] = useState('');
   const [budgetModalVisible, setBudgetModalVisible] = useState(false);
   const [remainingBudget, setRemainingBudget] = useState(0);
+  const [addItemModalVisible, setAddItemModalVisible] = useState(false);
 
   const fetchData = async () => {
     if (!token || !user?.id) return;
@@ -63,16 +65,6 @@ export default function HomeScreen({ navigation }) {
         api.getAllTransport(),
       ]);
       const userData = responses.map((response) => response.data);
-
-      console.log('Restaurants:', userData[0]);
-      console.log('Clothing:', userData[1]);
-      console.log('Tamada:', userData[2]);
-      console.log('Programs:', userData[3]);
-      console.log('TraditionalGifts:', userData[4]);
-      console.log('Flowers:', userData[5]);
-      console.log('Cakes:', userData[6]);
-      console.log('Alcohol:', userData[7]);
-      console.log('Transport:', userData[8]);
 
       const newData = {
         restaurants: userData[0] || [],
@@ -156,7 +148,6 @@ export default function HomeScreen({ navigation }) {
     setQuantities((prev) => ({ ...prev, [itemKey]: value }));
     const quantity = value === '' ? 0 : parseFloat(value);
 
-    // Обновляем filteredData с новым totalCost
     const updatedFilteredData = filteredData.map((item) => {
       const key = `${item.type}-${item.id}`;
       if (key === itemKey) {
@@ -168,10 +159,17 @@ export default function HomeScreen({ navigation }) {
     });
     setFilteredData(updatedFilteredData);
 
-    // Пересчитываем общую сумму и остаток
     const totalSpent = updatedFilteredData.reduce((sum, item) => sum + (item.totalCost || 0), 0);
-    const newRemainingBudget = parseFloat(budget) - totalSpent;
-    setRemainingBudget(newRemainingBudget);
+    setRemainingBudget(parseFloat(budget) - totalSpent);
+  };
+
+  const handleAddItem = (item) => {
+    const newItem = { ...item, totalCost: item.type === 'restaurant' ? item.averageCost : item.cost };
+    setFilteredData((prev) => [...prev, newItem]);
+    setQuantities((prev) => ({ ...prev, [`${item.type}-${item.id}`]: '1' }));
+    const totalSpent = [...filteredData, newItem].reduce((sum, item) => sum + (item.totalCost || 0), 0);
+    setRemainingBudget(parseFloat(budget) - totalSpent);
+    setAddItemModalVisible(false);
   };
 
   const renderItem = ({ item }) => {
@@ -319,6 +317,55 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
+  const renderAddItem = ({ item }) => {
+    const isSelected = filteredData.some(
+      (selectedItem) => `${selectedItem.type}-${selectedItem.id}` === `${item.type}-${item.id}`
+    );
+    if (isSelected) return null;
+
+    let title;
+    switch (item.type) {
+      case 'restaurant':
+        title = `Ресторан: ${item.name} (${item.averageCost} ₸)`;
+        break;
+      case 'clothing':
+        title = `Одежда: ${item.storeName} -ВАШ - ${item.itemName} (${item.cost} ₸)`;
+        break;
+      case 'flowers':
+        title = `Цветы: ${item.salonName} - ${item.flowerName} (${item.cost} ₸)`;
+        break;
+      case 'cake':
+        title = `Торты: ${item.name} (${item.cost} ₸)`;
+        break;
+      case 'alcohol':
+        title = `Алгоколь: ${item.salonName} - ${item.alcoholName} (${item.cost} ₸)`;
+        break;
+      case 'program':
+        title = `Программа: ${item.teamName} (${item.cost} ₸)`;
+        break;
+      case 'tamada':
+        title = `Тамада: ${item.name} (${item.cost} ₸)`;
+        break;
+      case 'traditionalGift':
+        title = `Традиц. подарки: ${item.salonName} - ${item.itemName} (${item.cost} ₸)`;
+        break;
+      case 'transport':
+        title = `Транспорт: ${item.salonName} - ${item.carName} (${item.cost} ₸)`;
+        break;
+      default:
+        title = 'Неизвестный элемент';
+    }
+
+    return (
+      <TouchableOpacity
+        style={styles.addItemCard}
+        onPress={() => handleAddItem(item)}
+      >
+        <Text style={styles.addItemText}>{title}</Text>
+      </TouchableOpacity>
+    );
+  };
+
   const renderContent = () => {
     const combinedData = [
       ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
@@ -383,12 +430,20 @@ export default function HomeScreen({ navigation }) {
         {loading ? (
           <Text style={styles.loadingText}>Загрузка...</Text>
         ) : filteredData.length > 0 ? (
-          <FlatList
-            data={filteredData}
-            renderItem={renderItem}
-            keyExtractor={(item) => `${item.type}-${item.id}`}
-            style={styles.list}
-          />
+          <>
+            <FlatList
+              data={filteredData}
+              renderItem={renderItem}
+              keyExtractor={(item) => `${item.type}-${item.id}`}
+              style={styles.list}
+            />
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => setAddItemModalVisible(true)}
+            >
+              <Text style={styles.addButtonText}>Добавить еще</Text>
+            </TouchableOpacity>
+          </>
         ) : combinedData.length > 0 ? (
           <FlatList
             data={combinedData}
@@ -399,6 +454,30 @@ export default function HomeScreen({ navigation }) {
         ) : (
           <Text style={styles.emptyText}>Нет данных для отображения</Text>
         )}
+        <Modal
+          visible={addItemModalVisible}
+          transparent={true}
+          animationType="slide"
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.addModalContent}>
+              <Text style={styles.modalTitle}>Добавить элемент</Text>
+              <ScrollView style={styles.addItemList}>
+                {combinedData.map((item) => (
+                  <View key={`${item.type}-${item.id}`}>
+                    {renderAddItem({ item })}
+                  </View>
+                ))}
+              </ScrollView>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setAddItemModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Закрыть</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </>
     );
   };
@@ -441,11 +520,11 @@ const styles = StyleSheet.create({
   },
   budgetInfo: {
     fontSize: 16,
-    color: COLORS.accent,
+    color:'#0000000',
     marginBottom: 16,
   },
   budgetError: {
-    color: COLORS.error, // Красный цвет для отрицательного остатка
+    color: COLORS.error,
   },
   list: {
     flex: 1,
@@ -494,7 +573,7 @@ const styles = StyleSheet.create({
   totalCost: {
     fontSize: 14,
     fontWeight: '500',
-    color: COLORS.accent,
+    color: '#0000000',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -515,6 +594,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
+  addButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  addButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
@@ -528,11 +619,19 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
   },
+  addModalContent: {
+    width: '90%',
+    height: '80%',
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 24,
+  },
   modalTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: COLORS.textPrimary,
     marginBottom: 16,
+    textAlign: 'center',
   },
   budgetInput: {
     width: '100%',
@@ -564,9 +663,27 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   modalButtonText: {
+    marginTop:"20",
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  addItemList: {
+    flex: 1,
+    marginBottom: 20,
+    height:'200',
+  },
+  addItemCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.textSecondary,
+  },
+  addItemText: {
+    fontSize: 16,
+    color: COLORS.textPrimary,
   },
   loadingText: {
     fontSize: 16,
