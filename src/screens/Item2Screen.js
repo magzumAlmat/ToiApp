@@ -22,10 +22,24 @@ export default function Item2Screen({ navigation }) {
 
   const BASE_URL = "http://localhost:6666"; // Для Android эмулятора
 
+  // Обновлённый массив с русскими названиями
   const items = [
-    'restaurant', 'Одежда', 'Транспорт', 'Тамада', 'Программа',
+    'Ресторан', 'Одежда', 'Транспорт', 'Тамада', 'Программа',
     'Традиционные подарки', 'Цветы', 'Торты', 'Алкоголь',
   ];
+
+  // Маппинг русских названий на английские для URL и API
+  const entityTypeMap = {
+    'Ресторан': 'restaurant',
+    'Одежда': 'clothing',
+    'Транспорт': 'transport',
+    'Тамада': 'tamada',
+    'Программа': 'program',
+    'Традиционные подарки': 'traditionalgift',
+    'Цветы': 'flowers',
+    'Торты': 'cake',
+    'Алкоголь': 'alcohol',
+  };
 
   const cuisineOptions = ['Русская', 'Итальянская', 'Азиатская', 'Французская', 'Американская'];
   const districtOptions = ['Медеуский', 'Бостандыкский', 'Алмалинский', 'Ауэзовский', 'Наурызбайский', 'Алатауский', 'Жетысуйский', 'За пределами Алматы'];
@@ -76,7 +90,7 @@ export default function Item2Screen({ navigation }) {
   };
 
   const uploadFiles = async (entityType, entityId) => {
-    const entityTypeLower = entityType.toLowerCase().replace(' ', '');
+    const entityTypeLower = entityTypeMap[entityType]; // Преобразуем русское название в английское
     console.log('Starting file upload for:', entityTypeLower, 'ID:', entityId);
 
     for (const file of selectedFiles) {
@@ -89,9 +103,9 @@ export default function Item2Screen({ navigation }) {
         name: file.uri.split('/').pop(),
       });
 
-
       try {
-        const response = await axios.post(`${BASE_URL}/api/${entityTypeLower}/${entityId}/files`,
+        const response = await axios.post(
+          `${BASE_URL}/api/${entityTypeLower}/${entityId}/files`,
           formData,
           {
             headers: {
@@ -101,7 +115,6 @@ export default function Item2Screen({ navigation }) {
           }
         );
         console.log(`File ${file.uri} uploaded successfully:`, response.data);
-        
       } catch (error) {
         console.error('File upload error:', error.response?.data || error.message);
         throw new Error('Ошибка загрузки файла');
@@ -124,10 +137,9 @@ export default function Item2Screen({ navigation }) {
 
     try {
       let response;
-      let entityTypeLower;
 
       switch (selectedItem) {
-        case 'restaurant':
+        case 'Ресторан':
           console.log('Form data before submission:', formData);
           console.log('Types in formData:', Object.keys(formData).map(key => `${key}: ${typeof formData[key]}`));
 
@@ -137,8 +149,8 @@ export default function Item2Screen({ navigation }) {
 
           const restaurantData = {
             ...formData,
-            averageCost: parseFloat(formData.averageCost) || 0, // Преобразуем в число
-            supplier_id: user.id, // user.id — число
+            averageCost: parseFloat(formData.averageCost) || 0,
+            supplier_id: user.id,
           };
 
           console.log('restaurantData:', restaurantData);
@@ -146,51 +158,42 @@ export default function Item2Screen({ navigation }) {
 
           response = await api.createRestaurant(restaurantData);
           console.log('API response:', response);
-          entityTypeLower = 'restaurant';
           break;
 
         case 'Одежда':
           response = await api.createClothing({ ...formData, supplier_id: user.id });
-          entityTypeLower = 'clothing';
           break;
         case 'Транспорт':
           response = await api.createTransport({ ...formData, supplier_id: user.id });
-          entityTypeLower = 'transport';
           break;
         case 'Тамада':
           response = await api.createTamada({ ...formData, supplier_id: user.id });
-          entityTypeLower = 'tamada';
           break;
         case 'Программа':
           response = await api.createProgram({ ...formData, supplier_id: user.id });
-          entityTypeLower = 'program';
           break;
         case 'Традиционные подарки':
           response = await api.createTraditionalGift({ ...formData, supplier_id: user.id });
-          entityTypeLower = 'traditionalgift';
           break;
         case 'Цветы':
           response = await api.createFlowers({ ...formData, supplier_id: user.id });
-          entityTypeLower = 'flowers';
           break;
         case 'Торты':
           response = await api.createCake({ ...formData, supplier_id: user.id });
-          entityTypeLower = 'cake';
           break;
         case 'Алкоголь':
           response = await api.createAlcohol({ ...formData, supplier_id: user.id });
-          entityTypeLower = 'alcohol';
           break;
         default:
           throw new Error('Выберите тип объекта');
       }
 
-      const entityId = response.data.id; // Может быть INTEGER или UUID
+      const entityId = response.data.id;
       console.log('Entity ID:', entityId, 'Type:', typeof entityId);
 
       if (selectedFiles.length > 0) {
         console.log('Selected Files:', selectedFiles);
-        await uploadFiles(selectedItem, entityId);
+        await uploadFiles(selectedItem, entityId); // Передаём русское название
       }
 
       Alert.alert('Успех', `${selectedItem} успешно создан${selectedFiles.length > 0 ? ' с файлами' : ''}!`);
@@ -214,7 +217,7 @@ export default function Item2Screen({ navigation }) {
 
   const renderForm = () => {
     switch (selectedItem) {
-      case 'restaurant':
+      case 'Ресторан':
         return (
           <>
             <TextInput style={styles.input} placeholder="Название" value={formData.name || ''} onChangeText={(value) => handleInputChange('name', value)} />
