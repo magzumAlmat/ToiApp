@@ -1,2 +1,7 @@
 obeliks81@inbox.ru
 1
+
+
+
+npx expo start --tunnel
+заменя base_url
