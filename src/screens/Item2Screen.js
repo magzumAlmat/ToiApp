@@ -163,9 +163,18 @@ export default function Item2Screen({ navigation }) {
         case 'Одежда':
           response = await api.createClothing({ ...formData, supplier_id: user.id });
           break;
+
         case 'Транспорт':
-          response = await api.createTransport({ ...formData, supplier_id: user.id });
+          console.log('formdata= ',formData)
+          const transportData = {
+            ...formData,
+            cost: parseFloat(formData.cost) || 0,
+            supplier_id: user.id,
+          };
+          console.log('TD- ',transportData)
+          response = await api.createTransport(transportData);
           break;
+
         case 'Тамада':
           response = await api.createTamada({ ...formData, supplier_id: user.id });
           break;
@@ -270,7 +279,411 @@ export default function Item2Screen({ navigation }) {
             </Modal>
           </>
         );
-      default:
+        case 'Одежда':
+          return (
+            <>
+              <TextInput
+                style={styles.input}
+                placeholder="Наименование магазина"
+                value={formData.storeName || ''}
+                onChangeText={(value) => handleInputChange('storeName', value)}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Адрес"
+                value={formData.address || ''}
+                onChangeText={(value) => handleInputChange('address', value)}
+              />
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Телефон:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="+7 (XXX) XXX-XX-XX"
+                  value={formData.phone || ''}
+                  onChangeText={handlePhoneChange}
+                  keyboardType="phone-pad"
+                  maxLength={18}
+                />
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Район"
+                value={formData.district || ''}
+                onChangeText={(value) => handleInputChange('district', value)}
+              />
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Пол:</Text>
+                <TouchableOpacity
+                  style={styles.cuisineButton}
+                  onPress={() => setGenderModalVisible(true)}
+                >
+                  <Text style={styles.cuisineText}>
+                    {formData.gender || 'Выберите пол'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <Modal
+                visible={genderModalVisible}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setGenderModalVisible(false)}
+              >
+                <View style={styles.modalOverlay}>
+                  <View style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>Выберите пол</Text>
+                    <Picker
+                      selectedValue={formData.gender}
+                      onValueChange={(value) => {
+                        handleInputChange('gender', value);
+                        setGenderModalVisible(false);
+                      }}
+                      style={styles.modalPicker}
+                    >
+                      <Picker.Item label="Выберите пол" value="" />
+                      {genderOptions.map((option) => (
+                        <Picker.Item key={option} label={option} value={option} />
+                      ))}
+                    </Picker>
+                    <TouchableOpacity
+                      style={styles.closeButton}
+                      onPress={() => setGenderModalVisible(false)}
+                    >
+                      <Text style={styles.closeButtonText}>Закрыть</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Modal>
+              <TextInput
+                style={styles.input}
+                placeholder="Наименование товара"
+                value={formData.itemName || ''}
+                onChangeText={(value) => handleInputChange('itemName', value)}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Стоимость"
+                value={formData.cost || ''}
+                onChangeText={(value) => handleInputChange('cost', value)}
+                keyboardType="numeric"
+              />
+            </>
+          );
+          case 'Транспорт':
+            return (
+              <>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Наименование салона"
+                  value={formData.salonName || ''}
+                  onChangeText={(value) => handleInputChange('salonName', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Адрес"
+                  value={formData.address || ''}
+                  onChangeText={(value) => handleInputChange('address', value)}
+                />
+              <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Телефон:</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="+7 (XXX) XXX-XX-XX"
+                    value={formData.phone || ''}
+                    onChangeText={handlePhoneChange}
+                    keyboardType="phone-pad"
+                    maxLength={18}
+                  />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Район"
+                  value={formData.district || ''}
+                  onChangeText={(value) => handleInputChange('district', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Наименование авто"
+                  value={formData.carName || ''}
+                  onChangeText={(value) => handleInputChange('carName', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Цвет"
+                  value={formData.color || ''}
+                  onChangeText={(value) => handleInputChange('color', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Марка"
+                  value={formData.brand || ''}
+                  onChangeText={(value) => handleInputChange('brand', value)}
+                />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Стоимость"
+                        value={formData.cost || ''}
+                        onChangeText={(value) => handleInputChange('cost', value)}
+                        keyboardType="numeric"
+                      />
+              </>
+            );
+          case 'Тамада':
+            return (
+              <>
+                 <TextInput
+                style={styles.input}
+                placeholder="Имя/Псевдоним"
+                value={formData.name || ''}
+                onChangeText={(value) => handleInputChange('name', value)}
+              />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Портфолио"
+                  value={formData.portfolio || ''}
+                  onChangeText={(value) => handleInputChange('portfolio', value)}
+                  multiline
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Стоимость"
+                  value={formData.cost || ''}
+                  onChangeText={(value) => handleInputChange('cost', value)}
+                  keyboardType="numeric"
+                />
+              </>
+            );
+          case 'Программа':
+            return (
+              <>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Название команды"
+                  value={formData.teamName || ''}
+                  onChangeText={(value) => handleInputChange('teamName', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Стоимость"
+                  value={formData.cost || ''}
+                  onChangeText={(value) => handleInputChange('cost', value)}
+                  keyboardType="numeric"
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Вид"
+                  value={formData.type || ''}
+                  onChangeText={(value) => handleInputChange('type', value)}
+                />
+              </>
+            );
+          case 'Традиционные подарки':
+            return (
+              <>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Наименование салона"
+                  value={formData.salonName || ''}
+                  onChangeText={(value) => handleInputChange('salonName', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Адрес"
+                  value={formData.address || ''}
+                  onChangeText={(value) => handleInputChange('address', value)}
+                />
+                 <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Телефон:</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="+7 (XXX) XXX-XX-XX"
+                    value={formData.phone || ''}
+                    onChangeText={handlePhoneChange}
+                    keyboardType="phone-pad"
+                    maxLength={18}
+                  />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Район"
+                  value={formData.district || ''}
+                  onChangeText={(value) => handleInputChange('district', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Наименование товара"
+                  value={formData.itemName || ''}
+                  onChangeText={(value) => handleInputChange('itemName', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Вид"
+                  value={formData.type || ''}
+                  onChangeText={(value) => handleInputChange('type', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Стоимость"
+                  value={formData.cost || ''}
+                  onChangeText={(value) => handleInputChange('cost', value)}
+                  keyboardType="numeric"
+                />
+              </>
+            );
+          case 'Цветы':
+            return (
+              <>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Наименование салона"
+                  value={formData.salonName || ''}
+                  onChangeText={(value) => handleInputChange('salonName', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Адрес"
+                  value={formData.address || ''}
+                  onChangeText={(value) => handleInputChange('address', value)}
+                />
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Телефон:</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="+7 (XXX) XXX-XX-XX"
+                    value={formData.phone || ''}
+                    onChangeText={handlePhoneChange}
+                    keyboardType="phone-pad"
+                    maxLength={18}
+                  />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Район"
+                  value={formData.district || ''}
+                  onChangeText={(value) => handleInputChange('district', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Наименование цветов"
+                  value={formData.flowerName || ''}
+                  onChangeText={(value) => handleInputChange('flowerName', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Вид цветов"
+                  value={formData.flowerType || ''}
+                  onChangeText={(value) => handleInputChange('flowerType', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Стоимость"
+                  value={formData.cost || ''}
+                  onChangeText={(value) => handleInputChange('cost', value)}
+                  keyboardType="numeric"
+                />
+              </>
+            );
+          case 'Торты':
+            return (
+              <>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Наименование салона"
+                  value={formData.name || ''}
+                  onChangeText={(value) => handleInputChange('name', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Адрес"
+                  value={formData.address || ''}
+                  onChangeText={(value) => handleInputChange('address', value)}
+                />
+                 <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Телефон:</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="+7 (XXX) XXX-XX-XX"
+                    value={formData.phone || ''}
+                    onChangeText={handlePhoneChange}
+                    keyboardType="phone-pad"
+                    maxLength={18}
+                  />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Район"
+                  value={formData.district || ''}
+                  onChangeText={(value) => handleInputChange('district', value)}
+                />
+                
+                <TextInput
+                  style={styles.input}
+                  placeholder="Вид торта"
+                  value={formData.cakeType || ''}
+                  onChangeText={(value) => handleInputChange('cakeType', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Стоимость"
+                  value={formData.cost || ''}
+                  onChangeText={(value) => handleInputChange('cost', value)}
+                  keyboardType="numeric"
+                />
+              </>
+            );
+          case 'Алкоголь':
+            return (
+              <>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Наименование салона"
+                  value={formData.salonName || ''}
+                  onChangeText={(value) => handleInputChange('salonName', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Адрес"
+                  value={formData.address || ''}
+                  onChangeText={(value) => handleInputChange('address', value)}
+                />
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Телефон:</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="+7 (XXX) XXX-XX-XX"
+                    value={formData.phone || ''}
+                    onChangeText={handlePhoneChange}
+                    keyboardType="phone-pad"
+                    maxLength={18}
+                  />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Район"
+                  value={formData.district || ''}
+                  onChangeText={(value) => handleInputChange('district', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Наименование"
+                  value={formData.alcoholName || ''}
+                  onChangeText={(value) => handleInputChange('alcoholName', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Категория"
+                  value={formData.category || ''}
+                  onChangeText={(value) => handleInputChange('category', value)}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Стоимость"
+                  value={formData.cost || ''}
+                  onChangeText={(value) => handleInputChange('cost', value)}
+                  keyboardType="numeric"
+                />
+              </>
+            );
+          default:
         return <Text style={styles.label}>Выберите тип объекта для создания</Text>;
     }
   };

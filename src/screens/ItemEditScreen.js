@@ -364,6 +364,10 @@ export default function ItemEditScreen() {
       case 'tamada':
         return (
           <>
+          <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Имя\Псевдоним:</Text>
+              <TextInput style={styles.input} value={form.name} onChangeText={(text) => handleChange('name', text)} multiline placeholder="Имя" />
+            </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Портфолио:</Text>
               <TextInput style={styles.input} value={form.portfolio} onChangeText={(text) => handleChange('portfolio', text)} multiline placeholder="Портфолио" />
@@ -494,7 +498,7 @@ export default function ItemEditScreen() {
           <>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Наименование салона:</Text>
-              <TextInput style={styles.input} value={form.salonName} onChangeText={(text) => handleChange('salonName', text)} placeholder="Наименование салона" />
+              <TextInput style={styles.input} value={form.name} onChangeText={(text) => handleChange('name', text)} placeholder="Наименование салона" />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Адрес:</Text>

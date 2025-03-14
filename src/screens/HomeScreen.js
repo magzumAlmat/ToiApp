@@ -1031,7 +1031,7 @@ const styles = StyleSheet.create({
   },
   modalButtonContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'end',
     width: '100%',
   },
   modalButton: {

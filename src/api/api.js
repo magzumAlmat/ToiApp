@@ -81,18 +81,23 @@ export default {
         deleteProgram: (id) => api.delete(`/api/programs/${id}`),
         updateProgram:(id,data)=>api.put(`/api/programs/${id}`,data),
         // Традиционные подарки
+        getTraditionalGiftById:(id)=>api.get(`/api/traditional-gifts/${id}`),
         getAllTraditionalGifts: () => api.get('/api/traditional-gifts'),
         deleteTraditionalGift: (id) => api.delete(`/api/traditional-gifts/${id}`),
         updateTraditionalGift:(id,data)=>api.put(`/api/traditional-gifts/${id}`,data),
         // Цветы
+        getFlowersById: (id) => api.get(`/api/flowers/${id}`),
         getAllFlowers: () => api.get('/api/flowers'),
         deleteFlowers: (id) => api.delete(`/api/flowers/${id}`),
-
+        updateFlowers: (id,data) => api.put(`/api/flowers/${id}`,data),
         // Торты
+        getCakeById:(id) => api.get(`/api/cakes/${id}`),
         getAllCakes: () => api.get('/api/cakes'),
         deleteCake: (id) => api.delete(`/api/cakes/${id}`),
-
+        updateCake:(id,data)=>api.put(`/api/cakes/${id}`,data),
         // Алкоголь
+        updateAlcohol:(id,data)=>api.put(`/api/alcohol/${id}`,data),
+        getAlcoholById:(id) => api.get(`/api/alcohol/${id}`),
         getAllAlcohol: () => api.get('/api/alcohol'),
         deleteAlcohol: (id) => api.delete(`/api/alcohol/${id}`),
 
