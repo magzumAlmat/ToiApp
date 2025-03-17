@@ -107,7 +107,7 @@ export default {
             headers: { Authorization: `Bearer ${token}` },
           }),
         
-        getWedding: (token) =>
+         getWedding: (token) =>
           api.get(`/api/getallweddings`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
@@ -118,19 +118,34 @@ export default {
               headers: { Authorization: `Bearer ${token}` },
             }),
 
+            deleteWedding: (id, token) => api.delete(`/api/weddings/${id}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+
+
+
 
           createWish:(wishlistData,token)=>{
           api.post('/api/wishlist', wishlistData, {
             headers: { Authorization: `Bearer ${token}` },
           });
+        },
+
+          getWishlistByWeddingId: (weddingId, token) => api.get(`/api/wishlist/${weddingId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          reserveWishlistItem: (id, token) => api.patch(`/api/wishlist/${id}/reserve`, {}, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
 
         
+
         
         
         
         }
       
         // showWishList:()
-      }
+      
 
 

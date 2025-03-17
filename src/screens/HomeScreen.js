@@ -597,10 +597,10 @@ export default function HomeScreen({ navigation }) {
       setModalVisible(false);
       setWeddingName('');
       setWeddingDate(new Date());
-      setItems([]);
+      // setItems([]);
       // navigation.navigate('HomeScreen');
        // Возвращаемся на предыдущий экран
-       setModalVisible(false)
+      
     } catch (error) {
       console.error('Ошибка при создании свадьбы:', error);
       Alert.alert(

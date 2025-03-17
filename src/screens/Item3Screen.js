@@ -1,107 +1,3 @@
-// // // screens/Item1Screen.js
-// // import React from 'react';
-// // import { View, Text, StyleSheet } from 'react-native';
-// // import { useRoute } from '@react-navigation/native';
-// // export default function Item3Screen() {
-// //    const route = useRoute();
-// //     const itemId = route.params?.id; // ID объекта для редактирования
-// //     const type = route.params?.data; // Тип объекта (restaurant, clothing, и т.д.)
-// //     console.log('Принимаю параметры: id=', itemId, 'type=', type);
-// //   return (
-// //     <View style={styles.container}>
-// //       <Text style={styles.title}>Cоздание мероприятия</Text>
-// //       inp
-
-// //     </View>
-// //   );
-// // }
-
-// // const styles = StyleSheet.create({
-// //   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-// //   title: { fontSize: 24, marginBottom: 20 },
-// // });
-
-
-// import React, { useState } from 'react';
-// import { View, Text, TextInput, Button, StyleSheet, ScrollView, FlatList } from 'react-native';
-// import { useRoute } from '@react-navigation/native';
-// import { useSelector } from 'react-redux';
-// import api from '../api/api'; // Предполагается, что у вас есть API для отправки данных
-// import { SafeAreaView } from 'react-native-safe-area-context';
-
-// export default function Item3Screen() {
-//   const route = useRoute();
-//   const selectedItems = route.params?.data;  // Массив выбранных данных
-//   console.log('selectedData',selectedItems)
-//   const userId = useSelector((state) => state.auth.user?.id); // ID пользователя из Redux
-//   const { token } = useSelector((state) => state.auth); // Токен авторизации
-
- 
-//   return (
-//     <SafeAreaView style={styles.container}>
-//       <Text style={styles.title}>Мои мероприятия</Text>
-
-   
-
-  
-//     </SafeAreaView>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     padding: 20,
-//   },
-//   title: {
-//     fontSize: 24,
-//     fontWeight: 'bold',
-//     marginBottom: 20,
-//     textAlign: 'center',
-//   },
-//   subtitle: {
-//     fontSize: 18,
-//     fontWeight: 'bold',
-//     marginTop: 10,
-//     marginBottom: 10,
-//   },
-//   input: {
-//     borderWidth: 1,
-//     borderColor: '#ccc',
-//     borderRadius: 5,
-//     padding: 10,
-//     marginBottom: 15,
-//     fontSize: 16,
-//   },
-//   list: {
-//     marginBottom: 20,
-//   },
-//   itemContainer: {
-//     padding: 10,
-//     borderBottomWidth: 1,
-//     borderBottomColor: '#eee',
-//   },
-//   itemText: {
-//     fontSize: 16,
-//   },
-//   noItems: {
-//     fontSize: 16,
-//     color: '#666',
-//     textAlign: 'center',
-//     marginBottom: 20,
-//   },
-//   totalContainer: {
-//     marginVertical: 20,
-//     alignItems: 'center',
-//   },
-//   totalText: {
-//     fontSize: 18,
-//     fontWeight: 'bold',
-//   },
-// });
-
-
-
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -131,23 +27,29 @@ export default function Item3Screen() {
   const [modalVisible, setModalVisible] = useState(false); // Модалка для создания свадьбы
   const [wishlistModalVisible, setWishlistModalVisible] = useState(false); // Модалка для подарков
   const [editModalVisible, setEditModalVisible] = useState(false); // Модалка для редактирования
+  const [wishlistViewModalVisible, setWishlistViewModalVisible] = useState(false); // Модалка для просмотра подарков
   const [weddingName, setWeddingName] = useState(''); // Имя свадьбы
   const [weddingDate, setWeddingDate] = useState(''); // Дата свадьбы в формате YYYY-MM-DD
-  const [selectedWedding, setSelectedWedding] = useState(null); // Выбранная свадьба для подарков или редактирования
+  const [selectedWedding, setSelectedWedding] = useState(null); // Выбранная свадьба
   const [wishlistItemName, setWishlistItemName] = useState(''); // Название подарка
   const [wishlistDescription, setWishlistDescription] = useState(''); // Описание подарка
+  const [wishlistItems, setWishlistItems] = useState([]); // Список подарков
 
   // Загрузка списка свадеб при монтировании
   useEffect(() => {
     fetchWeddings();
   }, []);
 
+  useEffect(() => {
+    
+  }, [weddings]);
   // Получение всех свадеб пользователя
   const fetchWeddings = async () => {
     console.log('id=',userId,'token=',token)
     try {
       const response = await api.getWedding(userId,token)
       setWeddings(response.data.data);
+      // console.log(response.data.data)
 
     } catch (error) {
       console.error('Ошибка при загрузке свадеб:', error);
@@ -173,14 +75,13 @@ export default function Item3Screen() {
     };
 
     try {
-      const response = await api.post('/weddings/addwedding', weddingData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      Alert.alert('Успех', 'Свадьба успешно создана');
+      const response = await api.createWedding(weddingData, token);
+      alert('Успех', 'Свадьба успешно создана');
       setWeddings([...weddings, response.data.data]);
       setModalVisible(false);
       setWeddingName('');
       setWeddingDate('');
+
     } catch (error) {
       console.error('Ошибка при создании свадьбы:', error);
       Alert.alert('Ошибка', error.response?.data?.error || 'Не удалось создать свадьбу');
@@ -194,14 +95,13 @@ export default function Item3Screen() {
       return;
     }
     console.log('Updating wedding:', selectedWedding.id, token, weddingDate, weddingName);
-  
+
     try {
       const data = {
         name: weddingName,
         date: weddingDate,
       };
       const response = await api.updateWedding(selectedWedding.id, token, data);
-  
       Alert.alert('Успех', 'Свадьба обновлена');
       setWeddings(weddings.map((w) => (w.id === selectedWedding.id ? response.data.data : w)));
       setEditModalVisible(false);
@@ -213,6 +113,7 @@ export default function Item3Screen() {
       Alert.alert('Ошибка', error.response?.data?.error || 'Не удалось обновить свадьбу');
     }
   };
+
   // Удаление свадьбы
   const handleDeleteWedding = async (id) => {
     Alert.alert(
@@ -224,9 +125,7 @@ export default function Item3Screen() {
           text: 'Удалить',
           onPress: async () => {
             try {
-              await api.delete(`/weddings/${id}`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
+              await api.deleteWedding(id, token);
               setWeddings(weddings.filter((w) => w.id !== id));
               Alert.alert('Успех', 'Свадьба удалена');
             } catch (error) {
@@ -252,21 +151,57 @@ export default function Item3Screen() {
       description: wishlistDescription,
     };
 
-
     try {
-      const response = await api.createWish(wishlistData,token)
-
+      const response = await api.createWish(wishlistData, token);
       Alert.alert('Успех', 'Подарок добавлен');
-
       setWishlistModalVisible(false);
       setWishlistItemName('');
       setWishlistDescription('');
       fetchWeddings(); // Обновляем список свадеб
-
     } catch (error) {
       console.error('Ошибка при добавлении подарка:', error);
       Alert.alert('Ошибка', error.response?.data?.error || 'Не удалось добавить подарок');
     }
+  };
+
+  // Получение списка подарков для свадьбы
+  const fetchWishlistItems = async (weddingId) => {
+    try {
+      const response = await api.getWishlistByWeddingId(weddingId, token);
+      setWishlistItems(response.data.data);
+      setWishlistViewModalVisible(true);
+    } catch (error) {
+      console.error('Ошибка при загрузке списка подарков:', error);
+      Alert.alert('Ошибка', 'Не удалось загрузить список подарков');
+    }
+  };
+
+  // Резервирование подарка
+  const handleReserveWishlistItem = async (wishlistId) => {
+    Alert.alert(
+      'Подтверждение',
+      'Вы хотите зарезервировать этот подарок?',
+      [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Зарезервировать',
+          onPress: async () => {
+            try {
+              const response = await api.reserveWishlistItem(wishlistId, token);
+              Alert.alert('Успех', 'Подарок зарезервирован');
+              setWishlistItems(
+                wishlistItems.map((item) =>
+                  item.id === wishlistId ? response.data.data : item
+                )
+              );
+            } catch (error) {
+              console.error('Ошибка при резервировании подарка:', error);
+              Alert.alert('Ошибка', error.response?.data?.error || 'Не удалось зарезервировать подарок');
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Открытие модалки редактирования
@@ -283,6 +218,8 @@ export default function Item3Screen() {
       <Text style={styles.itemText}>{item.name} ({item.date})</Text>
       <Text style={styles.itemText}>
         Элементы: {item.WeddingItems?.length || 0}
+        {/* <List>{item}
+ </List>        */}
       </Text>
       <View style={styles.buttonRow}>
         <TouchableOpacity
@@ -302,6 +239,15 @@ export default function Item3Screen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
+          onPress={() => {
+            setSelectedWedding(item);
+            fetchWishlistItems(item.id);
+          }}
+        >
+          <Text style={styles.actionButtonText}>Просмотреть подарки</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
           onPress={() => handleDeleteWedding(item.id)}
         >
           <Text style={styles.actionButtonText}>Удалить</Text>
@@ -310,10 +256,29 @@ export default function Item3Screen() {
     </View>
   );
 
+  // Рендеринг элемента списка подарков
+  const renderWishlistItem = ({ item }) => (
+    <View style={styles.wishlistItemContainer}>
+      <Text style={styles.itemText}>{item.item_name}</Text>
+      <Text style={styles.itemText}>
+        {item.description || 'Без описания'} -{' '}
+        {item.is_reserved ? `Зарезервировано: ${item.Reserver?.username || 'Кем-то'}` : 'Свободно'}
+      </Text>
+      {!item.is_reserved && (
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => handleReserveWishlistItem(item.id)}
+        >
+          <Text style={styles.actionButtonText}>Зарезервировать</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Мои мероприятия</Text>
-      <Button title="Создать свадьбу" onPress={() => setModalVisible(true)} />
+      {/* <Button title="Создать свадьбу" onPress={() => setModalVisible(true)} /> */}
 
       <FlatList
         data={weddings}
@@ -327,14 +292,14 @@ export default function Item3Screen() {
         <View style={styles.modalContainer}>
           <Text style={styles.subtitle}>Создание свадьбы</Text>
           <TextInput
-          autocomplete="off"
+            autoComplete="off"
             style={styles.input}
             placeholder="Название свадьбы"
             value={weddingName}
             onChangeText={setWeddingName}
           />
           <TextInput
-          autocomplete="off"
+            autoComplete="off"
             style={styles.input}
             placeholder="Дата свадьбы (YYYY-MM-DD)"
             value={weddingDate}
@@ -350,14 +315,14 @@ export default function Item3Screen() {
         <View style={styles.modalContainer}>
           <Text style={styles.subtitle}>Редактирование свадьбы</Text>
           <TextInput
-          autocomplete="off"
+            autoComplete="falsedasd"
             style={styles.input}
             placeholder="Название свадьбы"
             value={weddingName}
             onChangeText={setWeddingName}
           />
           <TextInput
-          autocomplete="off"
+            autoComplete="off"
             style={styles.input}
             placeholder="Дата свадьбы (YYYY-MM-DD)"
             value={weddingDate}
@@ -373,14 +338,14 @@ export default function Item3Screen() {
         <View style={styles.modalContainer}>
           <Text style={styles.subtitle}>Добавить подарок</Text>
           <TextInput
-          autocomplete="off"
+            autoComplete="off"
             style={styles.input}
             placeholder="Название подарка"
             value={wishlistItemName}
             onChangeText={setWishlistItemName}
           />
           <TextInput
-          autocomplete="off"asd
+            autoComplete="off"
             style={styles.input}
             placeholder="Описание (опционально)"
             value={wishlistDescription}
@@ -390,6 +355,26 @@ export default function Item3Screen() {
           <Button title="Отмена" onPress={() => setWishlistModalVisible(false)} />
         </View>
       </Modal>
+
+      {/* Модальное окно для просмотра подарков */}
+      <Modal visible={wishlistViewModalVisible} animationType="slide">
+        <SafeAreaView style={styles.modalContainer}>
+          <Text style={styles.subtitle}>
+            Подарки для свадьбы: {selectedWedding?.name}
+          </Text>
+
+          <FlatList
+            data={wishlistItems}
+            renderItem={renderWishlistItem}
+            keyExtractor={(item) => item.id.toString()}
+            ListEmptyComponent={<Text style={styles.noItems}>Подарков пока нет</Text>}
+          />
+          <Button title="Закрыть" onPress={() => setWishlistViewModalVisible(false)} />
+        </SafeAreaView>
+      </Modal>
+
+
+
     </SafeAreaView>
   );
 }
@@ -425,6 +410,11 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eee',
     marginBottom: 10,
   },
+  wishlistItemContainer: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
   itemText: {
     fontSize: 16,
   },
@@ -443,11 +433,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 10,
+    flexWrap: 'wrap',
   },
   actionButton: {
     padding: 5,
     backgroundColor: '#007BFF',
     borderRadius: 5,
+    margin: 2,
   },
   actionButtonText: {
     color: '#fff',
