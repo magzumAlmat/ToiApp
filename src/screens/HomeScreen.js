@@ -7,8 +7,7 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
-  ScrollView,
-  SafeAreaView,SectionList
+  SafeAreaView,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/authSlice';
@@ -414,7 +413,7 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.totalCost}>Итого: {totalCost} ₸</Text>
             <TouchableOpacity
               style={styles.detailsButton}
-              onPress={() => navigation.navigate("Details", { item })}
+              onPress={() => navigation.navigate('Details', { item })}
             >
               <Button style={styles.detailsButtonText}>Подробнее</Button>
             </TouchableOpacity>
@@ -517,11 +516,7 @@ export default function HomeScreen({ navigation }) {
         )}
         <Modal visible={deleteModalVisible} transparent animationType="fade">
           <View style={styles.modalOverlay}>
-            <Animatable.View
-              style={styles.modalContent}
-              animation="zoomIn"
-              duration={300}
-            >
+            <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
               <Text style={styles.modalTitle}>Подтверждение удаления</Text>
               <Text style={styles.modalText}>
                 Вы уверены, что хотите удалить этот объект? Это действие нельзя отменить.
@@ -557,7 +552,7 @@ export default function HomeScreen({ navigation }) {
   const createEvent = () => {
     console.log('CreateEvent currentUserId=', user?.id);
     console.log('CreateEvent all Selected data=', filteredData);
-    setModalVisible(true); // Показываем модальное окно
+    setModalVisible(true);
   };
 
   const handleSubmit = async () => {
@@ -576,10 +571,10 @@ export default function HomeScreen({ navigation }) {
       name: weddingName,
       date: weddingDate,
       host_id: user.id,
-      items: filteredData.map(item => ({
+      items: filteredData.map((item) => ({
         id: item.id,
         type: item.type,
-        totalCost: item.totalCost || item.cost, // Используем totalCost или cost
+        totalCost: item.totalCost || item.cost,
       })),
     };
 
@@ -587,11 +582,11 @@ export default function HomeScreen({ navigation }) {
 
     try {
       const response = await api.createWedding(weddingData);
+      console.log()
       alert('Свадьба успешно создана!');
       setModalVisible(false);
       setWeddingName('');
       setWeddingDate('');
-      // Можно добавить дополнительную логику, например, обновление списка мероприятий
     } catch (error) {
       console.error('Ошибка при создании свадьбы:', error);
       alert('Не удалось создать свадьбу: ' + (error.response?.data?.error || error.message));
@@ -715,7 +710,6 @@ export default function HomeScreen({ navigation }) {
                 >
                   <Text style={styles.addButtonText}>Добавить еще</Text>
                 </TouchableOpacity>
-
               </>
             ) : combinedData.length > 0 ? (
               <FlatList
@@ -735,11 +729,12 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.modalOverlay}>
             <Animatable.View style={styles.addModalContent} animation="zoomIn" duration={300}>
               <Text style={styles.modalTitle}>Добавить элемент</Text>
-              <ScrollView style={styles.addItemList}>
-                {combinedData.map((item) => (
-                  <View key={`${item.type}-${item.id}`}>{renderAddItem({ item })}</View>
-                ))}
-              </ScrollView>
+              <FlatList
+                data={combinedData}
+                renderItem={renderAddItem}
+                keyExtractor={(item) => `${item.type}-${item.id}`}
+                contentContainerStyle={styles.addItemList}
+              />
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => setAddItemModalVisible(false)}
@@ -757,21 +752,16 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
 
-      {/* <View style={styles.buttonContainer} size={48} color={COLORS.textSecondary} >
-          <Button title="Создать мероприятие" onPress={createEvent}size={48} color={COLORS.textSecondary}/>
-        </View> */}
-
-
-
-        <TouchableOpacity
+<TouchableOpacity
                   style={styles.addButton}
-                  onPress={() => createEvent()}
+                  onPress={createEvent} 
                 >
                   <Text style={styles.addButtonText}>Создать мероприятие</Text>
                 </TouchableOpacity>
+     
 
+        
       </View>
-      
     );
   };
 
@@ -790,7 +780,7 @@ export default function HomeScreen({ navigation }) {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <ScrollView contentContainerStyle={styles.modalContent}>
+          <View style={styles.modalContent}>
             <Text style={styles.title}>Создание мероприятия "Свадьба"</Text>
 
             <TextInput
@@ -826,36 +816,21 @@ export default function HomeScreen({ navigation }) {
               </Text>
             </View>
 
-
-          
-
-
-            {/* <View style={styles.modalButtonText}>
-              <Button title="Создать свадьбу" onPress={handleSubmit} />
-              <Button
-                title="Отмена"
-                onPress={() => setModalVisible(false)}
-                color="red"
-              />
-            </View> */}
-
-            <View style={styles.modalButtonText}>
-            <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={handleSubmit} 
+            <View style={styles.modalButtonContainer}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={handleSubmit}
               >
-                <Text style={styles.modalButtonText}> Создать свадьбу</Text>
+                <Text style={styles.modalButtonText}>Создать свадьбу</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
-                 onPress={() => setModalVisible(false)}
+                onPress={() => setModalVisible(false)}
               >
-                <Text style={styles.modalButtonText}> Закрыть</Text>
+                <Text style={styles.modalButtonText}>Закрыть</Text>
               </TouchableOpacity>
-</View>
-              
-          </ScrollView>
+            </View>
+          </View>
         </View>
       </Modal>
     </SafeAreaView>
@@ -863,13 +838,6 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  createButton: {
-    backgroundColor: COLORS.danger,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 10,
-  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -901,7 +869,7 @@ const styles = StyleSheet.create({
     color: COLORS.error,
   },
   list: {
-    flex: 1,
+    flexGrow: 1,
   },
   card: {
     backgroundColor: COLORS.card,
@@ -991,7 +959,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderRadius: 16,
     padding: 20,
-    alignItems: 'center',
+    maxHeight: '80%',
   },
   addModalContent: {
     width: '90%',
@@ -1034,6 +1002,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
+    marginTop: 20,
   },
   modalButton: {
     flex: 1,
@@ -1052,11 +1021,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
-    flexDirection:'row'
-
   },
   addItemList: {
-    flex: 1,
+    flexGrow: 1,
     marginBottom: 20,
   },
   addItemCard: {
@@ -1137,6 +1104,7 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 15,
     fontSize: 16,
+    width: '100%',
   },
   itemContainer: {
     padding: 10,
@@ -1160,10 +1128,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 40,
-    backgroundColor: COLORS.background,
+  buttonWrapper: {
+    backgroundColor: '#FFFFFF',
+    marginTop: 20,
   },
 });
