@@ -63,7 +63,7 @@ function AuthenticatedTabs() {
       ) : roleId === 3 ? (
         <>
           <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная', headerShown: false }} />
-          <Tab.Screen name="Item3" component={Item3Screen} options={{ title: 'Пункт 3', headerShown: false }} />
+          <Tab.Screen name="Item3" component={Item3Screen} options={{ title: 'Cоздать мероприятие', headerShown: false }} />
           <Tab.Screen name="Item4" component={Item4Screen} options={{ title: 'Профиль', headerShown: false }} />
         </>
       ) : (

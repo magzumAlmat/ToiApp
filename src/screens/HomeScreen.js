@@ -8,7 +8,7 @@ import {
   Modal,
   TextInput,
   ScrollView,
-  SafeAreaView,
+  SafeAreaView,SectionList
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/authSlice';
@@ -17,6 +17,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Appbar, Button } from 'react-native-paper';
 import * as Animatable from 'react-native-animatable';
 import { ActivityIndicator } from 'react-native';
+
 // Custom color palette
 const COLORS = {
   primary: '#FF6F61',
@@ -51,8 +52,11 @@ export default function HomeScreen({ navigation }) {
   const [budgetModalVisible, setBudgetModalVisible] = useState(false);
   const [remainingBudget, setRemainingBudget] = useState(0);
   const [addItemModalVisible, setAddItemModalVisible] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState(null); // Для модального окна удаления
+  const [itemToDelete, setItemToDelete] = useState(null);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [weddingName, setWeddingName] = useState('');
+  const [weddingDate, setWeddingDate] = useState('');
 
   const fetchData = async () => {
     if (!token || !user?.id) return;
@@ -409,11 +413,11 @@ export default function HomeScreen({ navigation }) {
             />
             <Text style={styles.totalCost}>Итого: {totalCost} ₸</Text>
             <TouchableOpacity
-                style={styles.detailsButton}
-                onPress={() => navigation.navigate("Details", { item })}
-              >
-                <Button style={styles.detailsButtonText}>Подробнее</Button>
-              </TouchableOpacity>
+              style={styles.detailsButton}
+              onPress={() => navigation.navigate("Details", { item })}
+            >
+              <Button style={styles.detailsButtonText}>Подробнее</Button>
+            </TouchableOpacity>
           </View>
         )}
         {user?.roleId === 2 && (
@@ -476,64 +480,6 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
-  // const renderSupplierContent = () => {
-  //   const combinedData = [
-  //     ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
-  //     ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
-  //     ...data.tamada.map((item) => ({ ...item, type: 'tamada' })),
-  //     ...data.programs.map((item) => ({ ...item, type: 'program' })),
-  //     ...data.traditionalGifts.map((item) => ({ ...item, type: 'traditionalGift' })),
-  //     ...data.flowers.map((item) => ({ ...item, type: 'flowers' })),
-  //     ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
-  //     ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
-  //     ...data.transport.map((item) => ({ ...item, type: 'transport' })),
-  //   ];
-
-  //   return (
-  //     <>
-  //       <Text style={styles.subtitle}>Ваш бизнес:</Text>
-  //       {loading ? (
-  //         <Text style={styles.loadingText}>Загрузка...</Text>
-  //       ) : combinedData.length > 0 ? (
-  //         <FlatList
-  //           data={combinedData}
-  //           renderItem={renderItem}
-  //           keyExtractor={(item) => `${item.type}-${item.id}`}
-  //           style={styles.list}
-  //         />
-  //       ) : (
-  //         <Text style={styles.emptyText}>У вас пока нет объектов</Text>
-  //       )}
-  //       <Modal visible={deleteModalVisible} transparent={true} animationType="fade">
-  //         <View style={styles.modalOverlay}>
-  //           <View style={styles.modalContent}>
-  //             <Text style={styles.modalTitle}>Подтверждение удаления</Text>
-  //             <Text style={styles.modalText}>
-  //               Вы уверены, что хотите удалить этот объект? Это действие нельзя отменить.
-  //             </Text>
-  //             <View style={styles.modalButtonContainer}>
-  //               <TouchableOpacity
-  //                 style={[styles.modalButton, styles.cancelButton]}
-  //                 onPress={() => {
-  //                   setDeleteModalVisible(false);
-  //                   setItemToDelete(null);
-  //                 }}
-  //               >
-  //                 <Text style={styles.modalButtonText}>Отмена</Text>
-  //               </TouchableOpacity>
-  //               <TouchableOpacity
-  //                 style={[styles.modalButton, styles.confirmButton]}
-  //                 onPress={handleDeleteItem}
-  //               >
-  //                 <Text style={styles.modalButtonText}>Удалить</Text>
-  //               </TouchableOpacity>
-  //             </View>
-  //           </View>
-  //         </View>
-  //       </Modal>
-  //     </>
-  //   );
-  // };
   const renderSupplierContent = () => {
     const combinedData = [
       ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
@@ -546,20 +492,16 @@ export default function HomeScreen({ navigation }) {
       ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
       ...data.transport.map((item) => ({ ...item, type: 'transport' })),
     ];
-  
+
     return (
       <View style={styles.supplierContainer}>
-        {/* Заголовок */}
         <Text style={styles.supplierTitle}>Ваш бизнес:</Text>
-  
-        {/* Состояние загрузки */}
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={COLORS.primary} />
             <Text style={styles.loadingText}>Загрузка данных...</Text>
           </View>
         ) : combinedData.length > 0 ? (
-          // Список объектов
           <FlatList
             data={combinedData}
             renderItem={renderItem}
@@ -568,14 +510,11 @@ export default function HomeScreen({ navigation }) {
             showsVerticalScrollIndicator={false}
           />
         ) : (
-          // Сообщение о пустом списке
           <View style={styles.emptyContainer}>
             <Icon name="business" size={48} color={COLORS.textSecondary} />
             <Text style={styles.emptyText}>У вас пока нет объектов</Text>
           </View>
         )}
-  
-        {/* Модальное окно подтверждения удаления */}
         <Modal visible={deleteModalVisible} transparent animationType="fade">
           <View style={styles.modalOverlay}>
             <Animatable.View
@@ -610,115 +549,95 @@ export default function HomeScreen({ navigation }) {
       </View>
     );
   };
-  // const renderClientContent = () => {
-  //   const combinedData = [
-  //     ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
-  //     ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
-  //     ...data.tamada.map((item) => ({ ...item, type: 'tamada' })),
-  //     ...data.programs.map((item) => ({ ...item, type: 'program' })),
-  //     ...data.traditionalGifts.map((item) => ({ ...item, type: 'traditionalGift' })),
-  //     ...data.flowers.map((item) => ({ ...item, type: 'flowers' })),
-  //     ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
-  //     ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
-  //     ...data.transport.map((item) => ({ ...item, type: 'transport' })),
-  //   ];
 
-  //   return (
-  //     <>
-  //       <TouchableOpacity style={styles.budgetButton} onPress={() => setBudgetModalVisible(true)}>
-  //         <Text style={styles.budgetButtonText}>Задать бюджет</Text>
-  //       </TouchableOpacity>
-  //       <Modal visible={budgetModalVisible} transparent={true} animationType="slide">
-  //         <SafeAreaView style={styles.modalOverlay}>
-  //           <View style={styles.modalContent}>
-  //             <Text style={styles.modalTitle}>Ваш бюджет</Text>
-  //             <TextInput
-  //               style={styles.budgetInput}
-  //               placeholder="Сумма (₸)"
-  //               value={budget}
-  //               onChangeText={handleBudgetChange}
-  //               keyboardType="numeric"
-  //             />
-  //             <View style={styles.modalActions}>
-  //               <TouchableOpacity
-  //                 style={[styles.modalButton, styles.cancelButton]}
-  //                 onPress={() => setBudgetModalVisible(false)}
-  //               >
-  //                 <Text style={styles.modalButtonText}>Отмена</Text>
-  //               </TouchableOpacity>
-  //               <TouchableOpacity
-  //                 style={[styles.modalButton, styles.confirmButton]}
-  //                 onPress={filterDataByBudget}
-  //               >
-  //                 <Text style={styles.modalButtonText}>Применить</Text>
-  //               </TouchableOpacity>
-  //             </View>
-  //           </View>
-  //         </SafeAreaView>
-  //       </Modal>
-  //       {budget && (
-  //         <>
-  //           <Text style={styles.sectionTitle}>
-  //             {filteredData.length > 0 ? `Рекомендации (${budget} ₸)` : 'Все объекты'}
-  //           </Text>
-  //           {filteredData.length > 0 && (
-  //             <Text style={[styles.budgetInfo, remainingBudget < 0 && styles.budgetError]}>
-  //               Остаток: {remainingBudget} ₸
-  //             </Text>
-  //           )}
-  //           {loading ? (
-  //             <Text style={styles.loadingText}>Загрузка...</Text>
-  //           ) : filteredData.length > 0 ? (
-  //             <>
-  //               <FlatList
-  //                 data={filteredData}
-  //                 renderItem={renderItem}
-  //                 keyExtractor={(item) => `${item.type}-${item.id}`}
-  //                 style={styles.list}
-  //               />
-  //               <TouchableOpacity
-  //                 style={styles.addButton}
-  //                 onPress={() => setAddItemModalVisible(true)}
-  //               >
-  //                 <Text style={styles.addButtonText}>Добавить еще</Text>
-  //               </TouchableOpacity>
-  //             </>
-  //           ) : combinedData.length > 0 ? (
-  //             <FlatList
-  //               data={combinedData}
-  //               renderItem={renderItem}
-  //               keyExtractor={(item) => `${item.type}-${item.id}`}
-  //               style={styles.list}
-  //             />
-  //           ) : (
-  //             <Text style={styles.emptyText}>Нет данных для отображения</Text>
-  //           )}
-  //           <Modal visible={addItemModalVisible} transparent={true} animationType="slide">
-  //             <View style={styles.modalOverlay}>
-  //               <View style={styles.addModalContent}>
-  //                 <Text style={styles.modalTitle}>Добавить элемент</Text>
-  //                 <ScrollView style={styles.addItemList}>
-  //                   {combinedData.map((item) => (
-  //                     <View key={`${item.type}-${item.id}`}>{renderAddItem({ item })}</View>
-  //                   ))}
-  //                 </ScrollView>
-  //                 <TouchableOpacity
-  //                   style={[styles.modalButton, styles.cancelButton]}
-  //                   onPress={() => setAddItemModalVisible(false)}
-  //                 >
-  //                   <Text style={styles.modalButtonText}>Закрыть</Text>
-  //                 </TouchableOpacity>
-  //               </View>
-  //             </View>
-  //           </Modal>
-  //         </>
-  //       )}
-  //       {!budget && (
-  //         <Text style={styles.emptyText}>Пожалуйста, задайте бюджет для отображения записей</Text>
-  //       )}
-  //     </>
-  //   );
-  // };
+  const handleDateChange = (text) => {
+    setWeddingDate(text);
+  };
+
+  const createEvent = () => {
+    console.log('CreateEvent currentUserId=', user?.id);
+    console.log('CreateEvent all Selected data=', filteredData);
+    setModalVisible(true); // Показываем модальное окно
+  };
+
+  const handleSubmit = async () => {
+    if (!weddingName || !weddingDate) {
+      alert('Пожалуйста, заполните имя и дату свадьбы');
+      return;
+    }
+
+    if (!user?.id || !token) {
+      alert('Ошибка авторизации. Пожалуйста, войдите в систему.');
+      navigation.navigate('Login');
+      return;
+    }
+
+    const weddingData = {
+      name: weddingName,
+      date: weddingDate,
+      host_id: user.id,
+      items: filteredData.map(item => ({
+        id: item.id,
+        type: item.type,
+        totalCost: item.totalCost || item.cost, // Используем totalCost или cost
+      })),
+    };
+
+    console.log('weddingData=', weddingData);
+
+    try {
+      const response = await api.createWedding(weddingData);
+      alert('Свадьба успешно создана!');
+      setModalVisible(false);
+      setWeddingName('');
+      setWeddingDate('');
+      // Можно добавить дополнительную логику, например, обновление списка мероприятий
+    } catch (error) {
+      console.error('Ошибка при создании свадьбы:', error);
+      alert('Не удалось создать свадьбу: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  const renderWeddingItem = ({ item }) => {
+    let title = '';
+    switch (item.type) {
+      case 'restaurant':
+        title = `${item.name} (${item.cuisine}) - ${item.totalCost || item.averageCost} тг`;
+        break;
+      case 'clothing':
+        title = `${item.itemName} (${item.storeName}) - ${item.totalCost || item.cost} тг`;
+        break;
+      case 'tamada':
+        title = `${item.name} - ${item.totalCost || item.cost} тг`;
+        break;
+      case 'program':
+        title = `${item.teamName} - ${item.totalCost || item.cost} тг`;
+        break;
+      case 'traditionalGift':
+        title = `${item.itemName} (${item.salonName}) - ${item.totalCost || item.cost} тг`;
+        break;
+      case 'flowers':
+        title = `${item.flowerName} (${item.flowerType}) - ${item.totalCost || item.cost} тг`;
+        break;
+      case 'cake':
+        title = `${item.name} (${item.cakeType}) - ${item.totalCost || item.cost} тг`;
+        break;
+      case 'alcohol':
+        title = `${item.alcoholName} (${item.category}) - ${item.totalCost || item.cost} тг`;
+        break;
+      case 'transport':
+        title = `${item.carName} (${item.brand}) - ${item.totalCost || item.cost} тг`;
+        break;
+      default:
+        title = 'Неизвестный элемент';
+    }
+
+    return (
+      <View style={styles.itemContainer}>
+        <Text style={styles.itemText}>{title}</Text>
+      </View>
+    );
+  };
 
   const renderClientContent = () => {
     const combinedData = [
@@ -732,15 +651,13 @@ export default function HomeScreen({ navigation }) {
       ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
       ...data.transport.map((item) => ({ ...item, type: 'transport' })),
     ];
-  
+
     return (
       <View style={styles.clientContainer}>
-        {/* Кнопка "Задать бюджет" */}
         <TouchableOpacity style={styles.budgetButton} onPress={() => setBudgetModalVisible(true)}>
           <Text style={styles.budgetButtonText}>Задать бюджет</Text>
         </TouchableOpacity>
-  
-        {/* Модальное окно для бюджета */}
+
         <Modal visible={budgetModalVisible} transparent animationType="slide">
           <SafeAreaView style={styles.modalOverlay}>
             <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
@@ -770,8 +687,7 @@ export default function HomeScreen({ navigation }) {
             </Animatable.View>
           </SafeAreaView>
         </Modal>
-  
-        {/* Если бюджет задан */}
+
         {budget && (
           <>
             <Text style={styles.sectionTitle}>
@@ -799,6 +715,7 @@ export default function HomeScreen({ navigation }) {
                 >
                   <Text style={styles.addButtonText}>Добавить еще</Text>
                 </TouchableOpacity>
+
               </>
             ) : combinedData.length > 0 ? (
               <FlatList
@@ -813,8 +730,7 @@ export default function HomeScreen({ navigation }) {
             )}
           </>
         )}
-  
-        {/* Модальное окно "Добавить элемент" */}
+
         <Modal visible={addItemModalVisible} transparent animationType="slide">
           <View style={styles.modalOverlay}>
             <Animatable.View style={styles.addModalContent} animation="zoomIn" duration={300}>
@@ -833,51 +749,136 @@ export default function HomeScreen({ navigation }) {
             </Animatable.View>
           </View>
         </Modal>
-  
-        {/* Если бюджет не задан */}
+
         {!budget && (
           <View style={styles.noBudgetContainer}>
             <Icon name="attach-money" size={48} color={COLORS.textSecondary} />
             <Text style={styles.noBudgetText}>Пожалуйста, задайте бюджет для отображения записей</Text>
           </View>
         )}
+
+      {/* <View style={styles.buttonContainer} size={48} color={COLORS.textSecondary} >
+          <Button title="Создать мероприятие" onPress={createEvent}size={48} color={COLORS.textSecondary}/>
+        </View> */}
+
+
+
+        <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={() => createEvent()}
+                >
+                  <Text style={styles.addButtonText}>Создать мероприятие</Text>
+                </TouchableOpacity>
+
       </View>
+      
     );
   };
 
-
   return (
-    
-
     <SafeAreaView style={styles.container}>
-      
-     
-
       <Appbar.Header style={styles.header}>
-        {/* <Appbar.BackAction onPress={() => navigation.goBack()} /> */}
         <Appbar.Content title="Планировщик бюджета" />
       </Appbar.Header>
       {user?.roleId === 2 ? renderSupplierContent() : renderClientContent()}
+
+      {/* Модальное окно для создания свадьбы */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <ScrollView contentContainerStyle={styles.modalContent}>
+            <Text style={styles.title}>Создание мероприятия "Свадьба"</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Имя свадьбы (например, Свадьба Ивана и Марии)"
+              value={weddingName}
+              onChangeText={setWeddingName}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Дата свадьбы (например, 2024-12-15)"
+              value={weddingDate}
+              onChangeText={handleDateChange}
+              keyboardType="numeric"
+            />
+
+            <Text style={styles.subtitle}>Выбранные элементы:</Text>
+            {filteredData.length > 0 ? (
+              <FlatList
+                data={filteredData}
+                renderItem={renderWeddingItem}
+                keyExtractor={(item) => `${item.type}-${item.id}`}
+                style={styles.list}
+              />
+            ) : (
+              <Text style={styles.noItems}>Выберите элементы для свадьбы</Text>
+            )}
+
+            <View style={styles.totalContainer}>
+              <Text style={styles.totalText}>
+                Общая стоимость: {filteredData.reduce((sum, item) => sum + (item.totalCost || item.cost), 0)} тг
+              </Text>
+            </View>
+
+
+          
+
+
+            {/* <View style={styles.modalButtonText}>
+              <Button title="Создать свадьбу" onPress={handleSubmit} />
+              <Button
+                title="Отмена"
+                onPress={() => setModalVisible(false)}
+                color="red"
+              />
+            </View> */}
+
+            <View style={styles.modalButtonText}>
+            <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={handleSubmit} 
+              >
+                <Text style={styles.modalButtonText}> Создать свадьбу</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                 onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}> Закрыть</Text>
+              </TouchableOpacity>
+</View>
+              
+          </ScrollView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  createButton: {
+    backgroundColor: COLORS.danger,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 10,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    padding: 20,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
   },
   subtitle: {
     fontSize: 20,
@@ -1031,7 +1032,7 @@ const styles = StyleSheet.create({
   },
   modalButtonContainer: {
     flexDirection: 'row',
-    justifyContent: 'end',
+    justifyContent: 'space-between',
     width: '100%',
   },
   modalButton: {
@@ -1051,6 +1052,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+    flexDirection:'row'
+
   },
   addItemList: {
     flex: 1,
@@ -1068,21 +1071,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textPrimary,
   },
-  loadingText: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: 20,
-  },
-
-
-
   supplierContainer: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -1120,167 +1108,10 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: 'center',
   },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-  },
-  modalContent: {
-    width: '85%',
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  modalText: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  modalButtonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  cancelButton: {
-    backgroundColor: COLORS.textSecondary,
-  },
-  confirmButton: {
-    backgroundColor: COLORS.error,
-  },
-  modalButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
   clientContainer: {
     flex: 1,
     backgroundColor: COLORS.background,
     padding: 20,
-  },
-  budgetButton: {
-    backgroundColor: COLORS.secondary,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  budgetButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-  },
-  modalContent: {
-    width: '85%',
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-  },
-  addModalContent: {
-    width: '90%',
-    height: '80%',
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    padding: 24,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  budgetInput: {
-    width: '100%',
-    height: 48,
-    borderWidth: 1,
-    borderColor: COLORS.textSecondary,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-    marginBottom: 20,
-    backgroundColor: '#F7FAFC',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    width: '100%',
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  cancelButton: {
-    backgroundColor: COLORS.textSecondary,
-  },
-  confirmButton: {
-    backgroundColor: COLORS.primary,
-  },
-  modalButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: 12,
-  },
-  budgetInfo: {
-    fontSize: 16,
-    color: '#000000',
-    marginBottom: 16,
-  },
-  budgetError: {
-    color: COLORS.error,
-  },
-  listContent: {
-    flexGrow: 1,
-    paddingBottom: 20,
-  },
-  addButton: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  addItemList: {
-    flex: 1,
-    marginBottom: 20,
   },
   noBudgetContainer: {
     flex: 1,
@@ -1293,10 +1124,46 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: 'center',
   },
-
-
-
-  
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 15,
+    fontSize: 16,
+  },
+  itemContainer: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  itemText: {
+    fontSize: 16,
+  },
+  noItems: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  totalContainer: {
+    marginVertical: 20,
+    alignItems: 'center',
+  },
+  totalText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 40,
+    backgroundColor: COLORS.background,
+  },
 });
-
-
