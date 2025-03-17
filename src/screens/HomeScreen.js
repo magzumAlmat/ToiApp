@@ -93,7 +93,7 @@ export default function HomeScreen({ navigation }) {
       setData(newData);
     } catch (error) {
       console.error('Ошибка загрузки данных:', error);
-      alert('Ошибка загрузки: ' + (error.response?.data?.message || error.message));
+      // Alert('Ошибка загрузки: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
@@ -102,6 +102,16 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => {
     if (!token) navigation.navigate('Login');
     else fetchData();
+    // Правильно
+//   const fetchWedding = async (weddingId) => {
+//     try {
+//       const response = await api.getWedding(weddingId, token); // weddingId — число
+//       console.log('Wedding:', response.data);
+//     } catch (error) {
+//       console.error('Ошибка:', error);
+//     }
+//   };
+// fetchWedding(1); // Или wedding.id, полученный после создания
   }, [token, user]);
 
   useEffect(() => {
@@ -574,22 +584,30 @@ export default function HomeScreen({ navigation }) {
       items: filteredData.map((item) => ({
         id: item.id,
         type: item.type,
-        totalCost: item.totalCost || item.cost,
+        totalCost: parseFloat(item.totalCost || item.cost),
       })),
     };
 
     console.log('weddingData=', weddingData);
 
-    try {
-      const response = await api.createWedding(weddingData);
-      console.log()
-      alert('Свадьба успешно создана!');
+   try {
+      const response = await api.createWedding(weddingData, token); // Передаем токен, если требуется
+      console.log('Response:', response.data);
+      alert('Успех', 'Свадьба успешно создана!');
       setModalVisible(false);
       setWeddingName('');
-      setWeddingDate('');
+      setWeddingDate(new Date());
+      setItems([]);
+      // navigation.navigate('HomeScreen');
+       // Возвращаемся на предыдущий экран
+       setModalVisible(false)
     } catch (error) {
       console.error('Ошибка при создании свадьбы:', error);
-      alert('Не удалось создать свадьбу: ' + (error.response?.data?.error || error.message));
+      Alert.alert(
+        'Ошибка',
+        'Не удалось создать свадьбу: ' +
+          (error.response?.data?.error || error.message)
+      );
     }
   };
 

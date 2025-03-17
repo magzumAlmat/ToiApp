@@ -102,6 +102,14 @@ export default {
         getAllAlcohol: () => api.get('/api/alcohol'),
         deleteAlcohol: (id) => api.delete(`/api/alcohol/${id}`),
 
+        createWedding: (data, token) =>
+          api.post('/api/weddings/addwedding', data, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        getWedding: (id, token) =>
+          api.get(`/api/weddings/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
 
 
 };
