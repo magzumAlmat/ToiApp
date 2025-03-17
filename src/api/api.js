@@ -106,10 +106,31 @@ export default {
           api.post('/api/weddings/addwedding', data, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-        getWedding: (id, token) =>
-          api.get(`/api/weddings/${id}`, {
+        
+        getWedding: (token) =>
+          api.get(`/api/getallweddings`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
 
+       
+          updateWedding: (id, token, data) =>
+            api.put(`/api/updateweddingbyid/${id}`, data, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
 
-};
+
+          createWish:(wishlistData,token)=>{
+          api.post('/api/wishlist', wishlistData, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+        
+        
+        
+        
+        }
+      
+        // showWishList:()
+      }
+
+
