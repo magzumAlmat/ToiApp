@@ -12,6 +12,7 @@ import RegisterScreen from '../screens/RegisterScreen';
 import { View, Text } from 'react-native';
 import { useEffect } from 'react';
 import DetailsScreen from '../screens/DetailsScreen';
+import WeddingWishlistScreen from '../screens/WeddingWishlistScreen';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -52,6 +53,7 @@ function AuthenticatedTabs() {
 
   console.log('roleId:', roleId, 'user:', user);
 
+  
   return (
     <Tab.Navigator screenOptions={tabBarOptions}>
       {roleId === 2 ? (
@@ -69,7 +71,9 @@ function AuthenticatedTabs() {
       ) : (
         <>
           <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная', headerShown: false }} />
+          <Tab.Screen name="WeddingWishlistScreen" component={WeddingWishlistScreen} options={{ title: 'Wishlist', headerShown: false }} />
           <Tab.Screen name="Item4" component={Item4Screen} options={{ title: 'Профиль', headerShown: false }} />
+       
         </>
       )}
     </Tab.Navigator>

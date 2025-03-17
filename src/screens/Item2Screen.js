@@ -20,7 +20,7 @@ export default function Item2Screen({ navigation }) {
   console.log('Received restaurant ID:', restaurantId);
   const { user, token } = useSelector((state) => state.auth);
 
-   const BASE_URL = "http://localhost:6666"; 
+   const BASE_URL = "http://localhost:3000"; 
  // const BASE_URL = 'https://26d8-85-117-96-82.ngrok-free.app';
 
   // Обновлённый массив с русскими названиями

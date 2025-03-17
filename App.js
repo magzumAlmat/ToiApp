@@ -3,6 +3,7 @@ import { store } from './src/store/store';
 import Navigation from './src/navigation/index';
 
 export default function App() {
+  
   return (
     <Provider store={store}>
       

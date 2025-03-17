@@ -9,6 +9,7 @@ import {
   Modal,
   Alert,
   TouchableOpacity,
+  Share,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
@@ -40,17 +41,16 @@ export default function Item3Screen() {
     fetchWeddings();
   }, []);
 
+
   useEffect(() => {
-    
+    console.log(weddings)
   }, [weddings]);
   // Получение всех свадеб пользователя
   const fetchWeddings = async () => {
-    console.log('id=',userId,'token=',token)
+    console.log('id=', userId, 'token=', token);
     try {
-      const response = await api.getWedding(userId,token)
+      const response = await api.getWedding(token);
       setWeddings(response.data.data);
-      // console.log(response.data.data)
-
     } catch (error) {
       console.error('Ошибка при загрузке свадеб:', error);
       Alert.alert('Ошибка', 'Не удалось загрузить список свадеб');
@@ -76,12 +76,11 @@ export default function Item3Screen() {
 
     try {
       const response = await api.createWedding(weddingData, token);
-      alert('Успех', 'Свадьба успешно создана');
+      Alert.alert('Успех', 'Свадьба успешно создана');
       setWeddings([...weddings, response.data.data]);
       setModalVisible(false);
       setWeddingName('');
       setWeddingDate('');
-
     } catch (error) {
       console.error('Ошибка при создании свадьбы:', error);
       Alert.alert('Ошибка', error.response?.data?.error || 'Не удалось создать свадьбу');
@@ -204,6 +203,30 @@ export default function Item3Screen() {
     );
   };
 
+  // Генерация и отправка ссылки на веб-страницу
+  const handleShareWeddingLink = async (weddingId) => {
+    const webLink = `http://localhost:3000/api/weddingwishes/${weddingId}`; // Замените на ваш реальный домен
+    try {
+      const result = await Share.share({
+        message: `Присоединяйтесь к моей свадьбе! Вот ссылка: ${webLink}`,
+        url: webLink,
+        title: 'Приглашение на свадьбу',
+      });
+      if (result.action === Share.sharedAction) {
+        if (result.activityType) {
+          console.log('Поделился через:', result.activityType);
+        } else {
+          console.log('Поделился успешно');
+        }
+      } else if (result.action === Share.dismissedAction) {
+        console.log('Поделиться отменено');
+      }
+    } catch (error) {
+      console.error('Ошибка при создании ссылки:', error);
+      Alert.alert('Ошибка', 'Не удалось поделиться ссылкой');
+    }
+  };
+
   // Открытие модалки редактирования
   const openEditModal = (wedding) => {
     setSelectedWedding(wedding);
@@ -218,8 +241,6 @@ export default function Item3Screen() {
       <Text style={styles.itemText}>{item.name} ({item.date})</Text>
       <Text style={styles.itemText}>
         Элементы: {item.WeddingItems?.length || 0}
-        {/* <List>{item}
- </List>        */}
       </Text>
       <View style={styles.buttonRow}>
         <TouchableOpacity
@@ -248,6 +269,12 @@ export default function Item3Screen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
+          onPress={() => handleShareWeddingLink(item.id)}
+        >
+          <Text style={styles.actionButtonText}>Поделиться</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
           onPress={() => handleDeleteWedding(item.id)}
         >
           <Text style={styles.actionButtonText}>Удалить</Text>
@@ -262,14 +289,15 @@ export default function Item3Screen() {
       <Text style={styles.itemText}>{item.item_name}</Text>
       <Text style={styles.itemText}>
         {item.description || 'Без описания'} -{' '}
-        {item.is_reserved ? `Зарезервировано: ${item.Reserver?.username || 'Кем-то'}` : 'Свободно'}
+        {item.is_reserved ? `Зарезервировано: ${item.Reserver?.username || item.reserved_by_unknown}` : 'Свободно'}
+        
       </Text>
       {!item.is_reserved && (
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => handleReserveWishlistItem(item.id)}
         >
-          <Text style={styles.actionButtonText}>Зарезервировать</Text>
+          {/* <Text style={styles.actionButtonText}>Зарезервировать</Text> */}
         </TouchableOpacity>
       )}
     </View>
@@ -315,7 +343,7 @@ export default function Item3Screen() {
         <View style={styles.modalContainer}>
           <Text style={styles.subtitle}>Редактирование свадьбы</Text>
           <TextInput
-            autoComplete="falsedasd"
+            autoComplete="off"
             style={styles.input}
             placeholder="Название свадьбы"
             value={weddingName}
@@ -362,7 +390,6 @@ export default function Item3Screen() {
           <Text style={styles.subtitle}>
             Подарки для свадьбы: {selectedWedding?.name}
           </Text>
-
           <FlatList
             data={wishlistItems}
             renderItem={renderWishlistItem}
@@ -372,9 +399,6 @@ export default function Item3Screen() {
           <Button title="Закрыть" onPress={() => setWishlistViewModalVisible(false)} />
         </SafeAreaView>
       </Modal>
-
-
-
     </SafeAreaView>
   );
 }
