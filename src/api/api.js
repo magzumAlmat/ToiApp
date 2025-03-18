@@ -134,12 +134,14 @@ export default {
           getWishlistByWeddingId: (weddingId, token) => api.get(`/api/wishlist/${weddingId}`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
+
+          
           reserveWishlistItem: (id, token) => api.patch(`/api/wishlist/${id}/reserve`, {}, {
             headers: { Authorization: `Bearer ${token}` },
           }),
 
         
-
+          reserveWishlistItemWithoutToken: (id,data) => api.patch(`/api/wishlist/${id}/reservebyunknown`, {data}, ),
         
         
         

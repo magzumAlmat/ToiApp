@@ -73,7 +73,7 @@ function AuthenticatedTabs() {
       ) : (
         <>
           <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Главная', headerShown: false }} />
-          <Tab.Screen name="WeddingWishlistScreen" component={WeddingWishlistScreen} options={{ title: 'Wishlist', headerShown: false }} />
+          
           <Tab.Screen name="Item4" component={Item4Screen} options={{ title: 'Профиль', headerShown: false }} />
        
         </>
@@ -119,6 +119,7 @@ export default function Navigation() {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="ItemEdit" component={ItemEditScreen} />
+        <Stack.Screen name="wishlist" component={WeddingWishlistScreen} options={{ title: 'Wishlist', headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

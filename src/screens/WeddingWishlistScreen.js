@@ -6,6 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   Alert,
+  TextInput,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
@@ -15,68 +16,81 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function WeddingWishlistScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const weddingId = route.params?.weddingId; // ID свадьбы из deep link
   const token = useSelector((state) => state.auth.token); // Токен из Redux
+  const userId = useSelector((state) => state.auth.user?.id); // ID пользователя из Redux
 
   // Состояния
-  const [wedding, setWedding] = useState(null); // Информация о свадьбе
   const [wishlistItems, setWishlistItems] = useState([]); // Список подарков
+  const [loading, setLoading] = useState(true); // Статус загрузки
+  const weddingId = route.params?.id; // Для теста, позже можно вернуть route.params?.id
 
-  // Загрузка данных свадьбы и подарков
+  console.log('wishlist= ',weddingId)
+  // Загрузка списка подарков при монтировании
   useEffect(() => {
     if (weddingId) {
-      fetchWeddingDetails();
       fetchWishlistItems();
+    } else {
+      Alert.alert('Ошибка', 'Не удалось загрузить данные свадьбы');
     }
   }, [weddingId]);
-
-  // Получение информации о свадьбе
-  const fetchWeddingDetails = async () => {
-    try {
-      const response = await api.getWeddingById(weddingId, token); // Предполагается, что такой метод будет добавлен
-      setWedding(response.data.data);
-    } catch (error) {
-      console.error('Ошибка при загрузке свадьбы:', error);
-      Alert.alert('Ошибка', 'Не удалось загрузить информацию о свадьбе');
-    }
-  };
 
   // Получение списка подарков
   const fetchWishlistItems = async () => {
     try {
+      setLoading(true);
       const response = await api.getWishlistByWeddingId(weddingId, token);
-      setWishlistItems(response.data.data);
+      setWishlistItems(response.data.data || []);
     } catch (error) {
-      console.error('Ошибка при загрузке списка подарков:', error);
+      console.error('Ошибка при загрузке подарков:', error);
       Alert.alert('Ошибка', 'Не удалось загрузить список подарков');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Резервирование подарка
-  const handleReserveWishlistItem = async (wishlistId) => {
-    Alert.alert(
-      'Подтверждение',
-      'Вы хотите зарезервировать этот подарок?',
+  // Резервирование подарка с запросом имени
+  const handleReserveWishlistItem = (wishlistId) => {
+    Alert.prompt(
+      'Резервирование подарка',
+      'Пожалуйста, введите ваше имя:',
       [
-        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Отмена',
+          style: 'cancel',
+        },
         {
           text: 'Зарезервировать',
-          onPress: async () => {
+          onPress: async (name) => {
+            if (!name || name.trim() === '') {
+              Alert.alert('Ошибка', 'Имя не может быть пустым');
+              return;
+            }
+
             try {
-              const response = await api.reserveWishlistItem(wishlistId, token);
-              Alert.alert('Успех', 'Подарок зарезервирован');
+              // Передаём имя в API-запрос
+              console.log('зерезрирование без токена ',wishlistId,name)
+              const data={reserved_by_unknown: name.trim(),}
+              const response = await api.reserveWishlistItemWithoutToken(wishlistId, data);
+              Alert.alert('Успех', 'Подарок зарезервирован',wishlistId);
+              // Обновляем локальный список подарков
               setWishlistItems(
                 wishlistItems.map((item) =>
-                  item.id === wishlistId ? response.data.data : item
+                  item.id === wishlistId
+                    ? { ...item, is_reserved: true, reserved_by_unknown: name.trim() }
+                    : item
                 )
               );
             } catch (error) {
               console.error('Ошибка при резервировании подарка:', error);
-              Alert.alert('Ошибка', error.response?.data?.error || 'Не удалось зарезервировать подарок');
+              Alert.alert(
+                'Ошибка',
+                error.response?.data?.error || 'Не удалось зарезервировать подарок'
+              );
             }
           },
         },
-      ]
+      ],
+      'plain-text' // Тип ввода — обычный текст
     );
   };
 
@@ -84,9 +98,10 @@ export default function WeddingWishlistScreen() {
   const renderWishlistItem = ({ item }) => (
     <View style={styles.wishlistItemContainer}>
       <Text style={styles.itemText}>{item.item_name}</Text>
-      <Text style={styles.itemText}>
-        {item.description || 'Без описания'} -{' '}
-        {item.is_reserved ? `Зарезервировано: ${item.Reserver?.username || 'Кем-то'}` : 'Свободно'}
+      <Text style={styles.itemStatus}>
+        {item.is_reserved
+          ? `Зарезервировано${item.reserved_by_unknown ? ` пользователем: ${item.reserved_by_unknown}` : ''}`
+          : 'Свободно'}
       </Text>
       {!item.is_reserved && (
         <TouchableOpacity
@@ -99,22 +114,19 @@ export default function WeddingWishlistScreen() {
     </View>
   );
 
+  // Отображение экрана
   return (
     <SafeAreaView style={styles.container}>
-      {wedding ? (
-        <>
-          <Text style={styles.title}>{wedding.name}</Text>
-          <Text style={styles.subtitle}>Дата: {wedding.date}</Text>
-          <Text style={styles.subtitle}>Список подарков:</Text>
-          <FlatList
-            data={wishlistItems}
-            renderItem={renderWishlistItem}
-            keyExtractor={(item) => item.id.toString()}
-            ListEmptyComponent={<Text style={styles.noItems}>Подарков пока нет</Text>}
-          />
-        </>
-      ) : (
+      <Text style={styles.title}>Список подарков для свадьбы #{weddingId}</Text>
+      {loading ? (
         <Text style={styles.noItems}>Загрузка...</Text>
+      ) : (
+        <FlatList
+          data={wishlistItems}
+          renderItem={renderWishlistItem}
+          keyExtractor={(item) => item.id.toString()}
+          ListEmptyComponent={<Text style={styles.noItems}>Подарков пока нет</Text>}
+        />
       )}
     </SafeAreaView>
   );
@@ -131,10 +143,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
-  subtitle: {
-    fontSize: 18,
-    marginBottom: 10,
-  },
   wishlistItemContainer: {
     padding: 10,
     borderBottomWidth: 1,
@@ -142,6 +150,12 @@ const styles = StyleSheet.create({
   },
   itemText: {
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  itemStatus: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 5,
   },
   noItems: {
     fontSize: 16,

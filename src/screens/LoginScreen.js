@@ -103,6 +103,12 @@ export default function LoginScreen({ navigation }) {
         title="Нет аккаунта? Зарегистрироваться"
         onPress={() => navigation.navigate('Register')}
       />
+
+
+<Button
+        title="страница "
+        onPress={() => navigation.navigate('wishlist')}
+      />
     </View>
   );
 }
