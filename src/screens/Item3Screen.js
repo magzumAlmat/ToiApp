@@ -257,13 +257,14 @@ export default function Item3Screen() {
   
     try {
       console.log('Creating appLink...');
-      const appLink = Linking.createURL(`wedding/${weddingId}`); // Замена makeUrl на createURL
+      const appLink = Linking.createURL(`wishlist/${weddingId}`); // Замена makeUrl на createURL
       console.log('appLink created:', appLink);
   
       console.log('Creating webLink...');
       const webLink = process.env.EXPO_PUBLIC_API_baseURL
         ? `${process.env.EXPO_PUBLIC_API_baseURL}/api/weddingwishes/${weddingId}`
         : 'http://localhost:3000/api/weddingwishes/' + weddingId;
+
       console.log('webLink created:', webLink);
       console.log('EXPO_PUBLIC_API_baseURL:', process.env.EXPO_PUBLIC_API_baseURL);
   
@@ -272,7 +273,9 @@ export default function Item3Screen() {
       console.log('canOpenApp result:', canOpenApp);
   
       const message = canOpenApp
-        ? `Присоединяйтесь к моей свадьбе в приложении: ${appLink}`
+        
+        // Присоединяйтесь к моей свадьбе в приложении: 
+        ? `${appLink}`
         : `Присоединяйтесь к моей свадьбе через сайт: ${webLink}`;
       console.log('Message prepared:', message);
   

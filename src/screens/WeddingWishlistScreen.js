@@ -24,7 +24,9 @@ export default function WeddingWishlistScreen() {
   const [loading, setLoading] = useState(true); // Статус загрузки
   const weddingId = route.params?.id; // Для теста, позже можно вернуть route.params?.id
 
-  console.log('wishlist= ',weddingId)
+
+  console.log('WeddingWishlistScreen Started | wishlist= ',weddingId)
+  
   // Загрузка списка подарков при монтировании
   useEffect(() => {
     if (weddingId) {
@@ -38,7 +40,7 @@ export default function WeddingWishlistScreen() {
   const fetchWishlistItems = async () => {
     try {
       setLoading(true);
-      const response = await api.getWishlistByWeddingId(weddingId, token);
+      const response = await api.getWishlistByWeddingIdWithoutToken(weddingId);
       setWishlistItems(response.data.data || []);
     } catch (error) {
       console.error('Ошибка при загрузке подарков:', error);

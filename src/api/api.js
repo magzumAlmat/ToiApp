@@ -135,7 +135,9 @@ export default {
             headers: { Authorization: `Bearer ${token}` },
           }),
 
-          
+          getWishlistByWeddingIdWithoutToken: (weddingId) => api.get(`/api/wishlist/${weddingId}`, ),
+
+
           reserveWishlistItem: (id, token) => api.patch(`/api/wishlist/${id}/reserve`, {}, {
             headers: { Authorization: `Bearer ${token}` },
           }),
