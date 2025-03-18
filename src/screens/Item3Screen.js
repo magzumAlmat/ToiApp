@@ -288,7 +288,7 @@ export default function Item3Screen() {
         title: 'Приглашение на свадьбу',
       });
 
-      alert(result.url)
+      // alert(result.url)
       console.log('Share result:', result);
   
       if (result.action === Share.sharedAction) {

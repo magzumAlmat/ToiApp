@@ -146,6 +146,7 @@ export default {
           reserveWishlistItemWithoutToken: (id,data) => api.patch(`/api/wishlist/${id}/reservebyunknown`, {data}, ),
         
         
+          postGoodsData:(goodsData) => api.post(`/api/goods`, goodsData),
         
         }
       

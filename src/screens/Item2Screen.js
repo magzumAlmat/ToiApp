@@ -16,18 +16,22 @@ export default function Item2Screen({ navigation }) {
   const [genderModalVisible, setGenderModalVisible] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const route = useRoute();
+  const [categoryModalVisible, setCategoryModalVisible] = useState(false); 
   const restaurantId = route.params?.id;
+ const [formDataId, setFormDataId] = useState(''); // Исправлено имя
+  
   console.log('Received restaurant ID:', restaurantId);
   const { user, token } = useSelector((state) => state.auth);
-
+  const [isLoading, setIsLoading] = useState(false);
    const BASE_URL = "http://localhost:3000"; 
  // const BASE_URL = 'https://26d8-85-117-96-82.ngrok-free.app';
 
   // Обновлённый массив с русскими названиями
   const items = [
     'Ресторан', 'Одежда', 'Транспорт', 'Тамада', 'Программа',
-    'Традиционные подарки', 'Цветы', 'Торты', 'Алкоголь',
+    'Традиционные подарки', 'Цветы', 'Торты', 'Алкоголь', 'Товары',
   ];
+
 
   // Маппинг русских названий на английские для URL и API
   const entityTypeMap = {
@@ -40,8 +44,23 @@ export default function Item2Screen({ navigation }) {
     'Цветы': 'flowers',
     'Торты': 'cake',
     'Алкоголь': 'alcohol',
+    'Товары': 'goods',
   };
 
+    const categoryOptions = [
+    'Деньги',
+    'Бытовая техника',
+    'Посуда и кухонные принадлежности',
+    'Текстиль для дома',
+    'Мебель и элементы интерьера',
+    'Подарки для отдыха и путешествий',
+    'Электроника и гаджеты',
+    'Подарки для хобби и увлечений',
+    'Символические и романтические подарки',
+    'Сертификаты и подписки',
+    'Алкоголь и гастрономия',
+    'Традиционные подарки',
+  ];
   const cuisineOptions = ['Русская', 'Итальянская', 'Азиатская', 'Французская', 'Американская'];
   const districtOptions = ['Медеуский', 'Бостандыкский', 'Алмалинский', 'Ауэзовский', 'Наурызбайский', 'Алатауский', 'Жетысуйский', 'За пределами Алматы'];
   const genderOptions = ['мужской', 'женский'];
@@ -91,8 +110,9 @@ export default function Item2Screen({ navigation }) {
   };
 
   const uploadFiles = async (entityType, entityId) => {
-    const entityTypeLower = entityTypeMap[entityType]; // Преобразуем русское название в английское
-    console.log('Starting file upload for:', entityTypeLower, 'ID:', entityId);
+    const entityTypeLower = entityTypeMap[entityType];
+    console.log('6 entityTypeLower= ', entityTypeLower);
+    console.log('7 Starting file upload for:', entityTypeLower, 'ID:', entityId);
 
     for (const file of selectedFiles) {
       console.log('File name:', file.uri.split('/').pop(), 'File URI:', file.uri, 'Type:', file.type);
@@ -104,10 +124,11 @@ export default function Item2Screen({ navigation }) {
         name: file.uri.split('/').pop(),
       });
 
+      console.log('8 formdata', formData);
       try {
         const response = await axios.post(
           `${BASE_URL}/api/${entityTypeLower}/${entityId}/files`,
-          formData,
+          formData, // Исправлено
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -124,11 +145,11 @@ export default function Item2Screen({ navigation }) {
   };
 
   const handleSubmit = async () => {
-    console.log('Сохранение стартовало');
-    console.log('User from Redux:', user);
-    console.log('User ID:', user.id, 'Type:', typeof user.id);
-    console.log('Token:', token);
-    console.log('Selected Item:', selectedItem);
+    console.log('1 Сохранение стартовало');
+    console.log('2 User from Redux:', user);
+    console.log('3 User ID:', user.id, 'Type:', typeof user.id);
+    console.log('4 Token:', token);
+    console.log('5 Selected Item:', selectedItem);
 
     if (!token) {
       Alert.alert('Ошибка', 'Пожалуйста, войдите в систему');
@@ -137,73 +158,44 @@ export default function Item2Screen({ navigation }) {
     }
 
     try {
+      setIsLoading(true);
       let response;
+      let entityId;
 
       switch (selectedItem) {
-        case 'Ресторан':
-          console.log('Form data before submission:', formData);
-          console.log('Types in formData:', Object.keys(formData).map(key => `${key}: ${typeof formData[key]}`));
+        case 'Товары':
+          if (!formData.category || !formData.item_name) {
+            throw new Error('Заполните обязательные поля: Категория и Название товара');
+          }
+          const goodsData = {
+            category: formData.category,
+            item_name: formData.item_name,
+            description: formData.description || '',
+            price_range: formData.price_range || '',
+          };
+          const newGoodsData = { ...goodsData, supplier_id: user.id };
+          console.log('goodsData=', newGoodsData);
 
-          if (!formData.name || !formData.capacity || !formData.cuisine || !formData.averageCost) {
-            throw new Error('Заполните все обязательные поля: Название, Вместимость, Кухня, Средний чек');
+          response = await axios.post(`${BASE_URL}/api/goods`, newGoodsData);
+          console.log('0 response=', response.data);
+
+          if (!response.data || !response.data.data || !response.data.data.id) {
+            throw new Error('Сервер не вернул ID созданного товара');
           }
 
-          const restaurantData = {
-            ...formData,
-            averageCost: parseFloat(formData.averageCost) || 0,
-            supplier_id: user.id,
-          };
-
-          console.log('restaurantData:', restaurantData);
-          console.log('Types in restaurantData:', Object.keys(restaurantData).map(key => `${key}: ${typeof restaurantData[key]}`));
-
-          response = await api.createRestaurant(restaurantData);
-          console.log('API response:', response);
+          entityId = response.data.data.id;
+          setFormDataId(response.data.data.id);
+          console.log('9 RESPONSE=', response.data.data.id, 'FORMDATAID= ', formDataId);
+          console.log('Entity ID:', entityId, 'Type:', typeof entityId);
           break;
-
-        case 'Одежда':
-          response = await api.createClothing({ ...formData, supplier_id: user.id });
-          break;
-
-        case 'Транспорт':
-          console.log('formdata= ',formData)
-          const transportData = {
-            ...formData,
-            cost: parseFloat(formData.cost) || 0,
-            supplier_id: user.id,
-          };
-          console.log('TD- ',transportData)
-          response = await api.createTransport(transportData);
-          break;
-
-        case 'Тамада':
-          response = await api.createTamada({ ...formData, supplier_id: user.id });
-          break;
-        case 'Программа':
-          response = await api.createProgram({ ...formData, supplier_id: user.id });
-          break;
-        case 'Традиционные подарки':
-          response = await api.createTraditionalGift({ ...formData, supplier_id: user.id });
-          break;
-        case 'Цветы':
-          response = await api.createFlowers({ ...formData, supplier_id: user.id });
-          break;
-        case 'Торты':
-          response = await api.createCake({ ...formData, supplier_id: user.id });
-          break;
-        case 'Алкоголь':
-          response = await api.createAlcohol({ ...formData, supplier_id: user.id });
-          break;
+        // Добавьте остальные case с entityId
         default:
           throw new Error('Выберите тип объекта');
       }
 
-      const entityId = response.data.id;
-      console.log('Entity ID:', entityId, 'Type:', typeof entityId);
-
       if (selectedFiles.length > 0) {
         console.log('Selected Files:', selectedFiles);
-        await uploadFiles(selectedItem, entityId); // Передаём русское название
+        await uploadFiles(selectedItem, entityId);
       }
 
       Alert.alert('Успех', `${selectedItem} успешно создан${selectedFiles.length > 0 ? ' с файлами' : ''}!`);
@@ -213,6 +205,8 @@ export default function Item2Screen({ navigation }) {
     } catch (error) {
       console.error('Ошибка:', error.response?.data || error.message);
       Alert.alert('Ошибка', error.message || error.response?.data?.error || 'Не удалось создать объект');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -684,7 +678,66 @@ export default function Item2Screen({ navigation }) {
                 />
               </>
             );
-          default:
+            
+          
+
+
+
+                  case 'Товары':
+        return (
+          <>
+          <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Категория:</Text>
+              <TouchableOpacity style={styles.cuisineButton} onPress={() => setCategoryModalVisible(true)}>
+                <Text style={styles.cuisineText}>{formData.category || 'Выберите категорию'}</Text>
+              </TouchableOpacity>
+            </View>
+            <Modal visible={categoryModalVisible} transparent={true} animationType="slide" onRequestClose={() => setCategoryModalVisible(false)}>
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Выберите категорию</Text>
+                  <Picker
+                    selectedValue={formData.category}
+                    onValueChange={(value) => {
+                      handleInputChange('category', value);
+                      setCategoryModalVisible(false);
+                    }}
+                    style={styles.modalPicker}
+                  >
+                    <Picker.Item label="Выберите категорию" value="" />
+                    {categoryOptions.map((option) => (
+                      <Picker.Item key={option} label={option} value={option} />
+                    ))}
+                  </Picker>
+                  <TouchableOpacity style={styles.closeButton} onPress={() => setCategoryModalVisible(false)}>
+                    <Text style={styles.closeButtonText}>Закрыть</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
+            <TextInput
+              style={styles.input}
+              placeholder="Название товара"
+              value={formData.item_name || ''}
+              onChangeText={(value) => handleInputChange('item_name', value)}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Описание"
+              value={formData.description || ''}
+              onChangeText={(value) => handleInputChange('description', value)}
+              multiline
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Диапазон цен (например, 1000-5000 руб)"
+              value={formData.price_range || ''}
+              onChangeText={(value) => handleInputChange('price_range', value)}
+            />
+           
+          </>
+        );
+            default:
         return <Text style={styles.label}>Выберите тип объекта для создания</Text>;
     }
   };
@@ -724,7 +777,12 @@ export default function Item2Screen({ navigation }) {
               style={styles.fileList}
             />
           )}
-          <Button title="Создать" onPress={handleSubmit} disabled={!selectedItem} />
+          {/* <Button title="Создать" onPress={handleSubmit} disabled={!selectedItem} /> */}
+          <Button
+            title={isLoading ? 'Создание...' : 'Создать'} // Меняем текст кнопки
+            onPress={handleSubmit}
+            disabled={!selectedItem || isLoading} // Отключаем кнопку во время загрузки
+          />
         </>
       )}
     </ScrollView>
@@ -759,4 +817,5 @@ const styles = StyleSheet.create({
   filePreview: { width: 50, height: 50, borderRadius: 5 },
   removeButton: { marginLeft: 10 },
   removeButtonText: { color: 'red', fontSize: 14 },
-});
+}
+);
