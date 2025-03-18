@@ -11,41 +11,39 @@ import {
   TouchableOpacity,
   Share,
 } from 'react-native';
+import * as Linking from 'expo-linking'; // Добавлен импорт
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
-import api from '../api/api'; // Ваш API-клиент
+import api from '../api/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Item3Screen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const selectedItems = route.params?.data || []; // Массив выбранных данных (items)
-  const userId = useSelector((state) => state.auth.user?.id); // ID пользователя из Redux
-  const token = useSelector((state) => state.auth.token); // Токен из Redux
+  const selectedItems = route.params?.data || [];
+  const userId = useSelector((state) => state.auth.user?.id);
+  const token = useSelector((state) => state.auth.token);
 
-  // Состояния
-  const [weddings, setWeddings] = useState([]); // Список свадеб
-  const [modalVisible, setModalVisible] = useState(false); // Модалка для создания свадьбы
-  const [wishlistModalVisible, setWishlistModalVisible] = useState(false); // Модалка для подарков
-  const [editModalVisible, setEditModalVisible] = useState(false); // Модалка для редактирования
-  const [wishlistViewModalVisible, setWishlistViewModalVisible] = useState(false); // Модалка для просмотра подарков
-  const [weddingName, setWeddingName] = useState(''); // Имя свадьбы
-  const [weddingDate, setWeddingDate] = useState(''); // Дата свадьбы в формате YYYY-MM-DD
-  const [selectedWedding, setSelectedWedding] = useState(null); // Выбранная свадьба
-  const [wishlistItemName, setWishlistItemName] = useState(''); // Название подарка
-  const [wishlistDescription, setWishlistDescription] = useState(''); // Описание подарка
-  const [wishlistItems, setWishlistItems] = useState([]); // Список подарков
+  const [weddings, setWeddings] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [wishlistModalVisible, setWishlistModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [wishlistViewModalVisible, setWishlistViewModalVisible] = useState(false);
+  const [weddingName, setWeddingName] = useState('');
+  const [weddingDate, setWeddingDate] = useState('');
+  const [selectedWedding, setSelectedWedding] = useState(null);
+  const [wishlistItemName, setWishlistItemName] = useState('');
+  const [wishlistDescription, setWishlistDescription] = useState('');
+  const [wishlistItems, setWishlistItems] = useState([]);
 
-  // Загрузка списка свадеб при монтировании
   useEffect(() => {
     fetchWeddings();
   }, []);
 
-
   useEffect(() => {
-    console.log(weddings)
+    console.log(weddings);
   }, [weddings]);
-  // Получение всех свадеб пользователя
+
   const fetchWeddings = async () => {
     console.log('id=', userId, 'token=', token);
     try {
@@ -57,7 +55,6 @@ export default function Item3Screen() {
     }
   };
 
-  // Создание новой свадьбы
   const handleCreateWedding = async () => {
     if (!weddingName || !weddingDate) {
       Alert.alert('Ошибка', 'Заполните имя и дату свадьбы');
@@ -87,7 +84,6 @@ export default function Item3Screen() {
     }
   };
 
-  // Обновление свадьбы
   const handleUpdateWedding = async () => {
     if (!selectedWedding || !weddingName || !weddingDate) {
       Alert.alert('Ошибка', 'Заполните имя и дату свадьбы');
@@ -113,7 +109,6 @@ export default function Item3Screen() {
     }
   };
 
-  // Удаление свадьбы
   const handleDeleteWedding = async (id) => {
     Alert.alert(
       'Подтверждение',
@@ -137,7 +132,6 @@ export default function Item3Screen() {
     );
   };
 
-  // Добавление подарка
   const handleAddWishlistItem = async () => {
     if (!wishlistItemName) {
       Alert.alert('Ошибка', 'Введите название подарка');
@@ -156,14 +150,13 @@ export default function Item3Screen() {
       setWishlistModalVisible(false);
       setWishlistItemName('');
       setWishlistDescription('');
-      fetchWeddings(); // Обновляем список свадеб
+      fetchWeddings();
     } catch (error) {
       console.error('Ошибка при добавлении подарка:', error);
       Alert.alert('Ошибка', error.response?.data?.error || 'Не удалось добавить подарок');
     }
   };
 
-  // Получение списка подарков для свадьбы
   const fetchWishlistItems = async (weddingId) => {
     try {
       const response = await api.getWishlistByWeddingId(weddingId, token);
@@ -175,7 +168,6 @@ export default function Item3Screen() {
     }
   };
 
-  // Резервирование подарка
   const handleReserveWishlistItem = async (wishlistId) => {
     Alert.alert(
       'Подтверждение',
@@ -203,15 +195,95 @@ export default function Item3Screen() {
     );
   };
 
-  // Генерация и отправка ссылки на веб-страницу
+  useEffect(() => {
+    const handleDeepLink = async () => {
+      const initialUrl = await Linking.getInitialURL();
+      console.log('Initial URL:', initialUrl);
+      if (initialUrl) {
+        const { path, queryParams } = Linking.parse(initialUrl);
+        console.log('Parsed path:', path, 'Params:', queryParams);
+      }
+  
+      const subscription = Linking.addEventListener('url', ({ url }) => {
+        console.log('Received URL:', url);
+        const { path, queryParams } = Linking.parse(url);
+        console.log('Parsed path:', path, 'Params:', queryParams);
+      });
+  
+      return () => subscription.remove();
+    };
+  
+    handleDeepLink();
+  }, []);
+
+  
+  // const handleShareWeddingLink = async (weddingId) => {
+  //   console.log('handleShareWeddingLink started')
+  //   const appLink = Linking.makeUrl(`wedding/${weddingId}`);
+  //   const webLink = `${process.env.EXPO_PUBLIC_API_baseURL}/api/weddingwishes/${weddingId}`;
+
+  //   console.log('appLink:', appLink);
+  //   console.log('webLink:', webLink);
+  //   console.log('EXPO_PUBLIC_API_baseURL:', process.env.EXPO_PUBLIC_API_baseURL);
+  //   try {
+  //     const canOpenApp = await Linking.canOpenURL(appLink);
+
+  //     const message = canOpenApp
+  //       ? `Присоединяйтесь к моей свадьбе в приложении: ${appLink}`
+  //       : `Присоединяйтесь к моей свадьбе через сайт: ${webLink}`;
+
+  //     const result = await Share.share({
+  //       message,
+  //       url: canOpenApp ? appLink : webLink,
+  //       title: 'Приглашение на свадьбу',
+  //     });
+
+  //     if (result.action === Share.sharedAction) {
+  //       if (result.activityType) {
+  //         console.log('Поделился через:', result.activityType);
+  //       } else {
+  //         console.log('Поделился успешно');
+  //       }
+  //     } else if (result.action === Share.dismissedAction) {
+  //       console.log('Поделиться отменено');
+  //     }
+  //   } catch (error) {
+  //     console.error('Ошибка при создании ссылки:', error);
+  //     Alert.alert('Ошибка', 'Не удалось поделиться ссылкой');
+  //   }
+  // };
   const handleShareWeddingLink = async (weddingId) => {
-    const webLink = `http://localhost:3000/api/weddingwishes/${weddingId}`; // Замените на ваш реальный домен
+    console.log('handleShareWeddingLink started with weddingId:', weddingId);
+  
     try {
+      console.log('Creating appLink...');
+      const appLink = Linking.createURL(`wedding/${weddingId}`); // Замена makeUrl на createURL
+      console.log('appLink created:', appLink);
+  
+      console.log('Creating webLink...');
+      const webLink = process.env.EXPO_PUBLIC_API_baseURL
+        ? `${process.env.EXPO_PUBLIC_API_baseURL}/api/weddingwishes/${weddingId}`
+        : 'http://localhost:3000/api/weddingwishes/' + weddingId;
+      console.log('webLink created:', webLink);
+      console.log('EXPO_PUBLIC_API_baseURL:', process.env.EXPO_PUBLIC_API_baseURL);
+  
+      console.log('Checking canOpenApp...');
+      const canOpenApp = await Linking.canOpenURL(appLink);
+      console.log('canOpenApp result:', canOpenApp);
+  
+      const message = canOpenApp
+        ? `Присоединяйтесь к моей свадьбе в приложении: ${appLink}`
+        : `Присоединяйтесь к моей свадьбе через сайт: ${webLink}`;
+      console.log('Message prepared:', message);
+  
+      console.log('Calling Share.share...');
       const result = await Share.share({
-        message: `Присоединяйтесь к моей свадьбе! Вот ссылка: ${webLink}`,
-        url: webLink,
+        message,
+        url: canOpenApp ? appLink : webLink,
         title: 'Приглашение на свадьбу',
       });
+      console.log('Share result:', result);
+  
       if (result.action === Share.sharedAction) {
         if (result.activityType) {
           console.log('Поделился через:', result.activityType);
@@ -222,12 +294,11 @@ export default function Item3Screen() {
         console.log('Поделиться отменено');
       }
     } catch (error) {
-      console.error('Ошибка при создании ссылки:', error);
-      Alert.alert('Ошибка', 'Не удалось поделиться ссылкой');
+      console.error('Ошибка в handleShareWeddingLink:', error.message, error.stack);
+      Alert.alert('Ошибка', 'Не удалось поделиться ссылкой: ' + error.message);
     }
   };
 
-  // Открытие модалки редактирования
   const openEditModal = (wedding) => {
     setSelectedWedding(wedding);
     setWeddingName(wedding.name);
@@ -235,7 +306,6 @@ export default function Item3Screen() {
     setEditModalVisible(true);
   };
 
-  // Рендеринг элемента свадьбы
   const renderWeddingItem = ({ item }) => (
     <View style={styles.itemContainer}>
       <Text style={styles.itemText}>{item.name} ({item.date})</Text>
@@ -267,12 +337,15 @@ export default function Item3Screen() {
         >
           <Text style={styles.actionButtonText}>Просмотреть подарки</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => handleShareWeddingLink(item.id)}
-        >
-          <Text style={styles.actionButtonText}>Поделиться</Text>
-        </TouchableOpacity>
+      <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              console.log('Share button pressed for weddingId:', item.id);
+              handleShareWeddingLink(item.id);
+            }}
+          >
+            <Text style={styles.actionButtonText}>Поделиться</Text>
+</TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => handleDeleteWedding(item.id)}
@@ -283,14 +356,11 @@ export default function Item3Screen() {
     </View>
   );
 
-  // Рендеринг элемента списка подарков
   const renderWishlistItem = ({ item }) => (
     <View style={styles.wishlistItemContainer}>
-      <Text style={styles.itemText}>{item.item_name}</Text>
+      <Text style={styles.strikethroughText}>{item.item_name}</Text>
       <Text style={styles.itemText}>
-        {item.description || 'Без описания'} -{' '}
-        {item.is_reserved ? `Зарезервировано: ${item.Reserver?.username || item.reserved_by_unknown}` : 'Свободно'}
-        
+        {item.is_reserved ? `Кто подарит: ${item.Reserver?.username || item.reserved_by_unknown}` : 'Свободно'}
       </Text>
       {!item.is_reserved && (
         <TouchableOpacity
@@ -306,8 +376,6 @@ export default function Item3Screen() {
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Мои мероприятия</Text>
-      {/* <Button title="Создать свадьбу" onPress={() => setModalVisible(true)} /> */}
-
       <FlatList
         data={weddings}
         renderItem={renderWeddingItem}
@@ -315,7 +383,6 @@ export default function Item3Screen() {
         ListEmptyComponent={<Text style={styles.noItems}>Свадеб пока нет</Text>}
       />
 
-      {/* Модальное окно для создания свадьбы */}
       <Modal visible={modalVisible} animationType="slide">
         <View style={styles.modalContainer}>
           <Text style={styles.subtitle}>Создание свадьбы</Text>
@@ -338,7 +405,6 @@ export default function Item3Screen() {
         </View>
       </Modal>
 
-      {/* Модальное окно для редактирования свадьбы */}
       <Modal visible={editModalVisible} animationType="slide">
         <View style={styles.modalContainer}>
           <Text style={styles.subtitle}>Редактирование свадьбы</Text>
@@ -361,7 +427,6 @@ export default function Item3Screen() {
         </View>
       </Modal>
 
-      {/* Модальное окно для добавления подарка */}
       <Modal visible={wishlistModalVisible} animationType="slide">
         <View style={styles.modalContainer}>
           <Text style={styles.subtitle}>Добавить подарок</Text>
@@ -384,7 +449,6 @@ export default function Item3Screen() {
         </View>
       </Modal>
 
-      {/* Модальное окно для просмотра подарков */}
       <Modal visible={wishlistViewModalVisible} animationType="slide">
         <SafeAreaView style={styles.modalContainer}>
           <Text style={styles.subtitle}>
@@ -468,5 +532,10 @@ const styles = StyleSheet.create({
   actionButtonText: {
     color: '#fff',
     fontSize: 14,
+  },
+  strikethroughText: {
+    fontSize: 20,
+    textDecorationLine: 'line-through',
+    color: 'black',
   },
 });

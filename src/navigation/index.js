@@ -13,6 +13,7 @@ import { View, Text } from 'react-native';
 import { useEffect } from 'react';
 import DetailsScreen from '../screens/DetailsScreen';
 import WeddingWishlistScreen from '../screens/WeddingWishlistScreen';
+import * as Linking from 'expo-linking';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -54,6 +55,7 @@ function AuthenticatedTabs() {
   console.log('roleId:', roleId, 'user:', user);
 
   
+
   return (
     <Tab.Navigator screenOptions={tabBarOptions}>
       {roleId === 2 ? (
@@ -96,8 +98,17 @@ export default function Navigation() {
     }
   }, [token, user]);
 
+  const linking = {
+    prefixes: ['myapp://'],
+    config: {
+      screens: {
+        WeddingWishlist: 'wedding/:id',
+      },
+    },
+  };
+
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} linking={linking}>
       <Stack.Navigator initialRouteName={token ? 'Authenticated' : 'Login'} screenOptions={{ headerShown: false }}>
       <Stack.Screen
           name="Details"

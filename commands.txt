@@ -4,4 +4,4 @@ obeliks81@inbox.ru
 
 
 npx expo start --tunnel
-заменя base_url
+заменa  base_url
