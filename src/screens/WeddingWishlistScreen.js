@@ -16,18 +16,40 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function WeddingWishlistScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const token = useSelector((state) => state.auth.token); // Токен из Redux
-  const userId = useSelector((state) => state.auth.user?.id); // ID пользователя из Redux
+  const token = useSelector((state) => state.auth.token);
+  const userId = useSelector((state) => state.auth.user?.id);
 
-  // Состояния
-  const [wishlistItems, setWishlistItems] = useState([]); // Список подарков
-  const [loading, setLoading] = useState(true); // Статус загрузки
-  const weddingId = route.params?.id; // Для теста, позже можно вернуть route.params?.id
+  const [wishlistItems, setWishlistItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const weddingId = route.params?.id;
 
+  console.log('WeddingWishlistScreen Started | wishlist=', weddingId);
 
-  console.log('WeddingWishlistScreen Started | wishlist= ',weddingId)
-  
-  // Загрузка списка подарков при монтировании
+  // Настройка шапки с кнопками
+  useEffect(() => {
+    navigation.setOptions({
+      headerShown: true, // Включаем шапку
+      title: `Список подарков #${weddingId}`, // Заголовок с weddingId
+      headerLeft: () => (
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => navigation.goBack()} // Кнопка "Назад"
+        >
+          <Text style={styles.headerButtonText}>Назад</Text>
+        </TouchableOpacity>
+      ),
+      headerRight: () => (
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={fetchWishlistItems} // Кнопка "Обновить"
+        >
+          <Text style={styles.headerButtonText}>Обновить</Text>
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, weddingId]);
+
+  // Загрузка списка подарков
   useEffect(() => {
     if (weddingId) {
       fetchWishlistItems();
@@ -36,7 +58,6 @@ export default function WeddingWishlistScreen() {
     }
   }, [weddingId]);
 
-  // Получение списка подарков
   const fetchWishlistItems = async () => {
     try {
       setLoading(true);
@@ -50,16 +71,12 @@ export default function WeddingWishlistScreen() {
     }
   };
 
-  // Резервирование подарка с запросом имени
   const handleReserveWishlistItem = (wishlistId) => {
     Alert.prompt(
       'Резервирование подарка',
       'Пожалуйста, введите ваше имя:',
       [
-        {
-          text: 'Отмена',
-          style: 'cancel',
-        },
+        { text: 'Отмена', style: 'cancel' },
         {
           text: 'Зарезервировать',
           onPress: async (name) => {
@@ -67,14 +84,11 @@ export default function WeddingWishlistScreen() {
               Alert.alert('Ошибка', 'Имя не может быть пустым');
               return;
             }
-
             try {
-              // Передаём имя в API-запрос
-              console.log('зерезрирование без токена ',wishlistId,name)
-              const data={reserved_by_unknown: name.trim(),}
+              console.log('Зерезервировано без токена:', wishlistId, name);
+              const data = { reserved_by_unknown: name.trim() };
               const response = await api.reserveWishlistItemWithoutToken(wishlistId, data);
-              Alert.alert('Успех', 'Подарок зарезервирован',wishlistId);
-              // Обновляем локальный список подарков
+              Alert.alert('Успех', 'Подарок зарезервирован');
               setWishlistItems(
                 wishlistItems.map((item) =>
                   item.id === wishlistId
@@ -84,19 +98,15 @@ export default function WeddingWishlistScreen() {
               );
             } catch (error) {
               console.error('Ошибка при резервировании подарка:', error);
-              Alert.alert(
-                'Ошибка',
-                error.response?.data?.error || 'Не удалось зарезервировать подарок'
-              );
+              Alert.alert('Ошибка', error.response?.data?.error || 'Не удалось зарезервировать подарок');
             }
           },
         },
       ],
-      'plain-text' // Тип ввода — обычный текст
+      'plain-text'
     );
   };
 
-  // Рендеринг элемента списка подарков
   const renderWishlistItem = ({ item }) => (
     <View style={styles.wishlistItemContainer}>
       <Text style={styles.itemText}>{item.item_name}</Text>
@@ -106,20 +116,15 @@ export default function WeddingWishlistScreen() {
           : 'Свободно'}
       </Text>
       {!item.is_reserved && (
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => handleReserveWishlistItem(item.id)}
-        >
+        <TouchableOpacity style={styles.actionButton} onPress={() => handleReserveWishlistItem(item.id)}>
           <Text style={styles.actionButtonText}>Зарезервировать</Text>
         </TouchableOpacity>
       )}
     </View>
   );
 
-  // Отображение экрана
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Список подарков для свадьбы #{weddingId}</Text>
       {loading ? (
         <Text style={styles.noItems}>Загрузка...</Text>
       ) : (
@@ -138,12 +143,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
   },
   wishlistItemContainer: {
     padding: 10,
@@ -175,5 +174,12 @@ const styles = StyleSheet.create({
   actionButtonText: {
     color: '#fff',
     fontSize: 14,
+  },
+  headerButton: {
+    padding: 10,
+  },
+  headerButtonText: {
+    fontSize: 16,
+    color: '#007BFF',
   },
 });

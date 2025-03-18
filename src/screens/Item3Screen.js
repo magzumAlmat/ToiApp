@@ -260,31 +260,35 @@ export default function Item3Screen() {
       const appLink = Linking.createURL(`wishlist/${weddingId}`); // Замена makeUrl на createURL
       console.log('appLink created:', appLink);
   
+
+
       console.log('Creating webLink...');
-      const webLink = process.env.EXPO_PUBLIC_API_baseURL
-        ? `${process.env.EXPO_PUBLIC_API_baseURL}/api/weddingwishes/${weddingId}`
-        : 'http://localhost:3000/api/weddingwishes/' + weddingId;
+      const webLink =  `${process.env.EXPO_PUBLIC_API_baseURL}/api/weddingwishes/${weddingId}`
+        
 
       console.log('webLink created:', webLink);
       console.log('EXPO_PUBLIC_API_baseURL:', process.env.EXPO_PUBLIC_API_baseURL);
   
       console.log('Checking canOpenApp...');
-      const canOpenApp = await Linking.canOpenURL(appLink);
-      console.log('canOpenApp result:', canOpenApp);
+      // const canOpenApp = await Linking.canOpenURL(appLink);
+      // console.log('canOpenApp result:', canOpenApp);
   
-      const message = canOpenApp
+      const message = webLink
         
         // Присоединяйтесь к моей свадьбе в приложении: 
-        ? `${appLink}`
-        : `Присоединяйтесь к моей свадьбе через сайт: ${webLink}`;
+        // ? `${appLink}`
+        // : `Присоединяйтесь к моей свадьбе через сайт: ${webLink}`;
+
       console.log('Message prepared:', message);
   
       console.log('Calling Share.share...');
+
       const result = await Share.share({
         message,
-        url: canOpenApp ? appLink : webLink,
         title: 'Приглашение на свадьбу',
       });
+
+      alert(result.url)
       console.log('Share result:', result);
   
       if (result.action === Share.sharedAction) {
@@ -359,22 +363,54 @@ export default function Item3Screen() {
     </View>
   );
 
-  const renderWishlistItem = ({ item }) => (
-    <View style={styles.wishlistItemContainer}>
-      <Text style={styles.strikethroughText}>{item.item_name}</Text>
-      <Text style={styles.itemText}>
-        {item.is_reserved ? `Кто подарит: ${item.Reserver?.username || item.reserved_by_unknown}` : 'Свободно'}
-      </Text>
-      {!item.is_reserved && (
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => handleReserveWishlistItem(item.id)}
+  // const renderWishlistItem = ({ item }) => {
+  //   console.log('ITEMS=====',item),
+  //   <View style={styles.wishlistItemContainer}>
+  //     <Text style={styles.strikethroughText}>if (is_reserved==true){item.item_name}</Text>
+  //     <Text style={styles.itemText}>
+  //       {item.is_reserved ? `Кто подарит: ${item.Reserver?.username || item.reserved_by_unknown}` : 'Свободно'}
+  //     </Text>
+  //     {!item.is_reserved && (
+  //       <TouchableOpacity
+  //         style={styles.actionButton}
+  //         onPress={() => handleReserveWishlistItem(item.id)}
+  //       >
+  //         {/* <Text style={styles.actionButtonText}>Зарезервировать</Text> */}
+  //       </TouchableOpacity>
+  //     )}
+  //   </View>
+  // };
+
+
+  const renderWishlistItem = ({ item }) => {
+    console.log('ITEMS=====', item); // Отладочный лог
+  
+    return (
+      <View style={styles.wishlistItemContainer}>
+        <Text
+          style={[
+            styles.itemText,
+            item.is_reserved && styles.strikethroughText, // Условно применяем стиль зачёркивания
+          ]}
         >
-          {/* <Text style={styles.actionButtonText}>Зарезервировать</Text> */}
-        </TouchableOpacity>
-      )}
-    </View>
-  );
+          {item.item_name}
+        </Text>
+        <Text style={styles.itemStatus}>
+          {item.is_reserved
+            ? `Кто подарит: ${item.Reserver?.username || item.reserved_by_unknown}`
+            : 'Свободно'}
+        </Text>
+        {!item.is_reserved && (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => handleReserveWishlistItem(item.id)}
+          >
+            <Text style={styles.actionButtonText}>Зарезервировать</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
