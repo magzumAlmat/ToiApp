@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   Share,
 } from 'react-native';
-import * as Linking from 'expo-linking'; // Добавлен импорт
+import * as Linking from 'expo-linking';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import api from '../api/api';
@@ -32,12 +32,13 @@ export default function Item3Screen() {
   const [weddingName, setWeddingName] = useState('');
   const [weddingDate, setWeddingDate] = useState('');
   const [selectedWedding, setSelectedWedding] = useState(null);
-  const [wishlistItemName, setWishlistItemName] = useState('');
-  const [wishlistDescription, setWishlistDescription] = useState('');
   const [wishlistItems, setWishlistItems] = useState([]);
+  const [goods, setGoods] = useState([]); // Список товаров из Goods
+  const [selectedGoodId, setSelectedGoodId] = useState(''); // Выбранный товар
 
   useEffect(() => {
     fetchWeddings();
+    fetchGoods(); // Загружаем товары при монтировании
   }, []);
 
   useEffect(() => {
@@ -52,6 +53,17 @@ export default function Item3Screen() {
     } catch (error) {
       console.error('Ошибка при загрузке свадеб:', error);
       Alert.alert('Ошибка', 'Не удалось загрузить список свадеб');
+    }
+  };
+
+  // Загрузка товаров из API
+  const fetchGoods = async () => {
+    try {
+      const response = await api.getGoods(token);
+      setGoods(response.data); // Предполагаем, что API возвращает массив товаров
+    } catch (error) {
+      console.error('Ошибка при загрузке товаров:', error);
+      Alert.alert('Ошибка', 'Не удалось загрузить список товаров');
     }
   };
 
@@ -132,24 +144,23 @@ export default function Item3Screen() {
     );
   };
 
+  // Обновленная функция добавления подарка из Goods
   const handleAddWishlistItem = async () => {
-    if (!wishlistItemName) {
-      Alert.alert('Ошибка', 'Введите название подарка');
+    if (!selectedGoodId) {
+      Alert.alert('Ошибка', 'Выберите подарок из списка');
       return;
     }
-
+  
     const wishlistData = {
       wedding_id: selectedWedding.id,
-      item_name: wishlistItemName,
-      description: wishlistDescription,
+      good_id: selectedGoodId,
     };
-
+  
     try {
       const response = await api.createWish(wishlistData, token);
       Alert.alert('Успех', 'Подарок добавлен');
       setWishlistModalVisible(false);
-      setWishlistItemName('');
-      setWishlistDescription('');
+      setSelectedGoodId('');
       fetchWeddings();
     } catch (error) {
       console.error('Ошибка при добавлении подарка:', error);
@@ -203,94 +214,35 @@ export default function Item3Screen() {
         const { path, queryParams } = Linking.parse(initialUrl);
         console.log('Parsed path:', path, 'Params:', queryParams);
       }
-  
+
       const subscription = Linking.addEventListener('url', ({ url }) => {
         console.log('Received URL:', url);
         const { path, queryParams } = Linking.parse(url);
         console.log('Parsed path:', path, 'Params:', queryParams);
       });
-  
+
       return () => subscription.remove();
     };
-  
+
     handleDeepLink();
   }, []);
 
-  
-  // const handleShareWeddingLink = async (weddingId) => {
-  //   console.log('handleShareWeddingLink started')
-  //   const appLink = Linking.makeUrl(`wedding/${weddingId}`);
-  //   const webLink = `${process.env.EXPO_PUBLIC_API_baseURL}/api/weddingwishes/${weddingId}`;
-
-  //   console.log('appLink:', appLink);
-  //   console.log('webLink:', webLink);
-  //   console.log('EXPO_PUBLIC_API_baseURL:', process.env.EXPO_PUBLIC_API_baseURL);
-  //   try {
-  //     const canOpenApp = await Linking.canOpenURL(appLink);
-
-  //     const message = canOpenApp
-  //       ? `Присоединяйтесь к моей свадьбе в приложении: ${appLink}`
-  //       : `Присоединяйтесь к моей свадьбе через сайт: ${webLink}`;
-
-  //     const result = await Share.share({
-  //       message,
-  //       url: canOpenApp ? appLink : webLink,
-  //       title: 'Приглашение на свадьбу',
-  //     });
-
-  //     if (result.action === Share.sharedAction) {
-  //       if (result.activityType) {
-  //         console.log('Поделился через:', result.activityType);
-  //       } else {
-  //         console.log('Поделился успешно');
-  //       }
-  //     } else if (result.action === Share.dismissedAction) {
-  //       console.log('Поделиться отменено');
-  //     }
-  //   } catch (error) {
-  //     console.error('Ошибка при создании ссылки:', error);
-  //     Alert.alert('Ошибка', 'Не удалось поделиться ссылкой');
-  //   }
-  // };
   const handleShareWeddingLink = async (weddingId) => {
     console.log('handleShareWeddingLink started with weddingId:', weddingId);
-  
     try {
-      console.log('Creating appLink...');
-      const appLink = Linking.createURL(`wishlist/${weddingId}`); // Замена makeUrl на createURL
-      console.log('appLink created:', appLink);
-  
+      const appLink = Linking.createURL(`wishlist/${weddingId}`);
+      const webLink = `${process.env.EXPO_PUBLIC_API_baseURL}/api/weddingwishes/${weddingId}`;
 
+      console.log('appLink:', appLink);
+      console.log('webLink:', webLink);
 
-      console.log('Creating webLink...');
-      const webLink =  `${process.env.EXPO_PUBLIC_API_baseURL}/api/weddingwishes/${weddingId}`
-        
-
-      console.log('webLink created:', webLink);
-      console.log('EXPO_PUBLIC_API_baseURL:', process.env.EXPO_PUBLIC_API_baseURL);
-  
-      console.log('Checking canOpenApp...');
-      // const canOpenApp = await Linking.canOpenURL(appLink);
-      // console.log('canOpenApp result:', canOpenApp);
-  
-      const message = webLink
-        
-        // Присоединяйтесь к моей свадьбе в приложении: 
-        // ? `${appLink}`
-        // : `Присоединяйтесь к моей свадьбе через сайт: ${webLink}`;
-
-      console.log('Message prepared:', message);
-  
-      console.log('Calling Share.share...');
+      const message = webLink;
 
       const result = await Share.share({
         message,
         title: 'Приглашение на свадьбу',
       });
 
-      // alert(result.url)
-      console.log('Share result:', result);
-  
       if (result.action === Share.sharedAction) {
         if (result.activityType) {
           console.log('Поделился через:', result.activityType);
@@ -344,15 +296,16 @@ export default function Item3Screen() {
         >
           <Text style={styles.actionButtonText}>Просмотреть подарки</Text>
         </TouchableOpacity>
-      <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => {
-              console.log('Share button pressed for weddingId:', item.id);
-              handleShareWeddingLink(item.id);
-            }}
-          >
-            <Text style={styles.actionButtonText}>Поделиться</Text>
-</TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => {
+            console.log('Share button pressed for weddingId:', item.id);
+            handleShareWeddingLink(item.id);
+          }}
+        >
+          <Text style={styles.actionButtonText}>Поделиться</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => handleDeleteWedding(item.id)}
@@ -364,24 +317,35 @@ export default function Item3Screen() {
   );
 
   // const renderWishlistItem = ({ item }) => {
-  //   console.log('ITEMS=====',item),
-  //   <View style={styles.wishlistItemContainer}>
-  //     <Text style={styles.strikethroughText}>if (is_reserved==true){item.item_name}</Text>
-  //     <Text style={styles.itemText}>
-  //       {item.is_reserved ? `Кто подарит: ${item.Reserver?.username || item.reserved_by_unknown}` : 'Свободно'}
-  //     </Text>
-  //     {!item.is_reserved && (
-  //       <TouchableOpacity
-  //         style={styles.actionButton}
-  //         onPress={() => handleReserveWishlistItem(item.id)}
+  //   console.log('ITEMS=====', item);
+  //   return (
+  //     <View style={styles.wishlistItemContainer}>
+  //       <Text
+  //         style={[
+  //           styles.itemText,
+  //           item.is_reserved && styles.strikethroughText,
+  //         ]}
   //       >
-  //         {/* <Text style={styles.actionButtonText}>Зарезервировать</Text> */}
-  //       </TouchableOpacity>
-  //     )}
-  //   </View>
+  //         {item.item_name}
+  //       </Text>
+  //       <Text style={styles.itemStatus}>
+  //         {item.is_reserved
+  //           ? `Кто подарит: ${item.Reserver?.username || item.reserved_by_unknown}`
+  //           : 'Свободно'}
+  //       </Text>
+  //       {!item.is_reserved && (
+  //         <TouchableOpacity
+  //           style={styles.actionButton}
+  //           onPress={() => handleReserveWishlistItem(item.id)}
+  //         >
+  //           <Text style={styles.actionButtonText}>Зарезервировать</Text>
+  //         </TouchableOpacity>
+  //       )}
+  //     </View>
+  //   );
   // };
 
-
+  // Рендеринг карточки товара
   const renderWishlistItem = ({ item }) => {
     console.log('ITEMS=====', item); // Отладочный лог
   
@@ -400,17 +364,37 @@ export default function Item3Screen() {
             ? `Кто подарит: ${item.Reserver?.username || item.reserved_by_unknown}`
             : 'Свободно'}
         </Text>
-        {!item.is_reserved && (
+        {/* {!item.is_reserved && (
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => handleReserveWishlistItem(item.id)}
           >
             <Text style={styles.actionButtonText}>Зарезервировать</Text>
           </TouchableOpacity>
-        )}
+        )} */}
       </View>
     );
   };
+ 
+ 
+  const renderGoodCard = ({ item }) => (
+    <TouchableOpacity
+      style={[
+        styles.goodCard,
+        selectedGoodId === item.id && styles.selectedGoodCard,
+      ]}
+      onPress={() => setSelectedGoodId(item.id)}
+    >
+      <Text style={styles.goodCardTitle}>{item.item_name}</Text>
+      <Text style={styles.goodCardCategory}>Категория: {item.category}</Text>
+      <Text style={styles.goodCardCost}>
+        {item.price_range ? `Цена: ${item.price_range}` : 'Цена не указана'}
+      </Text>
+      {item.description && (
+        <Text style={styles.goodCardDescription}>{item.description}</Text>
+      )}
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -439,13 +423,15 @@ export default function Item3Screen() {
             value={weddingDate}
             onChangeText={setWeddingDate}
           />
-          <Button title="Создать" onPress={handleCreateWedding} />
-          <Button title="Отмена" onPress={() => setModalVisible(false)} />
+          <View style={styles.buttonRow}>
+            <Button title="Создать" onPress={handleCreateWedding} />
+            <Button title="Отмена" onPress={() => setModalVisible(false)} />
+          </View>
         </View>
       </Modal>
 
       <Modal visible={editModalVisible} animationType="slide">
-        <View style={styles.modalContainer}>
+        <SafeAreaView style={styles.modalContainer}>
           <Text style={styles.subtitle}>Редактирование свадьбы</Text>
           <TextInput
             autoComplete="off"
@@ -461,31 +447,29 @@ export default function Item3Screen() {
             value={weddingDate}
             onChangeText={setWeddingDate}
           />
-          <Button title="Сохранить" onPress={handleUpdateWedding} />
-          <Button title="Отмена" onPress={() => setEditModalVisible(false)} />
-        </View>
+          <View style={styles.buttonRow}>
+            <Button title="Сохранить" onPress={handleUpdateWedding} />
+            <Button title="Отмена" onPress={() => setEditModalVisible(false)} />
+          </View>
+        </SafeAreaView>
       </Modal>
 
+      {/* Модальное окно с карточками товаров */}
       <Modal visible={wishlistModalVisible} animationType="slide">
-        <View style={styles.modalContainer}>
+        <SafeAreaView style={styles.modalContainer}>
           <Text style={styles.subtitle}>Добавить подарок</Text>
-          <TextInput
-            autoComplete="off"
-            style={styles.input}
-            placeholder="Название подарка"
-            value={wishlistItemName}
-            onChangeText={setWishlistItemName}
+          <FlatList
+            data={goods}
+            renderItem={renderGoodCard}
+            keyExtractor={(item) => item.id.toString()}
+            ListEmptyComponent={<Text style={styles.noItems}>Товаров пока нет</Text>}
+            contentContainerStyle={styles.goodList}
           />
-          <TextInput
-            autoComplete="off"
-            style={styles.input}
-            placeholder="Описание (опционально)"
-            value={wishlistDescription}
-            onChangeText={setWishlistDescription}
-          />
-          <Button title="Добавить" onPress={handleAddWishlistItem} />
-          <Button title="Отмена" onPress={() => setWishlistModalVisible(false)} />
-        </View>
+          <View style={styles.buttonRow}>
+            <Button title="Добавить" onPress={handleAddWishlistItem} />
+            <Button title="Отмена" onPress={() => setWishlistModalVisible(false)} />
+          </View>
+        </SafeAreaView>
       </Modal>
 
       <Modal visible={wishlistViewModalVisible} animationType="slide">
@@ -510,18 +494,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    backgroundColor: '#F5F7FA',
+   
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: '#1A202C',
   },
   subtitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: '#1A202C',
   },
   input: {
     borderWidth: 1,
@@ -530,6 +518,7 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 15,
     fontSize: 16,
+    backgroundColor: '#FFFFFF',
   },
   itemContainer: {
     padding: 10,
@@ -541,9 +530,12 @@ const styles = StyleSheet.create({
     padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
   },
   itemText: {
     fontSize: 16,
+    color: '#1A202C',
   },
   noItems: {
     fontSize: 16,
@@ -554,13 +546,12 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     padding: 20,
-    justifyContent: 'center',
+    backgroundColor: '#F5F7FA',
   },
   buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-    flexWrap: 'wrap',
+    // flexDirection: 'row',
+    // justifyContent: 'space-between',
+    marginTop: 20,
   },
   actionButton: {
     padding: 5,
@@ -573,8 +564,55 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   strikethroughText: {
-    fontSize: 20,
+    fontSize: 16,
     textDecorationLine: 'line-through',
-    color: 'black',
+    color: '#666',
+  },
+  itemStatus: {
+    fontSize: 14,
+    color: '#333',
+    marginTop: 5,
+  },
+  // Стили для карточек товаров
+  goodList: {
+    paddingBottom: 20,
+  },
+  goodCard: {
+    padding: 15,
+    marginVertical: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  selectedGoodCard: {
+    borderColor: '#007BFF',
+    borderWidth: 2,
+    backgroundColor: '#E6F0FA',
+  },
+  goodCardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1A202C',
+  },
+  goodCardCategory: {
+    fontSize: 14,
+    color: '#718096',
+    marginTop: 5,
+  },
+  goodCardCost: {
+    fontSize: 14,
+    color: '#718096',
+    marginTop: 5,
+  },
+  goodCardDescription: {
+    fontSize: 12,
+    color: '#718096',
+    marginTop: 5,
   },
 });

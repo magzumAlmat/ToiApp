@@ -147,6 +147,10 @@ export default {
         
         
           postGoodsData:(goodsData) => api.post(`/api/goods`, goodsData),
+
+          getGoods:(token) => api.get(`/api/goods`,  {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         
         }
       

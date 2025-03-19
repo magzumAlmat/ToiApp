@@ -105,10 +105,10 @@ export default function LoginScreen({ navigation }) {
       />
 
 
-<Button
+{/* <Button
         title="страница "
         onPress={() => navigation.navigate('wishlist')}
-      />
+      /> */}
     </View>
   );
 }
