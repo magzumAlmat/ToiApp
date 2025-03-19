@@ -560,8 +560,10 @@ export default function HomeScreen({ navigation }) {
     ];
 
     return (
+      <SafeAreaView style={styles.container}>
+    
       <View style={styles.supplierContainer}>
-        <Text style={styles.supplierTitle}>Ваш бизнес:</Text>
+        {/* <Text style={styles.supplierTitle}>Ваш бизнес:</Text> */}
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={COLORS.primary} />
@@ -651,6 +653,7 @@ export default function HomeScreen({ navigation }) {
           </View>
         </Modal>
       </View>
+      </SafeAreaView>
     );
   };
 
@@ -886,9 +889,9 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Appbar.Header style={styles.header}>
+      {/* <Appbar.Header style={styles.header}>
         <Appbar.Content title="Планировщик бюджета" />
-      </Appbar.Header>
+      </Appbar.Header> */}
       {user?.roleId === 2 ? renderSupplierContent() : renderClientContent()}
 
       <Modal
@@ -989,7 +992,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 0,
   },
   subtitle: {
     fontSize: 20,

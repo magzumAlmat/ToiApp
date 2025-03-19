@@ -6,6 +6,7 @@ import api from '../api/api';
 import { useRoute } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Item2Screen({ navigation }) {
   const [selectedItem, setSelectedItem] = useState('');
@@ -743,7 +744,8 @@ export default function Item2Screen({ navigation }) {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <SafeAreaView style={styles.container}>
+    <ScrollView >
       <Text style={styles.title}>Создать объект</Text>
       <View style={styles.pickerContainer}>
         <Text style={styles.label}>Выберите тип объекта:</Text>
@@ -786,6 +788,7 @@ export default function Item2Screen({ navigation }) {
         </>
       )}
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
