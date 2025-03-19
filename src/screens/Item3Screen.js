@@ -10,12 +10,17 @@ import {
   Alert,
   TouchableOpacity,
   Share,
+  ScrollView,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
+import Video from 'react-native-video';
 import * as Linking from 'expo-linking';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import api from '../api/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import axios from 'axios';
 
 export default function Item3Screen() {
   const route = useRoute();
@@ -33,12 +38,18 @@ export default function Item3Screen() {
   const [weddingDate, setWeddingDate] = useState('');
   const [selectedWedding, setSelectedWedding] = useState(null);
   const [wishlistItems, setWishlistItems] = useState([]);
-  const [goods, setGoods] = useState([]); // Список товаров из Goods
-  const [selectedGoodId, setSelectedGoodId] = useState(''); // Выбранный товар
+  const [goods, setGoods] = useState([]);
+  const [selectedGoodId, setSelectedGoodId] = useState('');
+  const [wishlistFiles, setWishlistFiles] = useState({}); // Объект для хранения файлов по good_id
+  const [loadingFiles, setLoadingFiles] = useState(false);
+  const [errorFiles, setErrorFiles] = useState(null);
+
+  const BASE_URL = 'http://localhost:3000'; // Замените на ваш сервер
+  // const BASE_URL = 'https://26d8-85-117-96-82.ngrok-free.app';
 
   useEffect(() => {
     fetchWeddings();
-    fetchGoods(); // Загружаем товары при монтировании
+    fetchGoods();
   }, []);
 
   useEffect(() => {
@@ -56,14 +67,35 @@ export default function Item3Screen() {
     }
   };
 
-  // Загрузка товаров из API
   const fetchGoods = async () => {
     try {
       const response = await api.getGoods(token);
-      setGoods(response.data); // Предполагаем, что API возвращает массив товаров
+      setGoods(response.data);
     } catch (error) {
       console.error('Ошибка при загрузке товаров:', error);
       Alert.alert('Ошибка', 'Не удалось загрузить список товаров');
+    }
+  };
+
+  const fetchFiles = async (goodId) => {
+    console.log('Starting fetchFiles for good_id:', goodId);
+    setLoadingFiles(true);
+    setErrorFiles(null);
+    try {
+     
+        const response = await axios.get( `${BASE_URL}/api/goods/${goodId}/files`);
+      
+      
+
+      console.log('Files response:', response.data);
+
+      return response.data;
+    } catch (err) {
+      console.error('Ошибка загрузки файлов:', err);
+      setErrorFiles('Ошибка загрузки файлов: ' + err.message);
+      return [];
+    } finally {
+      setLoadingFiles(false);
     }
   };
 
@@ -144,18 +176,17 @@ export default function Item3Screen() {
     );
   };
 
-  // Обновленная функция добавления подарка из Goods
   const handleAddWishlistItem = async () => {
     if (!selectedGoodId) {
       Alert.alert('Ошибка', 'Выберите подарок из списка');
       return;
     }
-  
+
     const wishlistData = {
       wedding_id: selectedWedding.id,
       good_id: selectedGoodId,
     };
-  
+
     try {
       const response = await api.createWish(wishlistData, token);
       Alert.alert('Успех', 'Подарок добавлен');
@@ -171,7 +202,25 @@ export default function Item3Screen() {
   const fetchWishlistItems = async (weddingId) => {
     try {
       const response = await api.getWishlistByWeddingId(weddingId, token);
-      setWishlistItems(response.data.data);
+      const items = response.data.data;
+      setWishlistItems(items);
+
+      // Загружаем файлы для всех элементов с good_id
+      const filesPromises = items
+        .filter((item) => item.good_id)
+        .map((item) =>
+          fetchFiles(item.good_id).then((files) => ({
+            goodId: item.good_id,
+            files,
+          }))
+        );
+      const filesResults = await Promise.all(filesPromises);
+      const newWishlistFiles = filesResults.reduce((acc, { goodId, files }) => {
+        acc[goodId] = files;
+        return acc;
+      }, {});
+      setWishlistFiles((prev) => ({ ...prev, ...newWishlistFiles }));
+
       setWishlistViewModalVisible(true);
     } catch (error) {
       console.error('Ошибка при загрузке списка подарков:', error);
@@ -254,7 +303,7 @@ export default function Item3Screen() {
       }
     } catch (error) {
       console.error('Ошибка в handleShareWeddingLink:', error.message, error.stack);
-      Alert.alert('Ошибка', 'Не удалось поделиться ссылкой: ' + error.message);
+    Alert.alert('Ошибка', 'Не удалось поделиться ссылкой: ' + error.message);
     }
   };
 
@@ -268,14 +317,9 @@ export default function Item3Screen() {
   const renderWeddingItem = ({ item }) => (
     <View style={styles.itemContainer}>
       <Text style={styles.itemText}>{item.name} ({item.date})</Text>
-      <Text style={styles.itemText}>
-        Элементы: {item.WeddingItems?.length || 0}
-      </Text>
+      <Text style={styles.itemText}>Элементы: {item.WeddingItems?.length || 0}</Text>
       <View style={styles.buttonRow}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => openEditModal(item)}
-        >
+        <TouchableOpacity style={styles.actionButton} onPress={() => openEditModal(item)}>
           <Text style={styles.actionButtonText}>Редактировать</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -305,7 +349,6 @@ export default function Item3Screen() {
         >
           <Text style={styles.actionButtonText}>Поделиться</Text>
         </TouchableOpacity>
-
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => handleDeleteWedding(item.id)}
@@ -316,45 +359,51 @@ export default function Item3Screen() {
     </View>
   );
 
-  // const renderWishlistItem = ({ item }) => {
-  //   console.log('ITEMS=====', item);
-  //   return (
-  //     <View style={styles.wishlistItemContainer}>
-  //       <Text
-  //         style={[
-  //           styles.itemText,
-  //           item.is_reserved && styles.strikethroughText,
-  //         ]}
-  //       >
-  //         {item.item_name}
-  //       </Text>
-  //       <Text style={styles.itemStatus}>
-  //         {item.is_reserved
-  //           ? `Кто подарит: ${item.Reserver?.username || item.reserved_by_unknown}`
-  //           : 'Свободно'}
-  //       </Text>
-  //       {!item.is_reserved && (
-  //         <TouchableOpacity
-  //           style={styles.actionButton}
-  //           onPress={() => handleReserveWishlistItem(item.id)}
-  //         >
-  //           <Text style={styles.actionButtonText}>Зарезервировать</Text>
-  //         </TouchableOpacity>
-  //       )}
-  //     </View>
-  //   );
-  // };
+  const renderFileItem = ({ item: file }) => {
+    const fileUrl = `${BASE_URL}/${file.path}`;
+    console.log('fileUrl', fileUrl);
 
-  // Рендеринг карточки товара
+    if (file.mimetype.startsWith('image/')) {
+      return (
+        <View style={styles.card}>
+          <TouchableOpacity>
+            <Image source={{ uri: fileUrl }} style={styles.media} />
+          </TouchableOpacity>
+          <Text style={styles.caption}>{file.name}</Text>
+        </View>
+      );
+    } else if (file.mimetype === 'video/mp4') {
+      return (
+        <View style={styles.card}>
+          <Video
+            source={{ uri: fileUrl }}
+            style={styles.video}
+            useNativeControls
+            resizeMode="contain"
+            isLooping
+          />
+          <Text style={styles.caption}>{file.name}</Text>
+        </View>
+      );
+    } else {
+      return (
+        <View style={styles.card}>
+          <Text>Неподдерживаемый формат: {file.mimetype}</Text>
+        </View>
+      );
+    }
+  };
+
   const renderWishlistItem = ({ item }) => {
-    console.log('ITEMS=====', item); // Отладочный лог
-  
+    console.log('ITEMS=====', item);
+    const files = wishlistFiles[item.good_id] || [];
+
     return (
-      <View style={styles.wishlistItemContainer}>
+      <ScrollView style={styles.wishlistItemContainer}>
         <Text
           style={[
             styles.itemText,
-            item.is_reserved && styles.strikethroughText, // Условно применяем стиль зачёркивания
+            item.is_reserved && styles.strikethroughText,
           ]}
         >
           {item.item_name}
@@ -364,19 +413,37 @@ export default function Item3Screen() {
             ? `Кто подарит: ${item.Reserver?.username || item.reserved_by_unknown}`
             : 'Свободно'}
         </Text>
-        {/* {!item.is_reserved && (
+        {!item.is_reserved && (
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => handleReserveWishlistItem(item.id)}
           >
             <Text style={styles.actionButtonText}>Зарезервировать</Text>
           </TouchableOpacity>
-        )} */}
-      </View>
+        )}
+        <View style={styles.mediaSection}>
+          <Text style={styles.subtitle}>Фото и видео:</Text>
+          {loadingFiles ? (
+            <ActivityIndicator size="large" color="#007AFF" />
+          ) : errorFiles ? (
+            <Text style={styles.error}>{errorFiles}</Text>
+          ) : files.length > 0 ? (
+            <FlatList
+              data={files}
+              renderItem={renderFileItem}
+              keyExtractor={(file) => file.id.toString()}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.mediaList}
+            />
+          ) : (
+            <Text style={styles.detail}>Файлы отсутствуют</Text>
+          )}
+        </View>
+      </ScrollView>
     );
   };
- 
- 
+
   const renderGoodCard = ({ item }) => (
     <TouchableOpacity
       style={[
@@ -454,7 +521,6 @@ export default function Item3Screen() {
         </SafeAreaView>
       </Modal>
 
-      {/* Модальное окно с карточками товаров */}
       <Modal visible={wishlistModalVisible} animationType="slide">
         <SafeAreaView style={styles.modalContainer}>
           <Text style={styles.subtitle}>Добавить подарок</Text>
@@ -474,9 +540,7 @@ export default function Item3Screen() {
 
       <Modal visible={wishlistViewModalVisible} animationType="slide">
         <SafeAreaView style={styles.modalContainer}>
-          <Text style={styles.subtitle}>
-            Подарки для свадьбы: {selectedWedding?.name}
-          </Text>
+          <Text style={styles.subtitle}>Подарки для свадьбы: {selectedWedding?.name}</Text>
           <FlatList
             data={wishlistItems}
             renderItem={renderWishlistItem}
@@ -495,7 +559,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: '#F5F7FA',
-   
   },
   title: {
     fontSize: 24,
@@ -549,8 +612,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F7FA',
   },
   buttonRow: {
-    // flexDirection: 'row',
-    // justifyContent: 'space-between',
     marginTop: 20,
   },
   actionButton: {
@@ -573,7 +634,6 @@ const styles = StyleSheet.create({
     color: '#333',
     marginTop: 5,
   },
-  // Стили для карточек товаров
   goodList: {
     paddingBottom: 20,
   },
@@ -614,5 +674,40 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#718096',
     marginTop: 5,
+  },
+  mediaSection: {
+    marginTop: 16,
+  },
+  mediaList: {
+    paddingVertical: 10,
+  },
+  card: {
+    width: 200,
+    marginRight: 16,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+  },
+  media: {
+    width: '100%',
+    height: 200,
+  },
+  video: {
+    width: '100%',
+    height: 200,
+  },
+  caption: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  error: {
+    color: 'red',
+    textAlign: 'center',
+  },
+  detail: {
+    fontSize: 14,
+    color: '#666',
   },
 });
