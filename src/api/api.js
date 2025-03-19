@@ -123,6 +123,14 @@ export default {
             }),
 
 
+           
+            getWeddinItems: (id,token) =>
+              api.get(`/api/wedding-items/${id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              }),
+    
+
+
 
 
           createWish:(wishlistData,token)=>{
