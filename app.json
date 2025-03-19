@@ -28,7 +28,13 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Приложению нужен доступ к вашему календарю для добавления событий свадьбы."
+        }
+      ]
     ]
   }
 }

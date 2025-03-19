@@ -16,6 +16,8 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Appbar, Button } from 'react-native-paper';
 import * as Animatable from 'react-native-animatable';
 import { ActivityIndicator } from 'react-native';
+import { Calendar } from 'react-native-calendars'; // Импорт календаря для UI
+import * as ExpoCalendar from 'expo-calendar'; // Переименован для избежания конфликта имен
 
 // Custom color palette
 const COLORS = {
@@ -55,7 +57,18 @@ export default function HomeScreen({ navigation }) {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [weddingName, setWeddingName] = useState('');
-  const [weddingDate, setWeddingDate] = useState('');
+  const [weddingDate, setWeddingDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Запрос разрешений и получение календаря
+  const getCalendarPermissions = async () => {
+    const { status } = await ExpoCalendar.requestCalendarPermissionsAsync();
+    if (status !== 'granted') {
+      alert('Доступ к календарю не предоставлен. Событие не будет добавлено.');
+      return false;
+    }
+    return true;
+  };
 
   const fetchData = async () => {
     if (!token || !user?.id) return;
@@ -93,7 +106,6 @@ export default function HomeScreen({ navigation }) {
       setData(newData);
     } catch (error) {
       console.error('Ошибка загрузки данных:', error);
-      // Alert('Ошибка загрузки: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
@@ -102,16 +114,6 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => {
     if (!token) navigation.navigate('Login');
     else fetchData();
-    // Правильно
-//   const fetchWedding = async (weddingId) => {
-//     try {
-//       const response = await api.getWedding(weddingId, token); // weddingId — число
-//       console.log('Wedding:', response.data);
-//     } catch (error) {
-//       console.error('Ошибка:', error);
-//     }
-//   };
-// fetchWedding(1); // Или wedding.id, полученный после создания
   }, [token, user]);
 
   useEffect(() => {
@@ -555,10 +557,6 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
-  const handleDateChange = (text) => {
-    setWeddingDate(text);
-  };
-
   const createEvent = () => {
     console.log('CreateEvent currentUserId=', user?.id);
     console.log('CreateEvent all Selected data=', filteredData);
@@ -566,8 +564,8 @@ export default function HomeScreen({ navigation }) {
   };
 
   const handleSubmit = async () => {
-    if (!weddingName || !weddingDate) {
-      alert('Пожалуйста, заполните имя и дату свадьбы');
+    if (!weddingName) {
+      alert('Пожалуйста, заполните имя свадьбы');
       return;
     }
 
@@ -579,7 +577,7 @@ export default function HomeScreen({ navigation }) {
 
     const weddingData = {
       name: weddingName,
-      date: weddingDate,
+      date: weddingDate.toISOString().split('T')[0],
       host_id: user.id,
       items: filteredData.map((item) => ({
         id: item.id,
@@ -590,25 +588,44 @@ export default function HomeScreen({ navigation }) {
 
     console.log('weddingData=', weddingData);
 
-   try {
-      const response = await api.createWedding(weddingData, token); // Передаем токен, если требуется
+    try {
+      const response = await api.createWedding(weddingData, token);
       console.log('Response:', response.data);
-      alert('Успех', 'Свадьба успешно создана!');
+
+      // Добавление события в календарь устройства
+      const hasPermission = await getCalendarPermissions();
+      if (hasPermission) {
+        const defaultCalendar = await ExpoCalendar.getDefaultCalendarAsync();
+        const eventDetails = {
+          title: weddingName,
+          startDate: weddingDate,
+          endDate: new Date(weddingDate.getTime() + 2 * 60 * 60 * 1000), // Свадьба длится 2 часа
+          allDay: true,
+          notes: 'Свадьба создана через приложение',
+          calendarId: defaultCalendar.id,
+        };
+        await ExpoCalendar.createEventAsync(defaultCalendar.id, eventDetails);
+        console.log('Событие добавлено в календарь');
+      }
+
+      alert('Успех', 'Свадьба успешно создана и добавлена в календарь!');
       setModalVisible(false);
       setWeddingName('');
       setWeddingDate(new Date());
-      // setItems([]);
-      // navigation.navigate('HomeScreen');
-       // Возвращаемся на предыдущий экран
-      
     } catch (error) {
       console.error('Ошибка при создании свадьбы:', error);
-      Alert.alert(
+      alert(
         'Ошибка',
         'Не удалось создать свадьбу: ' +
           (error.response?.data?.error || error.message)
       );
     }
+  };
+
+  const onDateChange = (day) => {
+    const selectedDate = new Date(day.timestamp);
+    setWeddingDate(selectedDate);
+    setShowDatePicker(false); // Закрываем календарь после выбора
   };
 
   const renderWeddingItem = ({ item }) => {
@@ -770,15 +787,9 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
 
-<TouchableOpacity
-                  style={styles.addButton}
-                  onPress={createEvent} 
-                >
-                  <Text style={styles.addButtonText}>Создать мероприятие</Text>
-                </TouchableOpacity>
-     
-
-        
+        <TouchableOpacity style={styles.addButton} onPress={createEvent}>
+          <Text style={styles.addButtonText}>Создать мероприятие</Text>
+        </TouchableOpacity>
       </View>
     );
   };
@@ -808,13 +819,40 @@ export default function HomeScreen({ navigation }) {
               onChangeText={setWeddingName}
             />
 
-            <TextInput
-              style={styles.input}
-              placeholder="Дата свадьбы (например, 2024-12-15)"
-              value={weddingDate}
-              onChangeText={handleDateChange}
-              keyboardType="numeric"
-            />
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text style={styles.dateButtonText}>
+                {weddingDate.toLocaleDateString('ru-RU') || 'Выберите дату свадьбы'}
+              </Text>
+            </TouchableOpacity>
+
+            {showDatePicker && (
+              <Calendar
+              style={{
+                borderWidth: 1,
+                borderColor: 'gray',
+                height: "80%"
+              }}
+                current={weddingDate.toISOString().split('T')[0]}
+                // current={'Выберите дату'}
+
+                onDayPress={onDateChange}
+                minDate={new Date().toISOString().split('T')[0]}
+                markedDates={{
+                  [weddingDate.toISOString().split('T')[0]]: {
+                    selected: true,
+                    selectedColor: COLORS.primary,
+                  },
+                }}
+                theme={{
+                  selectedDayBackgroundColor: COLORS.primary,
+                  todayTextColor: COLORS.accent,
+                  arrowColor: COLORS.secondary,
+                }}
+              />
+            )}
 
             <Text style={styles.subtitle}>Выбранные элементы:</Text>
             {filteredData.length > 0 ? (
@@ -1124,6 +1162,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     width: '100%',
   },
+  dateButton: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 15,
+    width: '100%',
+    alignItems: 'center',
+    backgroundColor: '#F7FAFC',
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
   itemContainer: {
     padding: 10,
     borderBottomWidth: 1,
@@ -1145,9 +1197,5 @@ const styles = StyleSheet.create({
   totalText: {
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  buttonWrapper: {
-    backgroundColor: '#FFFFFF',
-    marginTop: 20,
   },
 });
