@@ -519,7 +519,7 @@ export default function Item3Screen() {
           <TouchableOpacity>
             <Image source={{ uri: fileUrl }} style={styles.media} />
           </TouchableOpacity>
-          <Text style={styles.caption}>{file.name}</Text>
+          {/* <Text style={styles.caption}>{file.name}</Text> */}
         </View>
       );
     } else if (file.mimetype === 'video/mp4') {
