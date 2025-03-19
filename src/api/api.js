@@ -160,6 +160,10 @@ export default {
             headers: { Authorization: `Bearer ${token}` },
           }),
         
+          getGoodById: (id) => api.get(`/api/goodbyid/${id}`),
+
+          updateGoodById:(id,data) => api.put(`/api/updategoodbyid/${id}`,data)
+          // router.get(`/goodbyid/:id`, getGoodById)
         }
       
         // showWishList:()

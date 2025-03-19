@@ -13,13 +13,9 @@ import { Picker } from '@react-native-picker/picker';
 import { useSelector } from 'react-redux';
 import api from '../api/api';
 import {
-  Card,
-  Button as PaperButton,
   Appbar,
-  Caption,
-  Title,
-  Paragraph,
 } from "react-native-paper";
+
 export default function ItemEditScreen() {
   const navigation = useNavigation();
   const route = useRoute();
@@ -31,8 +27,8 @@ export default function ItemEditScreen() {
   const [form, setForm] = useState({});
   const [modalVisible, setModalVisible] = useState({
     cuisine: false,
-    district:false,
-    gender:false,
+    district: false,
+    gender: false,
   }); // Для управления всеми модальными окнами
 
   const cuisineOptions = ['Русская', 'Итальянская', 'Азиатская', 'Французская', 'Американская'];
@@ -58,6 +54,7 @@ export default function ItemEditScreen() {
             case 'flowers': response = await api.getFlowersById(itemId); break;
             case 'cake': response = await api.getCakeById(itemId); break;
             case 'alcohol': response = await api.getAlcoholById(itemId); break;
+            case 'goods': response = await api.getGoodById(itemId); break;
             default: throw new Error('Неизвестный тип объекта');
           }
           const itemData = Array.isArray(response.data) ? response.data[0] : response.data;
@@ -68,6 +65,12 @@ export default function ItemEditScreen() {
             acc[key] = String(itemData[key] || '');
             return acc;
           }, {});
+          // Для goods корректируем имена полей, если они приходят в другом формате
+          if (type === 'goods') {
+            formattedData.item_name = formattedData.item_name || formattedData.name || '';
+            formattedData.description = formattedData.description || '';
+            formattedData.price_range = formattedData.price_range || formattedData.cost || '';
+          }
           setForm(formattedData);
         } catch (error) {
           console.error('Ошибка загрузки данных:', error.response || error);
@@ -107,12 +110,24 @@ export default function ItemEditScreen() {
       return;
     }
 
-    const formattedForm = { ...form, supplier_id: user.id };
+    let formattedForm = { ...form, supplier_id: user.id };
     if (type === 'restaurant') {
       formattedForm.averageCost = parseFloat(form.averageCost);
-      formattedForm.capacity = form.capacity;
+      formattedForm.capacity = parseInt(form.capacity, 10);
     } else if (['clothing', 'tamada', 'program', 'traditionalGift', 'flowers', 'cake', 'alcohol'].includes(type)) {
       formattedForm.cost = parseFloat(form.cost);
+
+
+
+    } else if (type === 'goods') {
+      formattedForm = {
+        item_name: form.item_name,
+        description: form.description,
+        price_range: parseFloat(form.price_range),
+        supplier_id: user.id,
+      };
+
+      console.log('FF',formattedForm)
     }
 
     try {
@@ -127,6 +142,7 @@ export default function ItemEditScreen() {
           case 'flowers': await api.updateFlowers(itemId, formattedForm); break;
           case 'cake': await api.updateCake(itemId, formattedForm); break;
           case 'alcohol': await api.updateAlcohol(itemId, formattedForm); break;
+          case 'goods': await api.updateGoodById(itemId, formattedForm); break;
           default: throw new Error('Неизвестный тип объекта');
         }
         alert(`${type} обновлён!`);
@@ -141,6 +157,7 @@ export default function ItemEditScreen() {
           case 'flowers': await api.createFlowers(formattedForm); break;
           case 'cake': await api.createCake(formattedForm); break;
           case 'alcohol': await api.createAlcohol(formattedForm); break;
+          case 'goods': await api.postGoodsData(formattedForm); break;
           default: throw new Error('Неизвестный тип объекта');
         }
         alert(`${type} создан!`);
@@ -170,11 +187,13 @@ export default function ItemEditScreen() {
         case 'flowers': await api.deleteFlowers(itemId); break;
         case 'cake': await api.deleteCake(itemId); break;
         case 'alcohol': await api.deleteAlcohol(itemId); break;
+        case 'goods': await api.deleteGood(itemId); break; // Предполагаемый метод
         default: throw new Error('Неизвестный тип объекта');
       }
       alert(`${type} удалён!`);
       navigation.goBack();
     } catch (error) {
+      console.error('Ошибка удаления:', error.response || error);
       alert('Ошибка: ' + (error.response?.data?.message || error.message));
     }
   };
@@ -184,29 +203,59 @@ export default function ItemEditScreen() {
       case 'restaurant':
         return (
           <>
-          
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Название:</Text>
-              <TextInput style={styles.input} value={form.name} onChangeText={(text) => handleChange('name', text)} placeholder="Название" />
+              <TextInput
+                style={styles.input}
+                value={form.name}
+                onChangeText={(text) => handleChange('name', text)}
+                placeholder="Название"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Вместимость:</Text>
-              <TextInput style={styles.input} value={form.capacity} onChangeText={(text) => handleChange('capacity', text)} keyboardType="numeric" placeholder="Вместимость" />
+              <TextInput
+                style={styles.input}
+                value={form.capacity}
+                onChangeText={(text) => handleChange('capacity', text)}
+                keyboardType="numeric"
+                placeholder="Вместимость"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Кухня:</Text>
-              <TouchableOpacity style={styles.cuisineButton} onPress={() => setModalVisible({ ...modalVisible, cuisine: true })}>
+              <TouchableOpacity
+                style={styles.cuisineButton}
+                onPress={() => setModalVisible({ ...modalVisible, cuisine: true })}
+              >
                 <Text style={styles.cuisineText}>{form.cuisine || 'Выберите кухню'}</Text>
               </TouchableOpacity>
-              <Modal visible={modalVisible.cuisine} transparent animationType="slide" onRequestClose={() => setModalVisible({ ...modalVisible, cuisine: false })}>
+              <Modal
+                visible={modalVisible.cuisine}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setModalVisible({ ...modalVisible, cuisine: false })}
+              >
                 <View style={styles.modalOverlay}>
                   <View style={styles.modalContent}>
                     <Text style={styles.modalTitle}>Выберите кухню</Text>
-                    <Picker selectedValue={form.cuisine} onValueChange={(value) => { handleChange('cuisine', value); setModalVisible({ ...modalVisible, cuisine: false }); }} style={styles.modalPicker}>
+                    <Picker
+                      selectedValue={form.cuisine}
+                      onValueChange={(value) => {
+                        handleChange('cuisine', value);
+                        setModalVisible({ ...modalVisible, cuisine: false });
+                      }}
+                      style={styles.modalPicker}
+                    >
                       <Picker.Item label="Выберите кухню" value="" />
-                      {cuisineOptions.map((option) => <Picker.Item key={option} label={option} value={option} />)}
+                      {cuisineOptions.map((option) => (
+                        <Picker.Item key={option} label={option} value={option} />
+                      ))}
                     </Picker>
-                    <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible({ ...modalVisible, cuisine: false })}>
+                    <TouchableOpacity
+                      style={styles.closeButton}
+                      onPress={() => setModalVisible({ ...modalVisible, cuisine: false })}
+                    >
                       <Text style={styles.closeButtonText}>Закрыть</Text>
                     </TouchableOpacity>
                   </View>
@@ -215,30 +264,68 @@ export default function ItemEditScreen() {
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Средний чек:</Text>
-              <TextInput style={styles.input} value={form.averageCost} onChangeText={(text) => handleChange('averageCost', text)} keyboardType="numeric" placeholder="Средний чек" />
+              <TextInput
+                style={styles.input}
+                value={form.averageCost}
+                onChangeText={(text) => handleChange('averageCost', text)}
+                keyboardType="numeric"
+                placeholder="Средний чек"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Адрес:</Text>
-              <TextInput style={styles.input} value={form.address} onChangeText={(text) => handleChange('address', text)} placeholder="Адрес" />
+              <TextInput
+                style={styles.input}
+                value={form.address}
+                onChangeText={(text) => handleChange('address', text)}
+                placeholder="Адрес"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Телефон:</Text>
-              <TextInput style={styles.input} value={form.phone} onChangeText={handlePhoneChange} keyboardType="phone-pad" maxLength={18} placeholder="+7 (XXX) XXX-XX-XX" />
+              <TextInput
+                style={styles.input}
+                value={form.phone}
+                onChangeText={handlePhoneChange}
+                keyboardType="phone-pad"
+                maxLength={18}
+                placeholder="+7 (XXX) XXX-XX-XX"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Район:</Text>
-              <TouchableOpacity style={styles.cuisineButton} onPress={() => setModalVisible({ ...modalVisible, district: true })}>
+              <TouchableOpacity
+                style={styles.cuisineButton}
+                onPress={() => setModalVisible({ ...modalVisible, district: true })}
+              >
                 <Text style={styles.cuisineText}>{form.district || 'Выберите район'}</Text>
               </TouchableOpacity>
-              <Modal visible={modalVisible.district} transparent animationType="slide" onRequestClose={() => setModalVisible({ ...modalVisible, district: false })}>
+              <Modal
+                visible={modalVisible.district}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setModalVisible({ ...modalVisible, district: false })}
+              >
                 <View style={styles.modalOverlay}>
                   <View style={styles.modalContent}>
                     <Text style={styles.modalTitle}>Выберите район</Text>
-                    <Picker selectedValue={form.district} onValueChange={(value) => { handleChange('district', value); setModalVisible({ ...modalVisible, district: false }); }} style={styles.modalPicker}>
+                    <Picker
+                      selectedValue={form.district}
+                      onValueChange={(value) => {
+                        handleChange('district', value);
+                        setModalVisible({ ...modalVisible, district: false });
+                      }}
+                      style={styles.modalPicker}
+                    >
                       <Picker.Item label="Выберите район" value="" />
-                      {districtOptions.map((option) => <Picker.Item key={option} label={option} value={option} />)}
+                      {districtOptions.map((option) => (
+                        <Picker.Item key={option} label={option} value={option} />
+                      ))}
                     </Picker>
-                    <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible({ ...modalVisible, district: false })}>
+                    <TouchableOpacity
+                      style={styles.closeButton}
+                      onPress={() => setModalVisible({ ...modalVisible, district: false })}
+                    >
                       <Text style={styles.closeButtonText}>Закрыть</Text>
                     </TouchableOpacity>
                   </View>
@@ -252,30 +339,67 @@ export default function ItemEditScreen() {
           <>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Наименование магазина:</Text>
-              <TextInput style={styles.input} value={form.storeName} onChangeText={(text) => handleChange('storeName', text)} placeholder="Наименование магазина" />
+              <TextInput
+                style={styles.input}
+                value={form.storeName}
+                onChangeText={(text) => handleChange('storeName', text)}
+                placeholder="Наименование магазина"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Адрес:</Text>
-              <TextInput style={styles.input} value={form.address} onChangeText={(text) => handleChange('address', text)} placeholder="Адрес" />
+              <TextInput
+                style={styles.input}
+                value={form.address}
+                onChangeText={(text) => handleChange('address', text)}
+                placeholder="Адрес"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Телефон:</Text>
-              <TextInput style={styles.input} value={form.phone} onChangeText={handlePhoneChange} keyboardType="phone-pad" maxLength={18} placeholder="+7 (XXX) XXX-XX-XX" />
+              <TextInput
+                style={styles.input}
+                value={form.phone}
+                onChangeText={handlePhoneChange}
+                keyboardType="phone-pad"
+                maxLength={18}
+                placeholder="+7 (XXX) XXX-XX-XX"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Район:</Text>
-              <TouchableOpacity style={styles.cuisineButton} onPress={() => setModalVisible({ ...modalVisible, district: true })}>
+              <TouchableOpacity
+                style={styles.cuisineButton}
+                onPress={() => setModalVisible({ ...modalVisible, district: true })}
+              >
                 <Text style={styles.cuisineText}>{form.district || 'Выберите район'}</Text>
               </TouchableOpacity>
-              <Modal visible={modalVisible.district} transparent animationType="slide" onRequestClose={() => setModalVisible({ ...modalVisible, district: false })}>
+              <Modal
+                visible={modalVisible.district}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setModalVisible({ ...modalVisible, district: false })}
+              >
                 <View style={styles.modalOverlay}>
                   <View style={styles.modalContent}>
                     <Text style={styles.modalTitle}>Выберите район</Text>
-                    <Picker selectedValue={form.district} onValueChange={(value) => { handleChange('district', value); setModalVisible({ ...modalVisible, district: false }); }} style={styles.modalPicker}>
+                    <Picker
+                      selectedValue={form.district}
+                      onValueChange={(value) => {
+                        handleChange('district', value);
+                        setModalVisible({ ...modalVisible, district: false });
+                      }}
+                      style={styles.modalPicker}
+                    >
                       <Picker.Item label="Выберите район" value="" />
-                      {districtOptions.map((option) => <Picker.Item key={option} label={option} value={option} />)}
+                      {districtOptions.map((option) => (
+                        <Picker.Item key={option} label={option} value={option} />
+                      ))}
                     </Picker>
-                    <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible({ ...modalVisible, district: false })}>
+                    <TouchableOpacity
+                      style={styles.closeButton}
+                      onPress={() => setModalVisible({ ...modalVisible, district: false })}
+                    >
                       <Text style={styles.closeButtonText}>Закрыть</Text>
                     </TouchableOpacity>
                   </View>
@@ -284,18 +408,38 @@ export default function ItemEditScreen() {
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Пол:</Text>
-              <TouchableOpacity style={styles.cuisineButton} onPress={() => setModalVisible({ ...modalVisible, gender: true })}>
+              <TouchableOpacity
+                style={styles.cuisineButton}
+                onPress={() => setModalVisible({ ...modalVisible, gender: true })}
+              >
                 <Text style={styles.cuisineText}>{form.gender || 'Выберите пол'}</Text>
               </TouchableOpacity>
-              <Modal visible={modalVisible.gender} transparent animationType="slide" onRequestClose={() => setModalVisible({ ...modalVisible, gender: false })}>
+              <Modal
+                visible={modalVisible.gender}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setModalVisible({ ...modalVisible, gender: false })}
+              >
                 <View style={styles.modalOverlay}>
                   <View style={styles.modalContent}>
                     <Text style={styles.modalTitle}>Выберите пол</Text>
-                    <Picker selectedValue={form.gender} onValueChange={(value) => { handleChange('gender', value); setModalVisible({ ...modalVisible, gender: false }); }} style={styles.modalPicker}>
+                    <Picker
+                      selectedValue={form.gender}
+                      onValueChange={(value) => {
+                        handleChange('gender', value);
+                        setModalVisible({ ...modalVisible, gender: false });
+                      }}
+                      style={styles.modalPicker}
+                    >
                       <Picker.Item label="Выберите пол" value="" />
-                      {genderOptions.map((option) => <Picker.Item key={option} label={option} value={option} />)}
+                      {genderOptions.map((option) => (
+                        <Picker.Item key={option} label={option} value={option} />
+                      ))}
                     </Picker>
-                    <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible({ ...modalVisible, gender: false })}>
+                    <TouchableOpacity
+                      style={styles.closeButton}
+                      onPress={() => setModalVisible({ ...modalVisible, gender: false })}
+                    >
                       <Text style={styles.closeButtonText}>Закрыть</Text>
                     </TouchableOpacity>
                   </View>
@@ -304,11 +448,22 @@ export default function ItemEditScreen() {
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Наименование товара:</Text>
-              <TextInput style={styles.input} value={form.itemName} onChangeText={(text) => handleChange('itemName', text)} placeholder="Наименование товара" />
+              <TextInput
+                style={styles.input}
+                value={form.itemName}
+                onChangeText={(text) => handleChange('itemName', text)}
+                placeholder="Наименование товара"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Стоимость:</Text>
-              <TextInput style={styles.input} value={form.cost} onChangeText={(text) => handleChange('cost', text)} keyboardType="numeric" placeholder="Стоимость" />
+              <TextInput
+                style={styles.input}
+                value={form.cost}
+                onChangeText={(text) => handleChange('cost', text)}
+                keyboardType="numeric"
+                placeholder="Стоимость"
+              />
             </View>
           </>
         );
@@ -317,30 +472,67 @@ export default function ItemEditScreen() {
           <>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Наименование салона:</Text>
-              <TextInput style={styles.input} value={form.salonName} onChangeText={(text) => handleChange('salonName', text)} placeholder="Наименование салона" />
+              <TextInput
+                style={styles.input}
+                value={form.salonName}
+                onChangeText={(text) => handleChange('salonName', text)}
+                placeholder="Наименование салона"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Адрес:</Text>
-              <TextInput style={styles.input} value={form.address} onChangeText={(text) => handleChange('address', text)} placeholder="Адрес" />
+              <TextInput
+                style={styles.input}
+                value={form.address}
+                onChangeText={(text) => handleChange('address', text)}
+                placeholder="Адрес"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Телефон:</Text>
-              <TextInput style={styles.input} value={form.phone} onChangeText={handlePhoneChange} keyboardType="phone-pad" maxLength={18} placeholder="+7 (XXX) XXX-XX-XX" />
+              <TextInput
+                style={styles.input}
+                value={form.phone}
+                onChangeText={handlePhoneChange}
+                keyboardType="phone-pad"
+                maxLength={18}
+                placeholder="+7 (XXX) XXX-XX-XX"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Район:</Text>
-              <TouchableOpacity style={styles.cuisineButton} onPress={() => setModalVisible({ ...modalVisible, district: true })}>
+              <TouchableOpacity
+                style={styles.cuisineButton}
+                onPress={() => setModalVisible({ ...modalVisible, district: true })}
+              >
                 <Text style={styles.cuisineText}>{form.district || 'Выберите район'}</Text>
               </TouchableOpacity>
-              <Modal visible={modalVisible.district} transparent animationType="slide" onRequestClose={() => setModalVisible({ ...modalVisible, district: false })}>
+              <Modal
+                visible={modalVisible.district}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setModalVisible({ ...modalVisible, district: false })}
+              >
                 <View style={styles.modalOverlay}>
                   <View style={styles.modalContent}>
                     <Text style={styles.modalTitle}>Выберите район</Text>
-                    <Picker selectedValue={form.district} onValueChange={(value) => { handleChange('district', value); setModalVisible({ ...modalVisible, district: false }); }} style={styles.modalPicker}>
+                    <Picker
+                      selectedValue={form.district}
+                      onValueChange={(value) => {
+                        handleChange('district', value);
+                        setModalVisible({ ...modalVisible, district: false });
+                      }}
+                      style={styles.modalPicker}
+                    >
                       <Picker.Item label="Выберите район" value="" />
-                      {districtOptions.map((option) => <Picker.Item key={option} label={option} value={option} />)}
+                      {districtOptions.map((option) => (
+                        <Picker.Item key={option} label={option} value={option} />
+                      ))}
                     </Picker>
-                    <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible({ ...modalVisible, district: false })}>
+                    <TouchableOpacity
+                      style={styles.closeButton}
+                      onPress={() => setModalVisible({ ...modalVisible, district: false })}
+                    >
                       <Text style={styles.closeButtonText}>Закрыть</Text>
                     </TouchableOpacity>
                   </View>
@@ -349,32 +541,65 @@ export default function ItemEditScreen() {
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Наименование авто:</Text>
-              <TextInput style={styles.input} value={form.carName} onChangeText={(text) => handleChange('carName', text)} placeholder="Наименование авто" />
+              <TextInput
+                style={styles.input}
+                value={form.carName}
+                onChangeText={(text) => handleChange('carName', text)}
+                placeholder="Наименование авто"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Цвет:</Text>
-              <TextInput style={styles.input} value={form.color} onChangeText={(text) => handleChange('color', text)} placeholder="Цвет" />
+              <TextInput
+                style={styles.input}
+                value={form.color}
+                onChangeText={(text) => handleChange('color', text)}
+                placeholder="Цвет"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Марка:</Text>
-              <TextInput style={styles.input} value={form.brand} onChangeText={(text) => handleChange('brand', text)} placeholder="Марка" />
+              <TextInput
+                style={styles.input}
+                value={form.brand}
+                onChangeText={(text) => handleChange('brand', text)}
+                placeholder="Марка"
+              />
             </View>
           </>
         );
       case 'tamada':
         return (
           <>
-          <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Имя\Псевдоним:</Text>
-              <TextInput style={styles.input} value={form.name} onChangeText={(text) => handleChange('name', text)} multiline placeholder="Имя" />
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Имя/Псевдоним:</Text>
+              <TextInput
+                style={styles.input}
+                value={form.name}
+                onChangeText={(text) => handleChange('name', text)}
+                multiline
+                placeholder="Имя"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Портфолио:</Text>
-              <TextInput style={styles.input} value={form.portfolio} onChangeText={(text) => handleChange('portfolio', text)} multiline placeholder="Портфолио" />
+              <TextInput
+                style={styles.input}
+                value={form.portfolio}
+                onChangeText={(text) => handleChange('portfolio', text)}
+                multiline
+                placeholder="Портфолио"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Стоимость:</Text>
-              <TextInput style={styles.input} value={form.cost} onChangeText={(text) => handleChange('cost', text)} keyboardType="numeric" placeholder="Стоимость" />
+              <TextInput
+                style={styles.input}
+                value={form.cost}
+                onChangeText={(text) => handleChange('cost', text)}
+                keyboardType="numeric"
+                placeholder="Стоимость"
+              />
             </View>
           </>
         );
@@ -383,15 +608,31 @@ export default function ItemEditScreen() {
           <>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Название команды:</Text>
-              <TextInput style={styles.input} value={form.teamName} onChangeText={(text) => handleChange('teamName', text)} placeholder="Название команды" />
+              <TextInput
+                style={styles.input}
+                value={form.teamName}
+                onChangeText={(text) => handleChange('teamName', text)}
+                placeholder="Название команды"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Стоимость:</Text>
-              <TextInput style={styles.input} value={form.cost} onChangeText={(text) => handleChange('cost', text)} keyboardType="numeric" placeholder="Стоимость" />
+              <TextInput
+                style={styles.input}
+                value={form.cost}
+                onChangeText={(text) => handleChange('cost', text)}
+                keyboardType="numeric"
+                placeholder="Стоимость"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Вид:</Text>
-              <TextInput style={styles.input} value={form.type} onChangeText={(text) => handleChange('type', text)} placeholder="Вид" />
+              <TextInput
+                style={styles.input}
+                value={form.type}
+                onChangeText={(text) => handleChange('type', text)}
+                placeholder="Вид"
+              />
             </View>
           </>
         );
@@ -400,30 +641,67 @@ export default function ItemEditScreen() {
           <>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Наименование салона:</Text>
-              <TextInput style={styles.input} value={form.salonName} onChangeText={(text) => handleChange('salonName', text)} placeholder="Наименование салона" />
+              <TextInput
+                style={styles.input}
+                value={form.salonName}
+                onChangeText={(text) => handleChange('salonName', text)}
+                placeholder="Наименование салона"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Адрес:</Text>
-              <TextInput style={styles.input} value={form.address} onChangeText={(text) => handleChange('address', text)} placeholder="Адрес" />
+              <TextInput
+                style={styles.input}
+                value={form.address}
+                onChangeText={(text) => handleChange('address', text)}
+                placeholder="Адрес"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Телефон:</Text>
-              <TextInput style={styles.input} value={form.phone} onChangeText={handlePhoneChange} keyboardType="phone-pad" maxLength={18} placeholder="+7 (XXX) XXX-XX-XX" />
+              <TextInput
+                style={styles.input}
+                value={form.phone}
+                onChangeText={handlePhoneChange}
+                keyboardType="phone-pad"
+                maxLength={18}
+                placeholder="+7 (XXX) XXX-XX-XX"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Район:</Text>
-              <TouchableOpacity style={styles.cuisineButton} onPress={() => setModalVisible({ ...modalVisible, district: true })}>
+              <TouchableOpacity
+                style={styles.cuisineButton}
+                onPress={() => setModalVisible({ ...modalVisible, district: true })}
+              >
                 <Text style={styles.cuisineText}>{form.district || 'Выберите район'}</Text>
               </TouchableOpacity>
-              <Modal visible={modalVisible.district} transparent animationType="slide" onRequestClose={() => setModalVisible({ ...modalVisible, district: false })}>
+              <Modal
+                visible={modalVisible.district}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setModalVisible({ ...modalVisible, district: false })}
+              >
                 <View style={styles.modalOverlay}>
                   <View style={styles.modalContent}>
                     <Text style={styles.modalTitle}>Выберите район</Text>
-                    <Picker selectedValue={form.district} onValueChange={(value) => { handleChange('district', value); setModalVisible({ ...modalVisible, district: false }); }} style={styles.modalPicker}>
+                    <Picker
+                      selectedValue={form.district}
+                      onValueChange={(value) => {
+                        handleChange('district', value);
+                        setModalVisible({ ...modalVisible, district: false });
+                      }}
+                      style={styles.modalPicker}
+                    >
                       <Picker.Item label="Выберите район" value="" />
-                      {districtOptions.map((option) => <Picker.Item key={option} label={option} value={option} />)}
+                      {districtOptions.map((option) => (
+                        <Picker.Item key={option} label={option} value={option} />
+                      ))}
                     </Picker>
-                    <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible({ ...modalVisible, district: false })}>
+                    <TouchableOpacity
+                      style={styles.closeButton}
+                      onPress={() => setModalVisible({ ...modalVisible, district: false })}
+                    >
                       <Text style={styles.closeButtonText}>Закрыть</Text>
                     </TouchableOpacity>
                   </View>
@@ -432,15 +710,31 @@ export default function ItemEditScreen() {
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Наименование товара:</Text>
-              <TextInput style={styles.input} value={form.itemName} onChangeText={(text) => handleChange('itemName', text)} placeholder="Наименование товара" />
+              <TextInput
+                style={styles.input}
+                value={form.itemName}
+                onChangeText={(text) => handleChange('itemName', text)}
+                placeholder="Наименование товара"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Вид:</Text>
-              <TextInput style={styles.input} value={form.type} onChangeText={(text) => handleChange('type', text)} placeholder="Вид" />
+              <TextInput
+                style={styles.input}
+                value={form.type}
+                onChangeText={(text) => handleChange('type', text)}
+                placeholder="Вид"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Стоимость:</Text>
-              <TextInput style={styles.input} value={form.cost} onChangeText={(text) => handleChange('cost', text)} keyboardType="numeric" placeholder="Стоимость" />
+              <TextInput
+                style={styles.input}
+                value={form.cost}
+                onChangeText={(text) => handleChange('cost', text)}
+                keyboardType="numeric"
+                placeholder="Стоимость"
+              />
             </View>
           </>
         );
@@ -449,30 +743,67 @@ export default function ItemEditScreen() {
           <>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Наименование салона:</Text>
-              <TextInput style={styles.input} value={form.salonName} onChangeText={(text) => handleChange('salonName', text)} placeholder="Наименование салона" />
+              <TextInput
+                style={styles.input}
+                value={form.salonName}
+                onChangeText={(text) => handleChange('salonName', text)}
+                placeholder="Наименование салона"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Адрес:</Text>
-              <TextInput style={styles.input} value={form.address} onChangeText={(text) => handleChange('address', text)} placeholder="Адрес" />
+              <TextInput
+                style={styles.input}
+                value={form.address}
+                onChangeText={(text) => handleChange('address', text)}
+                placeholder="Адрес"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Телефон:</Text>
-              <TextInput style={styles.input} value={form.phone} onChangeText={handlePhoneChange} keyboardType="phone-pad" maxLength={18} placeholder="+7 (XXX) XXX-XX-XX" />
+              <TextInput
+                style={styles.input}
+                value={form.phone}
+                onChangeText={handlePhoneChange}
+                keyboardType="phone-pad"
+                maxLength={18}
+                placeholder="+7 (XXX) XXX-XX-XX"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Район:</Text>
-              <TouchableOpacity style={styles.cuisineButton} onPress={() => setModalVisible({ ...modalVisible, district: true })}>
+              <TouchableOpacity
+                style={styles.cuisineButton}
+                onPress={() => setModalVisible({ ...modalVisible, district: true })}
+              >
                 <Text style={styles.cuisineText}>{form.district || 'Выберите район'}</Text>
               </TouchableOpacity>
-              <Modal visible={modalVisible.district} transparent animationType="slide" onRequestClose={() => setModalVisible({ ...modalVisible, district: false })}>
+              <Modal
+                visible={modalVisible.district}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setModalVisible({ ...modalVisible, district: false })}
+              >
                 <View style={styles.modalOverlay}>
                   <View style={styles.modalContent}>
                     <Text style={styles.modalTitle}>Выберите район</Text>
-                    <Picker selectedValue={form.district} onValueChange={(value) => { handleChange('district', value); setModalVisible({ ...modalVisible, district: false }); }} style={styles.modalPicker}>
+                    <Picker
+                      selectedValue={form.district}
+                      onValueChange={(value) => {
+                        handleChange('district', value);
+                        setModalVisible({ ...modalVisible, district: false });
+                      }}
+                      style={styles.modalPicker}
+                    >
                       <Picker.Item label="Выберите район" value="" />
-                      {districtOptions.map((option) => <Picker.Item key={option} label={option} value={option} />)}
+                      {districtOptions.map((option) => (
+                        <Picker.Item key={option} label={option} value={option} />
+                      ))}
                     </Picker>
-                    <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible({ ...modalVisible, district: false })}>
+                    <TouchableOpacity
+                      style={styles.closeButton}
+                      onPress={() => setModalVisible({ ...modalVisible, district: false })}
+                    >
                       <Text style={styles.closeButtonText}>Закрыть</Text>
                     </TouchableOpacity>
                   </View>
@@ -481,15 +812,31 @@ export default function ItemEditScreen() {
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Наименование цветов:</Text>
-              <TextInput style={styles.input} value={form.flowerName} onChangeText={(text) => handleChange('flowerName', text)} placeholder="Наименование цветов" />
+              <TextInput
+                style={styles.input}
+                value={form.flowerName}
+                onChangeText={(text) => handleChange('flowerName', text)}
+                placeholder="Наименование цветов"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Вид цветов:</Text>
-              <TextInput style={styles.input} value={form.flowerType} onChangeText={(text) => handleChange('flowerType', text)} placeholder="Вид цветов" />
+              <TextInput
+                style={styles.input}
+                value={form.flowerType}
+                onChangeText={(text) => handleChange('flowerType', text)}
+                placeholder="Вид цветов"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Стоимость:</Text>
-              <TextInput style={styles.input} value={form.cost} onChangeText={(text) => handleChange('cost', text)} keyboardType="numeric" placeholder="Стоимость" />
+              <TextInput
+                style={styles.input}
+                value={form.cost}
+                onChangeText={(text) => handleChange('cost', text)}
+                keyboardType="numeric"
+                placeholder="Стоимость"
+              />
             </View>
           </>
         );
@@ -498,30 +845,67 @@ export default function ItemEditScreen() {
           <>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Наименование салона:</Text>
-              <TextInput style={styles.input} value={form.name} onChangeText={(text) => handleChange('name', text)} placeholder="Наименование салона" />
+              <TextInput
+                style={styles.input}
+                value={form.name}
+                onChangeText={(text) => handleChange('name', text)}
+                placeholder="Наименование салона"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Адрес:</Text>
-              <TextInput style={styles.input} value={form.address} onChangeText={(text) => handleChange('address', text)} placeholder="Адрес" />
+              <TextInput
+                style={styles.input}
+                value={form.address}
+                onChangeText={(text) => handleChange('address', text)}
+                placeholder="Адрес"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Телефон:</Text>
-              <TextInput style={styles.input} value={form.phone} onChangeText={handlePhoneChange} keyboardType="phone-pad" maxLength={18} placeholder="+7 (XXX) XXX-XX-XX" />
+              <TextInput
+                style={styles.input}
+                value={form.phone}
+                onChangeText={handlePhoneChange}
+                keyboardType="phone-pad"
+                maxLength={18}
+                placeholder="+7 (XXX) XXX-XX-XX"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Район:</Text>
-              <TouchableOpacity style={styles.cuisineButton} onPress={() => setModalVisible({ ...modalVisible, district: true })}>
+              <TouchableOpacity
+                style={styles.cuisineButton}
+                onPress={() => setModalVisible({ ...modalVisible, district: true })}
+              >
                 <Text style={styles.cuisineText}>{form.district || 'Выберите район'}</Text>
               </TouchableOpacity>
-              <Modal visible={modalVisible.district} transparent animationType="slide" onRequestClose={() => setModalVisible({ ...modalVisible, district: false })}>
+              <Modal
+                visible={modalVisible.district}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setModalVisible({ ...modalVisible, district: false })}
+              >
                 <View style={styles.modalOverlay}>
                   <View style={styles.modalContent}>
                     <Text style={styles.modalTitle}>Выберите район</Text>
-                    <Picker selectedValue={form.district} onValueChange={(value) => { handleChange('district', value); setModalVisible({ ...modalVisible, district: false }); }} style={styles.modalPicker}>
+                    <Picker
+                      selectedValue={form.district}
+                      onValueChange={(value) => {
+                        handleChange('district', value);
+                        setModalVisible({ ...modalVisible, district: false });
+                      }}
+                      style={styles.modalPicker}
+                    >
                       <Picker.Item label="Выберите район" value="" />
-                      {districtOptions.map((option) => <Picker.Item key={option} label={option} value={option} />)}
+                      {districtOptions.map((option) => (
+                        <Picker.Item key={option} label={option} value={option} />
+                      ))}
                     </Picker>
-                    <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible({ ...modalVisible, district: false })}>
+                    <TouchableOpacity
+                      style={styles.closeButton}
+                      onPress={() => setModalVisible({ ...modalVisible, district: false })}
+                    >
                       <Text style={styles.closeButtonText}>Закрыть</Text>
                     </TouchableOpacity>
                   </View>
@@ -530,11 +914,22 @@ export default function ItemEditScreen() {
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Вид торта:</Text>
-              <TextInput style={styles.input} value={form.cakeType} onChangeText={(text) => handleChange('cakeType', text)} placeholder="Вид торта" />
+              <TextInput
+                style={styles.input}
+                value={form.cakeType}
+                onChangeText={(text) => handleChange('cakeType', text)}
+                placeholder="Вид торта"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Стоимость:</Text>
-              <TextInput style={styles.input} value={form.cost} onChangeText={(text) => handleChange('cost', text)} keyboardType="numeric" placeholder="Стоимость" />
+              <TextInput
+                style={styles.input}
+                value={form.cost}
+                onChangeText={(text) => handleChange('cost', text)}
+                keyboardType="numeric"
+                placeholder="Стоимость"
+              />
             </View>
           </>
         );
@@ -543,30 +938,67 @@ export default function ItemEditScreen() {
           <>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Наименование салона:</Text>
-              <TextInput style={styles.input} value={form.salonName} onChangeText={(text) => handleChange('salonName', text)} placeholder="Наименование салона" />
+              <TextInput
+                style={styles.input}
+                value={form.salonName}
+                onChangeText={(text) => handleChange('salonName', text)}
+                placeholder="Наименование салона"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Адрес:</Text>
-              <TextInput style={styles.input} value={form.address} onChangeText={(text) => handleChange('address', text)} placeholder="Адрес" />
+              <TextInput
+                style={styles.input}
+                value={form.address}
+                onChangeText={(text) => handleChange('address', text)}
+                placeholder="Адрес"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Телефон:</Text>
-              <TextInput style={styles.input} value={form.phone} onChangeText={handlePhoneChange} keyboardType="phone-pad" maxLength={18} placeholder="+7 (XXX) XXX-XX-XX" />
+              <TextInput
+                style={styles.input}
+                value={form.phone}
+                onChangeText={handlePhoneChange}
+                keyboardType="phone-pad"
+                maxLength={18}
+                placeholder="+7 (XXX) XXX-XX-XX"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Район:</Text>
-              <TouchableOpacity style={styles.cuisineButton} onPress={() => setModalVisible({ ...modalVisible, district: true })}>
+              <TouchableOpacity
+                style={styles.cuisineButton}
+                onPress={() => setModalVisible({ ...modalVisible, district: true })}
+              >
                 <Text style={styles.cuisineText}>{form.district || 'Выберите район'}</Text>
               </TouchableOpacity>
-              <Modal visible={modalVisible.district} transparent animationType="slide" onRequestClose={() => setModalVisible({ ...modalVisible, district: false })}>
+              <Modal
+                visible={modalVisible.district}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setModalVisible({ ...modalVisible, district: false })}
+              >
                 <View style={styles.modalOverlay}>
                   <View style={styles.modalContent}>
                     <Text style={styles.modalTitle}>Выберите район</Text>
-                    <Picker selectedValue={form.district} onValueChange={(value) => { handleChange('district', value); setModalVisible({ ...modalVisible, district: false }); }} style={styles.modalPicker}>
+                    <Picker
+                      selectedValue={form.district}
+                      onValueChange={(value) => {
+                        handleChange('district', value);
+                        setModalVisible({ ...modalVisible, district: false });
+                      }}
+                      style={styles.modalPicker}
+                    >
                       <Picker.Item label="Выберите район" value="" />
-                      {districtOptions.map((option) => <Picker.Item key={option} label={option} value={option} />)}
+                      {districtOptions.map((option) => (
+                        <Picker.Item key={option} label={option} value={option} />
+                      ))}
                     </Picker>
-                    <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible({ ...modalVisible, district: false })}>
+                    <TouchableOpacity
+                      style={styles.closeButton}
+                      onPress={() => setModalVisible({ ...modalVisible, district: false })}
+                    >
                       <Text style={styles.closeButtonText}>Закрыть</Text>
                     </TouchableOpacity>
                   </View>
@@ -575,15 +1007,66 @@ export default function ItemEditScreen() {
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Наименование:</Text>
-              <TextInput style={styles.input} value={form.alcoholName} onChangeText={(text) => handleChange('alcoholName', text)} placeholder="Наименование" />
+              <TextInput
+                style={styles.input}
+                value={form.alcoholName}
+                onChangeText={(text) => handleChange('alcoholName', text)}
+                placeholder="Наименование"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Категория:</Text>
-              <TextInput style={styles.input} value={form.category} onChangeText={(text) => handleChange('category', text)} placeholder="Категория" />
+              <TextInput
+                style={styles.input}
+                value={form.category}
+                onChangeText={(text) => handleChange('category', text)}
+                placeholder="Категория"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Стоимость:</Text>
-              <TextInput style={styles.input} value={form.cost} onChangeText={(text) => handleChange('cost', text)} keyboardType="numeric" placeholder="Стоимость" />
+              <TextInput
+                style={styles.input}
+                value={form.cost}
+                onChangeText={(text) => handleChange('cost', text)}
+                keyboardType="numeric"
+                placeholder="Стоимость"
+              />
+            </View>
+          </>
+        );
+      case 'goods':
+        return (
+          <>
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Наименование товара:</Text>
+              <TextInput
+                style={styles.input}
+                value={form.item_name}
+                onChangeText={(text) => handleChange('item_name', text)}
+                multiline
+                placeholder="Наименование товара"
+              />
+            </View>
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Описание:</Text>
+              <TextInput
+                style={styles.input}
+                value={form.description}
+                onChangeText={(text) => handleChange('description', text)}
+                multiline
+                placeholder="Описание"
+              />
+            </View>
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Стоимость:</Text>
+              <TextInput
+                style={styles.input}
+                value={form.price_range}
+                onChangeText={(text) => handleChange('price_range', text)}
+                keyboardType="numeric"
+                placeholder="Стоимость"
+              />
             </View>
           </>
         );
@@ -605,7 +1088,7 @@ export default function ItemEditScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
-         <Appbar.Header style={styles.header}>
+      <Appbar.Header style={styles.header}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title="Детали" />
       </Appbar.Header>

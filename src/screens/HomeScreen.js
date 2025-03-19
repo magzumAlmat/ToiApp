@@ -16,10 +16,9 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Appbar, Button } from 'react-native-paper';
 import * as Animatable from 'react-native-animatable';
 import { ActivityIndicator } from 'react-native';
-import { Calendar } from 'react-native-calendars'; // Импорт календаря для UI
-import * as ExpoCalendar from 'expo-calendar'; // Переименован для избежания конфликта имен
+import { Calendar } from 'react-native-calendars';
+import * as ExpoCalendar from 'expo-calendar';
 
-// Custom color palette
 const COLORS = {
   primary: '#FF6F61',
   secondary: '#4A90E2',
@@ -45,6 +44,7 @@ export default function HomeScreen({ navigation }) {
     cakes: [],
     alcohol: [],
     transport: [],
+    goods: [], // Убедимся, что goods инициализирован
   });
   const [filteredData, setFilteredData] = useState([]);
   const [quantities, setQuantities] = useState({});
@@ -59,12 +59,15 @@ export default function HomeScreen({ navigation }) {
   const [weddingName, setWeddingName] = useState('');
   const [weddingDate, setWeddingDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  // Состояния для создания нового товара
+  const [newGoodModalVisible, setNewGoodModalVisible] = useState(false);
+  const [newGoodName, setNewGoodName] = useState('');
+  const [newGoodCost, setNewGoodCost] = useState('');
 
-  // Запрос разрешений и получение календаря
   const getCalendarPermissions = async () => {
     const { status } = await ExpoCalendar.requestCalendarPermissionsAsync();
     if (status !== 'granted') {
-      alert('Доступ к календарю не предоставлен. Событие не будет добавлено.');
+      alert('Доступ к календарю не предоставлен.');
       return false;
     }
     return true;
@@ -84,10 +87,11 @@ export default function HomeScreen({ navigation }) {
         api.getAllCakes(),
         api.getAllAlcohol(),
         api.getAllTransport(),
+        api.getGoods(token), // Добавляем загрузку goods
       ]);
 
-      const userData = responses.map((response) =>
-        user.roleId === 2
+      const userData = responses.map((response, index) =>
+        user.roleId === 2 && index < 9 // Проверяем только первые 9 категорий, исключая goods
           ? response.data.filter((item) => item.supplier_id === user.id)
           : response.data
       );
@@ -102,6 +106,7 @@ export default function HomeScreen({ navigation }) {
         cakes: userData[6] || [],
         alcohol: userData[7] || [],
         transport: userData[8] || [],
+        goods: userData[9] || [], // Обновляем goods в data
       };
       setData(newData);
     } catch (error) {
@@ -203,6 +208,13 @@ export default function HomeScreen({ navigation }) {
             transport: prev.transport.filter((item) => item.id !== itemToDelete.id),
           }));
           break;
+        case 'goods':
+          await api.deleteGood(itemToDelete.id, token); // Предполагаемая функция API
+          setData((prev) => ({
+            ...prev,
+            goods: prev.goods.filter((item) => item.id !== itemToDelete.id),
+          }));
+          break;
         default:
           throw new Error('Неизвестный тип объекта');
       }
@@ -212,6 +224,34 @@ export default function HomeScreen({ navigation }) {
     } finally {
       setDeleteModalVisible(false);
       setItemToDelete(null);
+    }
+  };
+
+  // CRUD для goods
+  const handleCreateGood = async () => {
+    if (!newGoodName || !newGoodCost) {
+      alert('Пожалуйста, заполните все поля');
+      return;
+    }
+
+    const goodData = {
+      item_name: newGoodName,
+      cost: parseFloat(newGoodCost),
+      supplier_id: user.id,
+    };
+
+    try {
+      const response = await api.createGood(goodData, token); // Предполагаемая функция API
+      setData((prev) => ({
+        ...prev,
+        goods: [...prev.goods, response.data],
+      }));
+      setNewGoodModalVisible(false);
+      setNewGoodName('');
+      setNewGoodCost('');
+    } catch (error) {
+      console.error('Ошибка при создании товара:', error);
+      alert('Ошибка: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -234,6 +274,7 @@ export default function HomeScreen({ navigation }) {
       { key: 'cakes', costField: 'cost', type: 'cake' },
       { key: 'alcohol', costField: 'cost', type: 'alcohol' },
       { key: 'transport', costField: 'cost', type: 'transport' },
+      { key: 'goods', costField: 'cost', type: 'goods' }, // Добавляем goods
     ];
 
     for (const { key, costField, type } of types) {
@@ -406,6 +447,16 @@ export default function HomeScreen({ navigation }) {
           </View>
         );
         break;
+      case 'goods':
+        content = (
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>Товар</Text>
+            <Text style={styles.cardTitle}>{item.item_name}</Text>
+            <Text style={styles.cardDetail}>Описание: {item.description} </Text>
+            <Text style={styles.cardDetail}>Стоимость: {item.price_range} ₸</Text>
+          </View>
+        );
+        break;
       default:
         content = <Text style={styles.cardTitle}>Неизвестный тип: {item.type}</Text>;
     }
@@ -480,6 +531,9 @@ export default function HomeScreen({ navigation }) {
       case 'transport':
         title = `Транспорт: ${item.salonName} - ${item.carName} (${item.cost} ₸)`;
         break;
+      case 'goods':
+        title = `Товар: ${item.item_name} (${item.cost} ₸)`;
+        break;
       default:
         title = 'Неизвестный элемент';
     }
@@ -502,6 +556,7 @@ export default function HomeScreen({ navigation }) {
       ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
       ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
       ...data.transport.map((item) => ({ ...item, type: 'transport' })),
+      ...data.goods.map((item) => ({ ...item, type: 'goods' })),
     ];
 
     return (
@@ -513,13 +568,21 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.loadingText}>Загрузка данных...</Text>
           </View>
         ) : combinedData.length > 0 ? (
-          <FlatList
-            data={combinedData}
-            renderItem={renderItem}
-            keyExtractor={(item) => `${item.type}-${item.id}`}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-          />
+          <>
+            <FlatList
+              data={combinedData}
+              renderItem={renderItem}
+              keyExtractor={(item) => `${item.type}-${item.id}`}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+            />
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => setNewGoodModalVisible(true)}
+            >
+              <Text style={styles.addButtonText}>Добавить товар</Text>
+            </TouchableOpacity>
+          </>
         ) : (
           <View style={styles.emptyContainer}>
             <Icon name="business" size={48} color={COLORS.textSecondary} />
@@ -548,6 +611,40 @@ export default function HomeScreen({ navigation }) {
                   onPress={handleDeleteItem}
                 >
                   <Text style={styles.modalButtonText}>Удалить</Text>
+                </TouchableOpacity>
+              </View>
+            </Animatable.View>
+          </View>
+        </Modal>
+        <Modal visible={newGoodModalVisible} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
+              <Text style={styles.modalTitle}>Добавить новый товар</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Название товара"
+                value={newGoodName}
+                onChangeText={setNewGoodName}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Стоимость (₸)"
+                value={newGoodCost}
+                onChangeText={setNewGoodCost}
+                keyboardType="numeric"
+              />
+              <View style={styles.modalButtonContainer}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setNewGoodModalVisible(false)}
+                >
+                  <Text style={styles.modalButtonText}>Отмена</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.confirmButton]}
+                  onPress={handleCreateGood}
+                >
+                  <Text style={styles.modalButtonText}>Создать</Text>
                 </TouchableOpacity>
               </View>
             </Animatable.View>
@@ -586,46 +683,35 @@ export default function HomeScreen({ navigation }) {
       })),
     };
 
-    console.log('weddingData=', weddingData);
-
     try {
       const response = await api.createWedding(weddingData, token);
-      console.log('Response:', response.data);
-
-      // Добавление события в календарь устройства
       const hasPermission = await getCalendarPermissions();
       if (hasPermission) {
         const defaultCalendar = await ExpoCalendar.getDefaultCalendarAsync();
         const eventDetails = {
           title: weddingName,
           startDate: weddingDate,
-          endDate: new Date(weddingDate.getTime() + 2 * 60 * 60 * 1000), // Свадьба длится 2 часа
+          endDate: new Date(weddingDate.getTime() + 2 * 60 * 60 * 1000),
           allDay: true,
           notes: 'Свадьба создана через приложение',
           calendarId: defaultCalendar.id,
         };
         await ExpoCalendar.createEventAsync(defaultCalendar.id, eventDetails);
-        console.log('Событие добавлено в календарь');
       }
-
       alert('Успех', 'Свадьба успешно создана и добавлена в календарь!');
       setModalVisible(false);
       setWeddingName('');
       setWeddingDate(new Date());
     } catch (error) {
       console.error('Ошибка при создании свадьбы:', error);
-      alert(
-        'Ошибка',
-        'Не удалось создать свадьбу: ' +
-          (error.response?.data?.error || error.message)
-      );
+      alert('Ошибка: ' + (error.response?.data?.error || error.message));
     }
   };
 
   const onDateChange = (day) => {
     const selectedDate = new Date(day.timestamp);
     setWeddingDate(selectedDate);
-    setShowDatePicker(false); // Закрываем календарь после выбора
+    setShowDatePicker(false);
   };
 
   const renderWeddingItem = ({ item }) => {
@@ -658,6 +744,9 @@ export default function HomeScreen({ navigation }) {
       case 'transport':
         title = `${item.carName} (${item.brand}) - ${item.totalCost || item.cost} тг`;
         break;
+      case 'goods':
+        title = `${item.item_name} - ${item.totalCost || item.cost} тг`;
+        break;
       default:
         title = 'Неизвестный элемент';
     }
@@ -680,6 +769,7 @@ export default function HomeScreen({ navigation }) {
       ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
       ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
       ...data.transport.map((item) => ({ ...item, type: 'transport' })),
+      ...data.goods.map((item) => ({ ...item, type: 'goods' })),
     ];
 
     return (
@@ -801,7 +891,6 @@ export default function HomeScreen({ navigation }) {
       </Appbar.Header>
       {user?.roleId === 2 ? renderSupplierContent() : renderClientContent()}
 
-      {/* Модальное окно для создания свадьбы */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -830,14 +919,12 @@ export default function HomeScreen({ navigation }) {
 
             {showDatePicker && (
               <Calendar
-              style={{
-                borderWidth: 1,
-                borderColor: 'gray',
-                height: "80%"
-              }}
+                style={{
+                  borderWidth: 1,
+                  borderColor: 'gray',
+                  height: '80%',
+                }}
                 current={weddingDate.toISOString().split('T')[0]}
-                // current={'Выберите дату'}
-
                 onDayPress={onDateChange}
                 minDate={new Date().toISOString().split('T')[0]}
                 markedDates={{
