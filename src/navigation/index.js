@@ -150,7 +150,7 @@ import { useEffect } from 'react';
 import DetailsScreen from '../screens/DetailsScreen';
 import WeddingWishlistScreen from '../screens/WeddingWishlistScreen';
 import * as Linking from 'expo-linking';
-
+import { PaperProvider } from 'react-native-paper';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -188,6 +188,7 @@ function AuthenticatedTabs() {
   console.log('AuthenticatedTabs: roleId=', roleId, 'user=', user);
 
   return (
+
     <Tab.Navigator screenOptions={tabBarOptions}>
       {roleId === 2 ? (
         <>
@@ -247,6 +248,7 @@ export default function Navigation() {
   };
 
   return (
+
     <NavigationContainer ref={navigationRef} linking={linking}>
       <Stack.Navigator initialRouteName={token ? 'Authenticated' : 'Login'} screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Details" component={DetailsScreen} options={{ title: 'Подробности' }} />
@@ -257,5 +259,6 @@ export default function Navigation() {
         <Stack.Screen name="Wishlist" component={WeddingWishlistScreen} options={{ title: 'Wishlist', headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
+    
   );
 }
