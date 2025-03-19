@@ -30,7 +30,7 @@ const DetailsScreen = ({ route }) => {
   const [selectedImage, setSelectedImage] = useState(null); // Для хранения выбранного изображения
   const navigation = useNavigation();
 
-   const BASE_URL = "http://localhost:3000";
+   const BASE_URL = process.env.EXPO_PUBLIC_API_baseURL;
   //const BASE_URL= 'https://26d8-85-117-96-82.ngrok-free.app';
 
   const fetchFiles = async () => {

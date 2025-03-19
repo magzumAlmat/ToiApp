@@ -69,7 +69,7 @@ export default function ItemEditScreen() {
           if (type === 'goods') {
             formattedData.item_name = formattedData.item_name || formattedData.name || '';
             formattedData.description = formattedData.description || '';
-            formattedData.price_range = formattedData.price_range || formattedData.cost || '';
+            formattedData.cost = formattedData.cost || formattedData.cost || '';
           }
           setForm(formattedData);
         } catch (error) {
@@ -123,7 +123,7 @@ export default function ItemEditScreen() {
       formattedForm = {
         item_name: form.item_name,
         description: form.description,
-        price_range: parseFloat(form.price_range),
+        cost: parseFloat(form.cost),
         supplier_id: user.id,
       };
 
@@ -1062,8 +1062,8 @@ export default function ItemEditScreen() {
               <Text style={styles.inputLabel}>Стоимость:</Text>
               <TextInput
                 style={styles.input}
-                value={form.price_range}
-                onChangeText={(text) => handleChange('price_range', text)}
+                value={form.cost}
+                onChangeText={(text) => handleChange('cost', text)}
                 keyboardType="numeric"
                 placeholder="Стоимость"
               />

@@ -23,7 +23,7 @@ export default function Item2Screen({ navigation }) {
   console.log('Received restaurant ID:', restaurantId);
   const { user, token } = useSelector((state) => state.auth);
 
-  const BASE_URL = "http://localhost:3000";
+  const BASE_URL = process.env.EXPO_PUBLIC_API_baseURL;
 
   const items = [
     'Ресторан', 'Одежда', 'Транспорт', 'Тамада', 'Программа',
@@ -159,7 +159,7 @@ export default function Item2Screen({ navigation }) {
             category: formData.category,
             item_name: formData.item_name,
             description: formData.description || '',
-            price_range: formData.price_range || '',
+            cost: formData.cost || '',
           };
           const newGoodsData = { ...goodsData, supplier_id: user.id };
           console.log('goodsData=', newGoodsData);
@@ -257,8 +257,8 @@ export default function Item2Screen({ navigation }) {
             <TextInput
               style={styles.input}
               placeholder="Диапазон цен (например, 1000-5000 руб)"
-              value={formData.price_range || ''}
-              onChangeText={(value) => handleInputChange('price_range', value)}
+              value={formData.cost || ''}
+              onChangeText={(value) => handleInputChange('cost', value)}
             />
           </>
         );

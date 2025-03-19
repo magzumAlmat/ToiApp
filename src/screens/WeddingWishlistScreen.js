@@ -23,13 +23,15 @@ export default function WeddingWishlistScreen() {
   const [loading, setLoading] = useState(true);
   const weddingId = route.params?.id;
 
+  console.log('USER=',userId)
+  
   console.log('WeddingWishlistScreen Started | wishlist=', weddingId);
 
   // Настройка шапки с кнопками
   useEffect(() => {
     navigation.setOptions({
       headerShown: true, // Включаем шапку
-      title: `Список подарков #${weddingId}`, // Заголовок с weddingId
+      title: `Список подарков `, // Заголовок с weddingId
       headerLeft: () => (
         <TouchableOpacity
           style={styles.headerButton}
@@ -38,14 +40,14 @@ export default function WeddingWishlistScreen() {
           <Text style={styles.headerButtonText}>Назад</Text>
         </TouchableOpacity>
       ),
-      headerRight: () => (
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={fetchWishlistItems} // Кнопка "Обновить"
-        >
-          <Text style={styles.headerButtonText}>Обновить</Text>
-        </TouchableOpacity>
-      ),
+      // headerRight: () => (
+      //   <TouchableOpacity
+      //     style={styles.headerButton}
+      //     onPress={fetchWishlistItems} // Кнопка "Обновить"
+      //   >
+      //     <Text style={styles.headerButtonText}>Обновить</Text>
+      //   </TouchableOpacity>
+      // ),
     });
   }, [navigation, weddingId]);
 

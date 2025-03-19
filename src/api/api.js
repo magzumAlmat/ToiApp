@@ -5,7 +5,7 @@ import * as SecureStore from 'expo-secure-store';
 // });
 
 const api = axios.create({
-   baseURL: 'http://localhost:3000', 
+   baseURL: process.env.EXPO_PUBLIC_API_baseURL, 
   //baseURL: 'https://26d8-85-117-96-82.ngrok-free.app',
   headers: { 'Content-Type': 'application/json' }, // Добавляем заголовок по умолчанию
 });

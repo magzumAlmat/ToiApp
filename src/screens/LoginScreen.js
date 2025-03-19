@@ -14,7 +14,7 @@ export default function LoginScreen({ navigation }) {
   // Обработка логина
   const handleLogin = async () => {
     dispatch(startLoading());
-    console.log('Login attempt:', { email, password });
+    console.log('Login attempt:', { email, password },'link--------',process.env.EXPO_PUBLIC_API_baseURL);
     try {
       const loginResponse = await api.login({ email, password });
       console.log('Login response:', JSON.stringify(loginResponse.data, null, 2));

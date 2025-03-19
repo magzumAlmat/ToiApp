@@ -24,7 +24,7 @@ import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars'; // Импорт календаря для UI
 import * as ExpoCalendar from 'expo-calendar'; // Переименован для избежания конфликта имен
-
+import * as Contacts from 'expo-contacts';
 export default function Item3Screen() {
   const route = useRoute();
   const navigation = useNavigation();
@@ -49,7 +49,7 @@ export default function Item3Screen() {
   const [errorFiles, setErrorFiles] = useState(null);
   const [loadingWeddings, setLoadingWeddings] = useState(true);
 
-  const BASE_URL = 'http://localhost:3000';
+  const BASE_URL = process.env.EXPO_PUBLIC_API_baseURL;
 
   useFocusEffect(
     React.useCallback(() => {
@@ -317,6 +317,142 @@ export default function Item3Screen() {
     }
   };
 
+
+
+  // const handleShareWeddingLink = async (weddingId) => {
+  //   console.log('handleShareWeddingLink started with weddingId:', weddingId);
+  //   try {
+  //     // Запрашиваем доступ к контактам
+  //     const { status } = await Contacts.requestPermissionsAsync();
+  //     if (status !== 'granted') {
+  //       Alert.alert('Ошибка', 'Доступ к контактам не предоставлен');
+  //       console.log('Доступ к контактам отклонен');
+  //       return;
+  //     }
+  
+  //     // Получаем список контактов
+  //     const { data } = await Contacts.getContactsAsync({
+  //       fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Name],
+  //     });
+  
+  //     if (data.length === 0) {
+  //       Alert.alert('Ошибка', 'Контакты не найдены');
+  //       console.log('Контакты не найдены');
+  //       return;
+  //     }
+  
+  //     // Формируем ссылку на свадьбу
+  //     const appLink = Linking.createURL(`wishlist/${weddingId}`);
+  //     const webLink = `${process.env.EXPO_PUBLIC_API_baseURL}/api/weddingwishes/${weddingId}`;
+  //     const message = `Приглашение на свадьбу: ${webLink}`;
+  
+  //     console.log('appLink:', appLink);
+  //     console.log('webLink:', webLink);
+  
+  //     // Показываем диалог с выбором контакта
+  //     Alert.alert(
+  //       'Выберите контакт',
+  //       'Кому отправить приглашение через WhatsApp?',
+  //       [
+  //         ...data.map((contact) => ({
+  //           text: `${contact.name} ${contact.phoneNumbers?.[0]?.number || 'Нет номера'}`,
+  //           onPress: async () => {
+  //             try {
+  //               // Проверяем наличие номера телефона
+  //               if (!contact.phoneNumbers || contact.phoneNumbers.length === 0) {
+  //                 Alert.alert('Ошибка', 'У этого контакта нет номера телефона');
+  //                 console.log('Нет номера у контакта:', contact.name);
+  //                 return;
+  //               }
+  
+  //               // Форматируем номер телефона (удаляем пробелы, скобки, дефисы)
+  //               const phoneNumber = contact.phoneNumbers[0].number.replace(/[\s()-]/g, '');
+  //               console.log('Выбранный номер:', phoneNumber);
+  
+  //               // Формируем URL для WhatsApp с номером телефона
+  //               const whatsappUrl = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
+  
+  //               // Проверяем, поддерживается ли WhatsApp
+  //               const isWhatsAppSupported = await Linking.canOpenURL(whatsappUrl);
+  //               if (!isWhatsAppSupported) {
+  //                 Alert.alert('Ошибка', 'WhatsApp не установлен на устройстве');
+  //                 console.log('WhatsApp не поддерживается');
+  //                 return;
+  //               }
+  
+  //               // Открываем WhatsApp с предзаполненным сообщением
+  //               await Linking.openURL(whatsappUrl);
+  //               console.log(`Отправлено приглашение через WhatsApp на номер ${phoneNumber}`);
+  //             } catch (error) {
+  //               console.error('Ошибка при отправке через WhatsApp:', error.message, error.stack);
+  //               Alert.alert('Ошибка', 'Не удалось отправить сообщение: ' + error.message);
+  //             }
+  //           },
+  //         })),
+  //         { text: 'Отмена', style: 'cancel' },
+  //       ],
+  //       { cancelable: true }
+  //     );
+  //   } catch (error) {
+  //     console.error('Ошибка в handleShareWeddingLink:', error.message, error.stack);
+  //     Alert.alert('Ошибка', 'Не удалось поделиться ссылкой: ' + error.message);
+  //   }
+  // };
+  // const handleShareWeddingLink = async (weddingId) => {
+  //   console.log('handleShareWeddingLink started with weddingId:', weddingId);
+  
+  //   try {
+  //     console.log('Creating appLink...');
+  //     const appLink = Linking.createURL(`wishlist/${weddingId}`); // Замена makeUrl на createURL
+  //     console.log('appLink created:', appLink);
+  
+
+
+  //     console.log('Creating webLink...');
+  //     const webLink =  `${process.env.EXPO_PUBLIC_API_baseURL}/api/weddingwishes/${weddingId}`
+        
+
+  //     console.log('webLink created:', webLink);
+  //     console.log('EXPO_PUBLIC_API_baseURL:', process.env.EXPO_PUBLIC_API_baseURL);
+  
+  //     console.log('Checking canOpenApp...');
+  //     // const canOpenApp = await Linking.canOpenURL(appLink);
+  //     // console.log('canOpenApp result:', canOpenApp);
+  
+  //     const message = webLink
+        
+  //       // Присоединяйтесь к моей свадьбе в приложении: 
+  //       // ? `${appLink}`
+  //       // : `Присоединяйтесь к моей свадьбе через сайт: ${webLink}`;
+
+  //     console.log('Message prepared:', message);
+  
+  //     console.log('Calling Share.share...');
+
+  //     const result = await Share.share({
+  //       message,
+  //       title: 'Приглашение на свадьбу',
+  //     });
+
+  //     // alert(result.url)
+  //     console.log('Share result:', result);
+  
+  //     if (result.action === Share.sharedAction) {
+  //       if (result.activityType) {
+  //         console.log('Поделился через:', result.activityType);
+  //       } else {
+  //         console.log('Поделился успешно');
+  //       }
+  //     } else if (result.action === Share.dismissedAction) {
+  //       console.log('Поделиться отменено');
+  //     }
+  //   } catch (error) {
+  //     console.error('Ошибка в handleShareWeddingLink:', error.message, error.stack);
+  //     Alert.alert('Ошибка', 'Не удалось поделиться ссылкой: ' + error.message);
+  //   }
+  // };
+
+
   const openEditModal = (wedding) => {
     setSelectedWedding(wedding);
     setWeddingName(wedding.name);
@@ -462,7 +598,7 @@ export default function Item3Screen() {
       <Text style={styles.goodCardTitle}>{item.item_name}</Text>
       <Text style={styles.goodCardCategory}>Категория: {item.category}</Text>
       <Text style={styles.goodCardCost}>
-        {item.price_range ? `Цена: ${item.price_range}` : 'Цена не указана'}
+        {item.cost ? `Цена: ${item.cost}` : 'Цена не указана'}
       </Text>
       {item.description && (
         <Text style={styles.goodCardDescription}>{item.description}</Text>

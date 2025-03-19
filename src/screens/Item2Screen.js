@@ -24,7 +24,7 @@ export default function Item2Screen({ navigation }) {
   console.log('Received restaurant ID:', restaurantId);
   const { user, token } = useSelector((state) => state.auth);
   const [isLoading, setIsLoading] = useState(false);
-   const BASE_URL = "http://localhost:3000"; 
+   const BASE_URL = process.env.EXPO_PUBLIC_API_baseURL; 
  // const BASE_URL = 'https://26d8-85-117-96-82.ngrok-free.app';
 
   // Обновлённый массив с русскими названиями
@@ -151,19 +151,181 @@ export default function Item2Screen({ navigation }) {
     console.log('3 User ID:', user.id, 'Type:', typeof user.id);
     console.log('4 Token:', token);
     console.log('5 Selected Item:', selectedItem);
-
+  
     if (!token) {
       Alert.alert('Ошибка', 'Пожалуйста, войдите в систему');
       navigation.navigate('Login');
       return;
     }
-
+  
+    if (!selectedItem) {
+      Alert.alert('Ошибка', 'Выберите тип объекта');
+      return;
+    }
+  
     try {
       setIsLoading(true);
       let response;
       let entityId;
-
+  
+      const entityTypeLower = entityTypeMap[selectedItem]; // Преобразуем русское название в английское для URL
+  
+      // Собираем данные и отправляем запрос в зависимости от типа объекта
       switch (selectedItem) {
+        case 'Ресторан':
+          if (!formData.name || !formData.capacity) {
+            throw new Error('Заполните обязательные поля: Название и Вместимость');
+          }
+          const restaurantData = {
+            name: formData.name,
+            capacity: formData.capacity,
+            cuisine: formData.cuisine || '',
+            averageCost: formData.averageCost || '',
+            address: formData.address || '',
+            phone: formData.phone || '',
+            district: formData.district || '',
+            supplier_id: user.id,
+          };
+          response = await api.createRestaurant(restaurantData);
+          entityId = response.data.id; // Предполагаем, что сервер возвращает id
+          break;
+  
+        case 'Одежда':
+          if (!formData.storeName || !formData.itemName) {
+            throw new Error('Заполните обязательные поля: Наименование магазина и Наименование товара');
+          }
+          const clothingData = {
+            storeName: formData.storeName,
+            address: formData.address || '',
+            phone: formData.phone || '',
+            district: formData.district || '',
+            gender: formData.gender || '',
+            itemName: formData.itemName,
+            cost: formData.cost || '',
+            supplier_id: user.id,
+          };
+          response = await api.createClothing(clothingData);
+          entityId = response.data.id;
+          break;
+  
+        case 'Транспорт':
+          if (!formData.salonName || !formData.carName) {
+            throw new Error('Заполните обязательные поля: Наименование салона и Наименование авто');
+          }
+          const transportData = {
+            salonName: formData.salonName,
+            address: formData.address || '',
+            phone: formData.phone || '',
+            district: formData.district || '',
+            carName: formData.carName,
+            color: formData.color || '',
+            brand: formData.brand || '',
+            cost: formData.cost || '',
+            supplier_id: user.id,
+          };
+          response = await api.createTransport(transportData);
+          entityId = response.data.id;
+          break;
+  
+        case 'Тамада':
+          if (!formData.name) {
+            throw new Error('Заполните обязательное поле: Имя/Псевдоним');
+          }
+          const tamadaData = {
+            name: formData.name,
+            portfolio: formData.portfolio || '',
+            cost: formData.cost || '',
+            supplier_id: user.id,
+          };
+          response = await api.createTamada(tamadaData);
+          entityId = response.data.id;
+          break;
+  
+        case 'Программа':
+          if (!formData.teamName) {
+            throw new Error('Заполните обязательное поле: Название команды');
+          }
+          const programData = {
+            teamName: formData.teamName,
+            cost: formData.cost || '',
+            type: formData.type || '',
+            supplier_id: user.id,
+          };
+          response = await api.createProgram(programData);
+          entityId = response.data.id;
+          break;
+  
+        case 'Традиционные подарки':
+          if (!formData.salonName || !formData.itemName) {
+            throw new Error('Заполните обязательные поля: Наименование салона и Наименование товара');
+          }
+          const traditionalGiftData = {
+            salonName: formData.salonName,
+            address: formData.address || '',
+            phone: formData.phone || '',
+            district: formData.district || '',
+            itemName: formData.itemName,
+            type: formData.type || '',
+            cost: formData.cost || '',
+            supplier_id: user.id,
+          };
+          response = await api.createTraditionalGift(traditionalGiftData);
+          entityId = response.data.id;
+          break;
+  
+        case 'Цветы':
+          if (!formData.salonName || !formData.flowerName) {
+            throw new Error('Заполните обязательные поля: Наименование салона и Наименование цветов');
+          }
+          const flowersData = {
+            salonName: formData.salonName,
+            address: formData.address || '',
+            phone: formData.phone || '',
+            district: formData.district || '',
+            flowerName: formData.flowerName,
+            flowerType: formData.flowerType || '',
+            cost: formData.cost || '',
+            supplier_id: user.id,
+          };
+          response = await api.createFlowers(flowersData);
+          entityId = response.data.id;
+          break;
+  
+        case 'Торты':
+          if (!formData.name) {
+            throw new Error('Заполните обязательное поле: Наименование салона');
+          }
+          const cakeData = {
+            name: formData.name,
+            address: formData.address || '',
+            phone: formData.phone || '',
+            district: formData.district || '',
+            cakeType: formData.cakeType || '',
+            cost: formData.cost || '',
+            supplier_id: user.id,
+          };
+          response = await api.createCake(cakeData);
+          entityId = response.data.id;
+          break;
+  
+        case 'Алкоголь':
+          if (!formData.alcoholName || !formData.category) {
+            throw new Error('Заполните обязательные поля: Наименование и Категория');
+          }
+          const alcoholData = {
+            salonName: formData.salonName || '',
+            address: formData.address || '',
+            phone: formData.phone || '',
+            district: formData.district || '',
+            alcoholName: formData.alcoholName,
+            category: formData.category,
+            cost: formData.cost || '',
+            supplier_id: user.id,
+          };
+          response = await api.createAlcohol(alcoholData);
+          entityId = response.data.id;
+          break;
+  
         case 'Товары':
           if (!formData.category || !formData.item_name) {
             throw new Error('Заполните обязательные поля: Категория и Название товара');
@@ -172,33 +334,24 @@ export default function Item2Screen({ navigation }) {
             category: formData.category,
             item_name: formData.item_name,
             description: formData.description || '',
-            price_range: formData.price_range || '',
+            cost: formData.cost || '',
+            supplier_id: user.id,
           };
-          const newGoodsData = { ...goodsData, supplier_id: user.id };
-          console.log('goodsData=', newGoodsData);
-
-          response = await axios.post(`${BASE_URL}/api/goods`, newGoodsData);
-          console.log('0 response=', response.data);
-
-          if (!response.data || !response.data.data || !response.data.data.id) {
-            throw new Error('Сервер не вернул ID созданного товара');
-          }
-
-          entityId = response.data.data.id;
+          response = await api.postGoodsData(goodsData);
+          entityId = response.data.data.id; // Предполагаем структуру ответа для goods
           setFormDataId(response.data.data.id);
-          console.log('9 RESPONSE=', response.data.data.id, 'FORMDATAID= ', formDataId);
-          console.log('Entity ID:', entityId, 'Type:', typeof entityId);
           break;
-        // Добавьте остальные case с entityId
+  
         default:
-          throw new Error('Выберите тип объекта');
+          throw new Error('Тип объекта не поддерживается для создания');
       }
-
+  
+      // Загрузка файлов, если они выбраны
       if (selectedFiles.length > 0) {
         console.log('Selected Files:', selectedFiles);
         await uploadFiles(selectedItem, entityId);
       }
-
+  
       Alert.alert('Успех', `${selectedItem} успешно создан${selectedFiles.length > 0 ? ' с файлами' : ''}!`);
       setFormData({});
       setSelectedFiles([]);
@@ -731,9 +884,9 @@ export default function Item2Screen({ navigation }) {
             />
             <TextInput
               style={styles.input}
-              placeholder="Диапазон цен (например, 1000-5000 руб)"
-              value={formData.price_range || ''}
-              onChangeText={(value) => handleInputChange('price_range', value)}
+              placeholder="Стоимость в тенге"
+              value={formData.cost || ''}
+              onChangeText={(value) => handleInputChange('cost', value)}
             />
            
           </>

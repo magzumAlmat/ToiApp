@@ -106,7 +106,7 @@ export default function HomeScreen({ navigation }) {
         cakes: userData[6] || [],
         alcohol: userData[7] || [],
         transport: userData[8] || [],
-        goods: userData[9] || [], // Обновляем goods в data
+        goods: userData[9] || [], 
       };
       setData(newData);
     } catch (error) {
@@ -453,7 +453,7 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.cardTitle}>Товар</Text>
             <Text style={styles.cardTitle}>{item.item_name}</Text>
             <Text style={styles.cardDetail}>Описание: {item.description} </Text>
-            <Text style={styles.cardDetail}>Стоимость: {item.price_range} ₸</Text>
+            <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
           </View>
         );
         break;
@@ -545,7 +545,125 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
+  // const renderSupplierContent = () => {
+  //   const userId = user.id; // Замените на актуальный способ получения user.id
+
+  // const combinedData = [
+  //   ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
+  //   ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
+  //   ...data.tamada.map((item) => ({ ...item, type: 'tamada' })),
+  //   ...data.programs.map((item) => ({ ...item, type: 'program' })),
+  //   ...data.traditionalGifts.map((item) => ({ ...item, type: 'traditionalGift' })),
+  //   ...data.flowers.map((item) => ({ ...item, type: 'flowers' })),
+  //   ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
+  //   ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
+  //   ...data.transport.map((item) => ({ ...item, type: 'transport' })),
+  //   ...data.goods.map((item) => ({ ...item, type: 'goods' })),
+  // ].filter(item => item.supplier_id === userId); // Фильтруем по supplier_id
+
+  // console.log('combinedData=',combinedData)
+  //   return (
+  //     <SafeAreaView style={styles.container}>
+    
+  //     <View style={styles.supplierContainer}>
+  //       {/* <Text style={styles.supplierTitle}>Ваш бизнес:</Text> */}
+  //       {loading ? (
+  //         <View style={styles.loadingContainer}>
+  //           <ActivityIndicator size="large" color={COLORS.primary} />
+  //           <Text style={styles.loadingText}>Загрузка данных...</Text>
+  //         </View>
+  //       ) : combinedData.length > 0 ? (
+  //         <>
+  //           <FlatList
+  //             data={combinedData}
+  //             renderItem={renderItem}
+  //             keyExtractor={(item) => `${item.type}-${item.id}`}
+  //             contentContainerStyle={styles.listContent}
+  //             showsVerticalScrollIndicator={false}
+  //           />
+  //           <TouchableOpacity
+  //             style={styles.addButton}
+  //             onPress={() => setNewGoodModalVisible(true)}
+  //           >
+  //             <Text style={styles.addButtonText}>Добавить товар</Text>
+  //           </TouchableOpacity>
+  //         </>
+  //       ) : (
+  //         <View style={styles.emptyContainer}>
+  //           <Icon name="business" size={48} color={COLORS.textSecondary} />
+  //           <Text style={styles.emptyText}>У вас пока нет объектов</Text>
+  //         </View>
+  //       )}
+  //       <Modal visible={deleteModalVisible} transparent animationType="fade">
+  //         <View style={styles.modalOverlay}>
+  //           <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
+  //             <Text style={styles.modalTitle}>Подтверждение удаления</Text>
+  //             <Text style={styles.modalText}>
+  //               Вы уверены, что хотите удалить этот объект? Это действие нельзя отменить.
+  //             </Text>
+  //             <View style={styles.modalButtonContainer}>
+  //               <TouchableOpacity
+  //                 style={[styles.modalButton, styles.cancelButton]}
+  //                 onPress={() => {
+  //                   setDeleteModalVisible(false);
+  //                   setItemToDelete(null);
+  //                 }}
+  //               >
+  //                 <Text style={styles.modalButtonText}>Отмена</Text>
+  //               </TouchableOpacity>
+  //               <TouchableOpacity
+  //                 style={[styles.modalButton, styles.confirmButton]}
+  //                 onPress={handleDeleteItem}
+  //               >
+  //                 <Text style={styles.modalButtonText}>Удалить</Text>
+  //               </TouchableOpacity>
+  //             </View>
+  //           </Animatable.View>
+  //         </View>
+  //       </Modal>
+  //       <Modal visible={newGoodModalVisible} transparent animationType="slide">
+  //         <View style={styles.modalOverlay}>
+  //           <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
+  //             <Text style={styles.modalTitle}>Добавить новый товар</Text>
+  //             <TextInput
+  //               style={styles.input}
+  //               placeholder="Название товара"
+  //               value={newGoodName}
+  //               onChangeText={setNewGoodName}
+  //             />
+  //             <TextInput
+  //               style={styles.input}
+  //               placeholder="Стоимость (₸)"
+  //               value={newGoodCost}
+  //               onChangeText={setNewGoodCost}
+  //               keyboardType="numeric"
+  //             />
+  //             <View style={styles.modalButtonContainer}>
+  //               <TouchableOpacity
+  //                 style={[styles.modalButton, styles.cancelButton]}
+  //                 onPress={() => setNewGoodModalVisible(false)}
+  //               >
+  //                 <Text style={styles.modalButtonText}>Отмена</Text>
+  //               </TouchableOpacity>
+  //               <TouchableOpacity
+  //                 style={[styles.modalButton, styles.confirmButton]}
+  //                 onPress={handleCreateGood}
+  //               >
+  //                 <Text style={styles.modalButtonText}>Создать</Text>
+  //               </TouchableOpacity>
+  //             </View>
+  //           </Animatable.View>
+  //         </View>
+  //       </Modal>
+  //     </View>
+  //     </SafeAreaView>
+  //   );
+  // };
+
   const renderSupplierContent = () => {
+    // Предполагаем, что user.id доступен в компоненте
+    const userId = user.id; // Замените на актуальный способ получения user.id
+  
     const combinedData = [
       ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
       ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
@@ -557,105 +675,108 @@ export default function HomeScreen({ navigation }) {
       ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
       ...data.transport.map((item) => ({ ...item, type: 'transport' })),
       ...data.goods.map((item) => ({ ...item, type: 'goods' })),
-    ];
-
+    ].filter(item => item.supplier_id === userId); // Фильтруем по supplier_id
+  
+    console.log('this is data= ',data.goods.supplier_id,'userid', userId,'CombinedData= ',combinedData)
     return (
       <SafeAreaView style={styles.container}>
-    
-      <View style={styles.supplierContainer}>
-        {/* <Text style={styles.supplierTitle}>Ваш бизнес:</Text> */}
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
-            <Text style={styles.loadingText}>Загрузка данных...</Text>
-          </View>
-        ) : combinedData.length > 0 ? (
-          <>
-            <FlatList
-              data={combinedData}
-              renderItem={renderItem}
-              keyExtractor={(item) => `${item.type}-${item.id}`}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-            />
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => setNewGoodModalVisible(true)}
-            >
-              <Text style={styles.addButtonText}>Добавить товар</Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <View style={styles.emptyContainer}>
-            <Icon name="business" size={48} color={COLORS.textSecondary} />
-            <Text style={styles.emptyText}>У вас пока нет объектов</Text>
-          </View>
-        )}
-        <Modal visible={deleteModalVisible} transparent animationType="fade">
-          <View style={styles.modalOverlay}>
-            <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
-              <Text style={styles.modalTitle}>Подтверждение удаления</Text>
-              <Text style={styles.modalText}>
-                Вы уверены, что хотите удалить этот объект? Это действие нельзя отменить.
-              </Text>
-              <View style={styles.modalButtonContainer}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={() => {
-                    setDeleteModalVisible(false);
-                    setItemToDelete(null);
-                  }}
-                >
-                  <Text style={styles.modalButtonText}>Отмена</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.confirmButton]}
-                  onPress={handleDeleteItem}
-                >
-                  <Text style={styles.modalButtonText}>Удалить</Text>
-                </TouchableOpacity>
-              </View>
-            </Animatable.View>
-          </View>
-        </Modal>
-        <Modal visible={newGoodModalVisible} transparent animationType="slide">
-          <View style={styles.modalOverlay}>
-            <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
-              <Text style={styles.modalTitle}>Добавить новый товар</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Название товара"
-                value={newGoodName}
-                onChangeText={setNewGoodName}
+        <View style={styles.supplierContainer}>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+              <Text style={styles.loadingText}>Загрузка данных...</Text>
+            </View>
+          ) : combinedData.length > 0 ? (
+            <>
+              <FlatList
+                data={combinedData}
+                renderItem={renderItem}
+                keyExtractor={(item) => `${item.type}-${item.id}`}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
               />
-              <TextInput
-                style={styles.input}
-                placeholder="Стоимость (₸)"
-                value={newGoodCost}
-                onChangeText={setNewGoodCost}
-                keyboardType="numeric"
-              />
-              <View style={styles.modalButtonContainer}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={() => setNewGoodModalVisible(false)}
-                >
-                  <Text style={styles.modalButtonText}>Отмена</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.confirmButton]}
-                  onPress={handleCreateGood}
-                >
-                  <Text style={styles.modalButtonText}>Создать</Text>
-                </TouchableOpacity>
-              </View>
-            </Animatable.View>
-          </View>
-        </Modal>
-      </View>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => setNewGoodModalVisible(true)}
+              >
+                <Text style={styles.addButtonText}>Добавить товар</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Icon name="business" size={48} color={COLORS.textSecondary} />
+              <Text style={styles.emptyText}>У вас пока нет объектов</Text>
+            </View>
+          )}
+          <Modal visible={deleteModalVisible} transparent animationType="fade">
+            <View style={styles.modalOverlay}>
+              <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
+                <Text style={styles.modalTitle}>Подтверждение удаления</Text>
+                <Text style={styles.modalText}>
+                  Вы уверены, что хотите удалить этот объект? Это действие нельзя отменить.
+                </Text>
+                <View style={styles.modalButtonContainer}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => {
+                      setDeleteModalVisible(false);
+                      setItemToDelete(null);
+                    }}
+                  >
+                    <Text style={styles.modalButtonText}>Отмена</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.confirmButton]}
+                    onPress={handleDeleteItem}
+                  >
+                    <Text style={styles.modalButtonText}>Удалить</Text>
+                  </TouchableOpacity>
+                </View>
+              </Animatable.View>
+            </View>
+          </Modal>
+          <Modal visible={newGoodModalVisible} transparent animationType="slide">
+            <View style={styles.modalOverlay}>
+              <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
+                <Text style={styles.modalTitle}>Добавить новый товар</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Название товара"
+                  value={newGoodName}
+                  onChangeText={setNewGoodName}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Стоимость (₸)"
+                  value={newGoodCost}
+                  onChangeText={setNewGoodCost}
+                  keyboardType="numeric"
+                />
+                <View style={styles.modalButtonContainer}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => setNewGoodModalVisible(false)}
+                  >
+                    <Text style={styles.modalButtonText}>Отмена</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.confirmButton]}
+                    onPress={handleCreateGood}
+                  >
+                    <Text style={styles.modalButtonText}>Создать</Text>
+                  </TouchableOpacity>
+                </View>
+              </Animatable.View>
+            </View>
+          </Modal>
+        </View>
       </SafeAreaView>
     );
   };
+
+
+
+
 
   const createEvent = () => {
     console.log('CreateEvent currentUserId=', user?.id);
@@ -825,6 +946,7 @@ export default function HomeScreen({ navigation }) {
               <ActivityIndicator size="large" color={COLORS.primary} />
             ) : filteredData.length > 0 ? (
               <>
+
                 <FlatList
                   data={filteredData}
                   renderItem={renderItem}
@@ -832,6 +954,7 @@ export default function HomeScreen({ navigation }) {
                   contentContainerStyle={styles.listContent}
                   showsVerticalScrollIndicator={false}
                 />
+
                 <TouchableOpacity
                   style={styles.addButton}
                   onPress={() => setAddItemModalVisible(true)}
