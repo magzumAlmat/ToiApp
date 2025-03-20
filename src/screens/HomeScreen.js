@@ -50,7 +50,7 @@ export default function HomeScreen({ navigation }) {
   const [quantities, setQuantities] = useState({});
   const [loading, setLoading] = useState(false);
   const [budget, setBudget] = useState('');
-  const [guestCount, setGuestCount] = useState(''); // Количество гостей
+  const [guestCount, setGuestCount] = useState('');
   const [budgetModalVisible, setBudgetModalVisible] = useState(false);
   const [remainingBudget, setRemainingBudget] = useState(0);
   const [addItemModalVisible, setAddItemModalVisible] = useState(false);
@@ -269,7 +269,6 @@ export default function HomeScreen({ navigation }) {
     let remaining = budgetValue;
     const selectedItems = [];
 
-    // Фильтруем рестораны по количеству гостей
     const suitableRestaurants = data.restaurants.filter(
       (restaurant) => parseFloat(restaurant.capacity) >= guests
     );
@@ -279,12 +278,10 @@ export default function HomeScreen({ navigation }) {
       return;
     }
 
-    // Сортируем рестораны по averageCost
     const sortedRestaurants = suitableRestaurants.sort(
       (a, b) => parseFloat(a.averageCost) - parseFloat(b.averageCost)
     );
 
-    // Выбираем ресторан с медианным averageCost
     const medianIndex = Math.floor(sortedRestaurants.length / 2);
     const selectedRestaurant = sortedRestaurants[medianIndex];
     const restaurantCost = parseFloat(selectedRestaurant.averageCost);
@@ -294,7 +291,6 @@ export default function HomeScreen({ navigation }) {
       remaining -= restaurantCost;
     }
 
-    // Оставшиеся типы
     const types = [
       { key: 'clothing', costField: 'cost', type: 'clothing' },
       { key: 'tamada', costField: 'cost', type: 'tamada' },
@@ -369,6 +365,25 @@ export default function HomeScreen({ navigation }) {
     const totalSpent = [...filteredData, newItem].reduce((sum, item) => sum + (item.totalCost || 0), 0);
     setRemainingBudget(parseFloat(budget) - totalSpent);
     setAddItemModalVisible(false);
+  };
+
+  const handleRemoveItem = (itemKey) => {
+    // Удаляем элемент из filteredData
+    const updatedFilteredData = filteredData.filter(
+      (item) => `${item.type}-${item.id}` !== itemKey
+    );
+    setFilteredData(updatedFilteredData);
+
+    // Обновляем quantities, удаляя ключ
+    setQuantities((prev) => {
+      const newQuantities = { ...prev };
+      delete newQuantities[itemKey];
+      return newQuantities;
+    });
+
+    // Пересчитываем оставшийся бюджет
+    const totalSpent = updatedFilteredData.reduce((sum, item) => sum + (item.totalCost || 0), 0);
+    setRemainingBudget(parseFloat(budget) - totalSpent);
   };
 
   const renderItem = ({ item }) => {
@@ -470,7 +485,6 @@ export default function HomeScreen({ navigation }) {
           </View>
         );
         break;
-
       case 'transport':
         content = (
           <View style={styles.cardContent}>
@@ -486,7 +500,6 @@ export default function HomeScreen({ navigation }) {
           </View>
         );
         break;
-
       case 'goods':
         content = (
           <View style={styles.cardContent}>
@@ -505,22 +518,30 @@ export default function HomeScreen({ navigation }) {
       <View style={styles.card}>
         {content}
         {user?.roleId === 3 && (
-          <View style={styles.cardFooter}>
-            <TextInput
-              style={styles.quantityInput}
-              placeholder="Кол-во"
-              value={quantities[itemKey] || ''}
-              onChangeText={(value) => handleQuantityChange(itemKey, value)}
-              keyboardType="numeric"
-            />
-            <Text style={styles.totalCost}>Итого: {totalCost} ₸</Text>
+          <>
             <TouchableOpacity
-              style={styles.detailsButton}
-              onPress={() => navigation.navigate('Details', { item })}
+              style={styles.removeButton}
+              onPress={() => handleRemoveItem(itemKey)}
             >
-              <Button style={styles.detailsButtonText}>Подробнее</Button>
+              <Icon name="close" size={20} color={COLORS.error} />
             </TouchableOpacity>
-          </View>
+            <View style={styles.cardFooter}>
+              <TextInput
+                style={styles.quantityInput}
+                placeholder="Кол-во"
+                value={quantities[itemKey] || ''}
+                onChangeText={(value) => handleQuantityChange(itemKey, value)}
+                keyboardType="numeric"
+              />
+              <Text style={styles.totalCost}>Итого: {totalCost} ₸</Text>
+              <TouchableOpacity
+                style={styles.detailsButton}
+                onPress={() => navigation.navigate('Details', { item })}
+              >
+                <Button style={styles.detailsButtonText}>Подробнее</Button>
+              </TouchableOpacity>
+            </View>
+          </>
         )}
         {user?.roleId === 2 && (
           <View style={styles.actionButtons}>
@@ -1066,6 +1087,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 6,
     elevation: 4,
+    position: 'relative', // Для позиционирования крестика
   },
   cardContent: {
     marginBottom: 12,
@@ -1108,6 +1130,11 @@ const styles = StyleSheet.create({
     top: 16,
     right: 16,
     gap: 12,
+  },
+  removeButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
   },
   budgetButton: {
     backgroundColor: COLORS.secondary,
