@@ -44,12 +44,13 @@ export default function HomeScreen({ navigation }) {
     cakes: [],
     alcohol: [],
     transport: [],
-    goods: [], // Убедимся, что goods инициализирован
+    goods: [],
   });
   const [filteredData, setFilteredData] = useState([]);
   const [quantities, setQuantities] = useState({});
   const [loading, setLoading] = useState(false);
   const [budget, setBudget] = useState('');
+  const [guestCount, setGuestCount] = useState(''); // Количество гостей
   const [budgetModalVisible, setBudgetModalVisible] = useState(false);
   const [remainingBudget, setRemainingBudget] = useState(0);
   const [addItemModalVisible, setAddItemModalVisible] = useState(false);
@@ -59,7 +60,6 @@ export default function HomeScreen({ navigation }) {
   const [weddingName, setWeddingName] = useState('');
   const [weddingDate, setWeddingDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  // Состояния для создания нового товара
   const [newGoodModalVisible, setNewGoodModalVisible] = useState(false);
   const [newGoodName, setNewGoodName] = useState('');
   const [newGoodCost, setNewGoodCost] = useState('');
@@ -87,11 +87,11 @@ export default function HomeScreen({ navigation }) {
         api.getAllCakes(),
         api.getAllAlcohol(),
         api.getAllTransport(),
-        api.getGoods(token), // Добавляем загрузку goods
+        api.getGoods(token),
       ]);
 
       const userData = responses.map((response, index) =>
-        user.roleId === 2 && index < 9 // Проверяем только первые 9 категорий, исключая goods
+        user.roleId === 2 && index < 9
           ? response.data.filter((item) => item.supplier_id === user.id)
           : response.data
       );
@@ -106,7 +106,7 @@ export default function HomeScreen({ navigation }) {
         cakes: userData[6] || [],
         alcohol: userData[7] || [],
         transport: userData[8] || [],
-        goods: userData[9] || [], 
+        goods: userData[9] || [],
       };
       setData(newData);
     } catch (error) {
@@ -209,7 +209,7 @@ export default function HomeScreen({ navigation }) {
           }));
           break;
         case 'goods':
-          await api.deleteGood(itemToDelete.id, token); // Предполагаемая функция API
+          await api.deleteGood(itemToDelete.id, token);
           setData((prev) => ({
             ...prev,
             goods: prev.goods.filter((item) => item.id !== itemToDelete.id),
@@ -227,7 +227,6 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  // CRUD для goods
   const handleCreateGood = async () => {
     if (!newGoodName || !newGoodCost) {
       alert('Пожалуйста, заполните все поля');
@@ -241,7 +240,7 @@ export default function HomeScreen({ navigation }) {
     };
 
     try {
-      const response = await api.createGood(goodData, token); // Предполагаемая функция API
+      const response = await api.postGoodsData(goodData);
       setData((prev) => ({
         ...prev,
         goods: [...prev.goods, response.data],
@@ -257,15 +256,46 @@ export default function HomeScreen({ navigation }) {
 
   const filterDataByBudget = () => {
     if (!budget || isNaN(budget) || parseFloat(budget) <= 0) {
-      alert('Пожалуйста, введите корректную сумму');
+      alert('Пожалуйста, введите корректную сумму бюджета');
       return;
     }
+    if (!guestCount || isNaN(guestCount) || parseFloat(guestCount) <= 0) {
+      alert('Пожалуйста, введите корректное количество гостей');
+      return;
+    }
+
     const budgetValue = parseFloat(budget);
+    const guests = parseFloat(guestCount);
     let remaining = budgetValue;
     const selectedItems = [];
 
+    // Фильтруем рестораны по количеству гостей
+    const suitableRestaurants = data.restaurants.filter(
+      (restaurant) => parseFloat(restaurant.capacity) >= guests
+    );
+
+    if (suitableRestaurants.length === 0) {
+      alert('Нет ресторанов с достаточной вместимостью для указанного количества гостей');
+      return;
+    }
+
+    // Сортируем рестораны по averageCost
+    const sortedRestaurants = suitableRestaurants.sort(
+      (a, b) => parseFloat(a.averageCost) - parseFloat(b.averageCost)
+    );
+
+    // Выбираем ресторан с медианным averageCost
+    const medianIndex = Math.floor(sortedRestaurants.length / 2);
+    const selectedRestaurant = sortedRestaurants[medianIndex];
+    const restaurantCost = parseFloat(selectedRestaurant.averageCost);
+
+    if (!isNaN(restaurantCost) && restaurantCost <= remaining) {
+      selectedItems.push({ ...selectedRestaurant, type: 'restaurant', totalCost: restaurantCost });
+      remaining -= restaurantCost;
+    }
+
+    // Оставшиеся типы
     const types = [
-      { key: 'restaurants', costField: 'averageCost', type: 'restaurant' },
       { key: 'clothing', costField: 'cost', type: 'clothing' },
       { key: 'tamada', costField: 'cost', type: 'tamada' },
       { key: 'programs', costField: 'cost', type: 'program' },
@@ -274,7 +304,7 @@ export default function HomeScreen({ navigation }) {
       { key: 'cakes', costField: 'cost', type: 'cake' },
       { key: 'alcohol', costField: 'cost', type: 'alcohol' },
       { key: 'transport', costField: 'cost', type: 'transport' },
-      { key: 'goods', costField: 'cost', type: 'goods' }, // Добавляем goods
+      { key: 'goods', costField: 'cost', type: 'goods' },
     ];
 
     for (const { key, costField, type } of types) {
@@ -289,6 +319,7 @@ export default function HomeScreen({ navigation }) {
         }
       }
     }
+
     setFilteredData(selectedItems);
     setRemainingBudget(remaining);
     setQuantities(selectedItems.reduce((acc, item) => ({ ...acc, [`${item.type}-${item.id}`]: '1' }), {}));
@@ -321,6 +352,13 @@ export default function HomeScreen({ navigation }) {
     const filteredValue = value.replace(/[^0-9]/g, '');
     if (filteredValue === '' || parseFloat(filteredValue) >= 0) {
       setBudget(filteredValue);
+    }
+  };
+
+  const handleGuestCountChange = (value) => {
+    const filteredValue = value.replace(/[^0-9]/g, '');
+    if (filteredValue === '' || parseFloat(filteredValue) >= 0) {
+      setGuestCount(filteredValue);
     }
   };
 
@@ -432,6 +470,7 @@ export default function HomeScreen({ navigation }) {
           </View>
         );
         break;
+
       case 'transport':
         content = (
           <View style={styles.cardContent}>
@@ -447,6 +486,7 @@ export default function HomeScreen({ navigation }) {
           </View>
         );
         break;
+
       case 'goods':
         content = (
           <View style={styles.cardContent}>
@@ -545,125 +585,9 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
-  // const renderSupplierContent = () => {
-  //   const userId = user.id; // Замените на актуальный способ получения user.id
-
-  // const combinedData = [
-  //   ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
-  //   ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
-  //   ...data.tamada.map((item) => ({ ...item, type: 'tamada' })),
-  //   ...data.programs.map((item) => ({ ...item, type: 'program' })),
-  //   ...data.traditionalGifts.map((item) => ({ ...item, type: 'traditionalGift' })),
-  //   ...data.flowers.map((item) => ({ ...item, type: 'flowers' })),
-  //   ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
-  //   ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
-  //   ...data.transport.map((item) => ({ ...item, type: 'transport' })),
-  //   ...data.goods.map((item) => ({ ...item, type: 'goods' })),
-  // ].filter(item => item.supplier_id === userId); // Фильтруем по supplier_id
-
-  // console.log('combinedData=',combinedData)
-  //   return (
-  //     <SafeAreaView style={styles.container}>
-    
-  //     <View style={styles.supplierContainer}>
-  //       {/* <Text style={styles.supplierTitle}>Ваш бизнес:</Text> */}
-  //       {loading ? (
-  //         <View style={styles.loadingContainer}>
-  //           <ActivityIndicator size="large" color={COLORS.primary} />
-  //           <Text style={styles.loadingText}>Загрузка данных...</Text>
-  //         </View>
-  //       ) : combinedData.length > 0 ? (
-  //         <>
-  //           <FlatList
-  //             data={combinedData}
-  //             renderItem={renderItem}
-  //             keyExtractor={(item) => `${item.type}-${item.id}`}
-  //             contentContainerStyle={styles.listContent}
-  //             showsVerticalScrollIndicator={false}
-  //           />
-  //           <TouchableOpacity
-  //             style={styles.addButton}
-  //             onPress={() => setNewGoodModalVisible(true)}
-  //           >
-  //             <Text style={styles.addButtonText}>Добавить товар</Text>
-  //           </TouchableOpacity>
-  //         </>
-  //       ) : (
-  //         <View style={styles.emptyContainer}>
-  //           <Icon name="business" size={48} color={COLORS.textSecondary} />
-  //           <Text style={styles.emptyText}>У вас пока нет объектов</Text>
-  //         </View>
-  //       )}
-  //       <Modal visible={deleteModalVisible} transparent animationType="fade">
-  //         <View style={styles.modalOverlay}>
-  //           <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
-  //             <Text style={styles.modalTitle}>Подтверждение удаления</Text>
-  //             <Text style={styles.modalText}>
-  //               Вы уверены, что хотите удалить этот объект? Это действие нельзя отменить.
-  //             </Text>
-  //             <View style={styles.modalButtonContainer}>
-  //               <TouchableOpacity
-  //                 style={[styles.modalButton, styles.cancelButton]}
-  //                 onPress={() => {
-  //                   setDeleteModalVisible(false);
-  //                   setItemToDelete(null);
-  //                 }}
-  //               >
-  //                 <Text style={styles.modalButtonText}>Отмена</Text>
-  //               </TouchableOpacity>
-  //               <TouchableOpacity
-  //                 style={[styles.modalButton, styles.confirmButton]}
-  //                 onPress={handleDeleteItem}
-  //               >
-  //                 <Text style={styles.modalButtonText}>Удалить</Text>
-  //               </TouchableOpacity>
-  //             </View>
-  //           </Animatable.View>
-  //         </View>
-  //       </Modal>
-  //       <Modal visible={newGoodModalVisible} transparent animationType="slide">
-  //         <View style={styles.modalOverlay}>
-  //           <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
-  //             <Text style={styles.modalTitle}>Добавить новый товар</Text>
-  //             <TextInput
-  //               style={styles.input}
-  //               placeholder="Название товара"
-  //               value={newGoodName}
-  //               onChangeText={setNewGoodName}
-  //             />
-  //             <TextInput
-  //               style={styles.input}
-  //               placeholder="Стоимость (₸)"
-  //               value={newGoodCost}
-  //               onChangeText={setNewGoodCost}
-  //               keyboardType="numeric"
-  //             />
-  //             <View style={styles.modalButtonContainer}>
-  //               <TouchableOpacity
-  //                 style={[styles.modalButton, styles.cancelButton]}
-  //                 onPress={() => setNewGoodModalVisible(false)}
-  //               >
-  //                 <Text style={styles.modalButtonText}>Отмена</Text>
-  //               </TouchableOpacity>
-  //               <TouchableOpacity
-  //                 style={[styles.modalButton, styles.confirmButton]}
-  //                 onPress={handleCreateGood}
-  //               >
-  //                 <Text style={styles.modalButtonText}>Создать</Text>
-  //               </TouchableOpacity>
-  //             </View>
-  //           </Animatable.View>
-  //         </View>
-  //       </Modal>
-  //     </View>
-  //     </SafeAreaView>
-  //   );
-  // };
-
   const renderSupplierContent = () => {
-    // Предполагаем, что user.id доступен в компоненте
-    const userId = user.id; // Замените на актуальный способ получения user.id
-  
+    const userId = user.id;
+
     const combinedData = [
       ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
       ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
@@ -675,9 +599,8 @@ export default function HomeScreen({ navigation }) {
       ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
       ...data.transport.map((item) => ({ ...item, type: 'transport' })),
       ...data.goods.map((item) => ({ ...item, type: 'goods' })),
-    ].filter(item => item.supplier_id === userId); // Фильтруем по supplier_id
-  
-    console.log('this is data= ',data.goods.supplier_id,'userid', userId,'CombinedData= ',combinedData)
+    ].filter((item) => item.supplier_id === userId);
+
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.supplierContainer}>
@@ -695,12 +618,6 @@ export default function HomeScreen({ navigation }) {
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
               />
-              {/* <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => setNewGoodModalVisible(true)}
-              >
-                <Text style={styles.addButtonText}>Добавить товар</Text>
-              </TouchableOpacity> */}
             </>
           ) : (
             <View style={styles.emptyContainer}>
@@ -773,10 +690,6 @@ export default function HomeScreen({ navigation }) {
       </SafeAreaView>
     );
   };
-
-
-
-
 
   const createEvent = () => {
     console.log('CreateEvent currentUserId=', user?.id);
@@ -914,6 +827,14 @@ export default function HomeScreen({ navigation }) {
                 keyboardType="numeric"
                 placeholderTextColor={COLORS.textSecondary}
               />
+              <TextInput
+                style={styles.budgetInput}
+                placeholder="Количество гостей"
+                value={guestCount}
+                onChangeText={handleGuestCountChange}
+                keyboardType="numeric"
+                placeholderTextColor={COLORS.textSecondary}
+              />
               <View style={styles.modalActions}>
                 <TouchableOpacity
                   style={[styles.modalButton, styles.cancelButton]}
@@ -946,7 +867,6 @@ export default function HomeScreen({ navigation }) {
               <ActivityIndicator size="large" color={COLORS.primary} />
             ) : filteredData.length > 0 ? (
               <>
-
                 <FlatList
                   data={filteredData}
                   renderItem={renderItem}
@@ -954,7 +874,6 @@ export default function HomeScreen({ navigation }) {
                   contentContainerStyle={styles.listContent}
                   showsVerticalScrollIndicator={false}
                 />
-
                 <TouchableOpacity
                   style={styles.addButton}
                   onPress={() => setAddItemModalVisible(true)}
@@ -1012,9 +931,6 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* <Appbar.Header style={styles.header}>
-        <Appbar.Content title="Планировщик бюджета" />
-      </Appbar.Header> */}
       {user?.roleId === 2 ? renderSupplierContent() : renderClientContent()}
 
       <Modal
