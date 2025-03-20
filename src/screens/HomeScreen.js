@@ -8,6 +8,10 @@ import {
   Modal,
   TextInput,
   SafeAreaView,
+  ScrollView,
+  ScrollViewBase,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/authSlice';
@@ -67,7 +71,7 @@ export default function HomeScreen({ navigation }) {
   const getCalendarPermissions = async () => {
     const { status } = await ExpoCalendar.requestCalendarPermissionsAsync();
     if (status !== 'granted') {
-      alert('Доступ к календарю не предоставлен.');
+      // alert('Доступ к календарю не предоставлен.');
       return false;
     }
     return true;
@@ -950,364 +954,149 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {user?.roleId === 2 ? renderSupplierContent() : renderClientContent()}
+  // ... (весь код до return остается без изменений)
 
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.title}>Создание мероприятия "Свадьба"</Text>
+// ... (весь код до return остается без изменений)
 
-            <TextInput
-              style={styles.input}
-              placeholder="Имя свадьбы (например, Свадьба Ивана и Марии)"
-              value={weddingName}
-              onChangeText={setWeddingName}
+
+
+
+return (
+  <SafeAreaView style={styles.container}>
+    {user?.roleId === 2 ? renderSupplierContent() : renderClientContent()}
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={modalVisible}
+      onRequestClose={() => setModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
+          <Text style={styles.title}>Создание мероприятия "Свадьба"</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Имя свадьбы (например, Свадьба Ивана и Марии)"
+            value={weddingName}
+            onChangeText={setWeddingName}
+          />
+          <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
+            <Text style={styles.dateButtonText}>
+              {weddingDate.toLocaleDateString('ru-RU') || 'Выберите дату свадьбы'}
+            </Text>
+          </TouchableOpacity>
+          {showDatePicker && (
+            <Calendar
+              style={{ borderWidth: 1, borderColor: 'gray', marginBottom: 10 }}
+              current={weddingDate.toISOString().split('T')[0]}
+              onDayPress={onDateChange}
+              minDate={new Date().toISOString().split('T')[0]}
+              markedDates={{
+                [weddingDate.toISOString().split('T')[0]]: {
+                  selected: true,
+                  selectedColor: COLORS.primary,
+                },
+              }}
+              theme={{
+                selectedDayBackgroundColor: COLORS.primary,
+                todayTextColor: COLORS.accent,
+                arrowColor: COLORS.secondary,
+              }}
             />
-
-            <TouchableOpacity
-              style={styles.dateButton}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Text style={styles.dateButtonText}>
-                {weddingDate.toLocaleDateString('ru-RU') || 'Выберите дату свадьбы'}
-              </Text>
-            </TouchableOpacity>
-
-            {showDatePicker && (
-              <Calendar
-                style={{
-                  borderWidth: 1,
-                  borderColor: 'gray',
-                  height: '80%',
-                }}
-                current={weddingDate.toISOString().split('T')[0]}
-                onDayPress={onDateChange}
-                minDate={new Date().toISOString().split('T')[0]}
-                markedDates={{
-                  [weddingDate.toISOString().split('T')[0]]: {
-                    selected: true,
-                    selectedColor: COLORS.primary,
-                  },
-                }}
-                theme={{
-                  selectedDayBackgroundColor: COLORS.primary,
-                  todayTextColor: COLORS.accent,
-                  arrowColor: COLORS.secondary,
-                }}
-              />
-            )}
-
-            <Text style={styles.subtitle}>Выбранные элементы:</Text>
+          )}
+          <Text style={styles.subtitle}>Выбранные элементы:</Text>
+          <View style={styles.itemsContainer}>
             {filteredData.length > 0 ? (
               <FlatList
                 data={filteredData}
-                renderItem={renderWeddingItem}
+                renderItem={({ item }) => (
+                  <View style={styles.itemContainer}>
+                    <Text style={styles.itemText}>
+                      {(() => {
+                        switch (item.type) {
+                          case 'restaurant':
+                            return `${item.name} (${item.cuisine}) - ${item.totalCost || item.averageCost} тг`;
+                          case 'clothing':
+                            return `${item.itemName} (${item.storeName}) - ${item.totalCost || item.cost} тг`;
+                          case 'tamada':
+                            return `${item.name} - ${item.totalCost || item.cost} тг`;
+                          case 'program':
+                            return `${item.teamName} - ${item.totalCost || item.cost} тг`;
+                          case 'traditionalGift':
+                            return `${item.itemName} (${item.salonName}) - ${item.totalCost || item.cost} тг`;
+                          case 'flowers':
+                            return `${item.flowerName} (${item.flowerType}) - ${item.totalCost || item.cost} тг`;
+                          case 'cake':
+                            return `${item.name} (${item.cakeType}) - ${item.totalCost || item.cost} тг`;
+                          case 'alcohol':
+                            return `${item.alcoholName} (${item.category}) - ${item.totalCost || item.cost} тг`;
+                          case 'transport':
+                            return `${item.carName} (${item.brand}) - ${item.totalCost || item.cost} тг`;
+                          case 'goods':
+                            return `${item.item_name} - ${item.totalCost || item.cost} тг`;
+                          default:
+                            return 'Неизвестный элемент';
+                        }
+                      })()}
+                    </Text>
+                  </View>
+                )}
                 keyExtractor={(item) => `${item.type}-${item.id}`}
-                style={styles.list}
+                showsVerticalScrollIndicator={false} // Отключаем стандартный скроллбар, если нужно
               />
             ) : (
               <Text style={styles.noItems}>Выберите элементы для свадьбы</Text>
             )}
-
-            <View style={styles.totalContainer}>
-              <Text style={styles.totalText}>
-                Общая стоимость: {filteredData.reduce((sum, item) => sum + (item.totalCost || item.cost), 0)} тг
-              </Text>
-            </View>
-
-            <View style={styles.modalButtonContainer}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.confirmButton]}
-                onPress={handleSubmit}
-              >
-                <Text style={styles.modalButtonText}>Создать свадьбу</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.modalButtonText}>Закрыть</Text>
-              </TouchableOpacity>
-            </View>
           </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
-  );
+          <View style={styles.totalContainer}>
+            <Text style={styles.totalText}>
+              Общая стоимость:{' '}
+              {filteredData.reduce((sum, item) => sum + (item.totalCost || item.cost), 0)} тг
+            </Text>
+          </View>
+          <View style={styles.modalButtonContainer}>
+            <TouchableOpacity style={[styles.modalButton, styles.confirmButton]} onPress={handleSubmit}>
+              <Text style={styles.modalButtonText}>Создать свадьбу</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.modalButtonText}>Закрыть</Text>
+            </TouchableOpacity>
+          </View>
+        </Animatable.View>
+      </View>
+    </Modal>
+  </SafeAreaView>
+);
 }
 
 const styles = StyleSheet.create({
+  
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 0,
-  },
-  subtitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginVertical: 10,
-    color: COLORS.textPrimary,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: 12,
-  },
-  budgetInfo: {
-    fontSize: 16,
-    color: '#000000',
-    marginBottom: 16,
-  },
-  budgetError: {
-    color: COLORS.error,
-  },
-  list: {
-    flexGrow: 1,
-  },
-  card: {
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
-    position: 'relative', // Для позиционирования крестика
-  },
-  cardContent: {
-    marginBottom: 12,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: 4,
-  },
-  cardDetail: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: 2,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  quantityInput: {
-    width: 80,
-    height: 40,
-    borderWidth: 1,
-    borderColor: COLORS.textSecondary,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    fontSize: 14,
-    color: COLORS.textPrimary,
-    backgroundColor: '#F7FAFC',
-  },
-  totalCost: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#000000',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    gap: 12,
-  },
-  removeButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-  budgetButton: {
-    backgroundColor: COLORS.secondary,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  budgetButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  addButton: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
   modalOverlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center', // Центрирование по вертикали
+    alignItems: 'center',     // Центрирование по горизонтали
+    backgroundColor: 'rgba(0, 0, 0, 0.6)', // Полупрозрачный фон
   },
   modalContent: {
-    width: '85%',
+    width: '85%',             // Фиксированная ширина
     backgroundColor: COLORS.card,
     borderRadius: 16,
-    padding: 20,
-    maxHeight: '80%',
-  },
-  addModalContent: {
-    width: '90%',
-    height: '80%',
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    padding: 24,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  modalText: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  budgetInput: {
-    width: '100%',
-    height: 48,
-    borderWidth: 1,
-    borderColor: COLORS.textSecondary,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-    marginBottom: 20,
-    backgroundColor: '#F7FAFC',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    width: '100%',
-  },
-  modalButtonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 20,
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  cancelButton: {
-    backgroundColor: COLORS.textSecondary,
-  },
-  confirmButton: {
-    backgroundColor: COLORS.primary,
-  },
-  modalButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  addItemList: {
-    flexGrow: 1,
-    marginBottom: 20,
-  },
-  addItemCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: COLORS.textSecondary,
-  },
-  addItemText: {
-    fontSize: 16,
-    color: COLORS.textPrimary,
-  },
-  supplierContainer: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    padding: 20,
-  },
-  supplierTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    marginTop: 10,
-  },
-  listContent: {
-    flexGrow: 1,
-    paddingBottom: 20,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  clientContainer: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    padding: 20,
-  },
-  noBudgetContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  noBudgetText: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    marginTop: 10,
-    textAlign: 'center',
+    padding: 20,              // Уменьшенный padding для компактности
+    maxHeight: '80%',         // Ограничение высоты
+    alignSelf: 'center',      // Центрирование внутри контейнера
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: COLORS.textPrimary,
   },
   input: {
     borderWidth: 1,
@@ -1332,13 +1121,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textPrimary,
   },
-  itemContainer: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+  subtitle: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    marginVertical: 10,
+    color: COLORS.textPrimary,
   },
+ 
+ 
   itemText: {
-    fontSize: 16,
+    fontSize: 13,
   },
   noItems: {
     fontSize: 16,
@@ -1354,4 +1146,330 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
+  modalButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  confirmButton: {
+    backgroundColor: COLORS.primary,
+  },
+  cancelButton: {
+    backgroundColor: COLORS.textSecondary,
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+
+
+
+
+keyboardAvoidingContainer: {
+  flex: 1,
+},
+modalOverlay: {
+  flex: 1,
+  justifyContent: 'center', // Центрирование по вертикали
+  alignItems: 'center',     // Центрирование по горизонтали
+  backgroundColor: 'rgba(0, 0, 0, 0.6)', // Полупрозрачный фон
+},
+scrollViewContent: {
+  paddingVertical: 20,      // Отступы для красоты
+},
+modalContent: {
+  width: '85%',             // Фиксированная ширина
+  backgroundColor: COLORS.card,
+  borderRadius: 16,
+  padding: 20,              // Уменьшенный padding для компактности
+  maxHeight: '80%',         // Ограничение высоты для прокрутки
+  alignSelf: 'center',      // Центрирование внутри ScrollView
+},
+title: {
+  fontSize: 24,
+  fontWeight: 'bold',
+  marginBottom: 20,
+  textAlign: 'center',
+  color: COLORS.textPrimary,
+},
+input: {
+  borderWidth: 1,
+  borderColor: '#ccc',
+  borderRadius: 5,
+  padding: 10,
+  marginBottom: 15,
+  fontSize: 16,
+  width: '100%',
+},
+dateButton: {
+  borderWidth: 1,
+  borderColor: '#ccc',
+  borderRadius: 5,
+  padding: 10,
+  marginBottom: 15,
+  width: '100%',
+  alignItems: 'center',
+  backgroundColor: '#F7FAFC',
+},
+dateButtonText: {
+  fontSize: 16,
+  color: COLORS.textPrimary,
+},
+subtitle: {
+  fontSize: 17,
+  fontWeight: 'bold',
+  marginVertical: 10,
+  color: COLORS.textPrimary,
+},
+itemsContainer: {
+  maxHeight: 230,           // Ограничение высоты списка
+  marginBottom: 20,
+},
+itemContainer: {
+  padding: 10,
+  borderBottomWidth: 1,
+  borderBottomColor: '#eee',
+},
+
+noItems: {
+  fontSize: 16,
+  color: '#666',
+  textAlign: 'center',
+  marginBottom: 20,
+},
+totalContainer: {
+  marginVertical: 20,
+  alignItems: 'center',
+},
+totalText: {
+  fontSize: 18,
+  fontWeight: 'bold',
+},
+modalButtonContainer: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  width: '100%',
+},
+modalButton: {
+  flex: 1,
+  paddingVertical: 10,
+  borderRadius: 10,
+  alignItems: 'center',
+  marginHorizontal: 5,
+},
+confirmButton: {
+  backgroundColor: COLORS.primary,
+},
+cancelButton: {
+  backgroundColor: COLORS.textSecondary,
+},
+
+supplierContainer: {
+  flex: 1,
+  backgroundColor: COLORS.background,
+  padding: 20,
+},
+clientContainer: {
+  flex: 1,
+  backgroundColor: COLORS.background,
+  padding: 20,
+},
+budgetButton: {
+  backgroundColor: COLORS.secondary,
+  paddingVertical: 14,
+  borderRadius: 10,
+  alignItems: 'center',
+  marginBottom: 20,
+},
+budgetButtonText: {
+  fontSize: 16,
+  fontWeight: '600',
+  color: '#FFFFFF',
+},
+addButton: {
+  backgroundColor: COLORS.primary,
+  paddingVertical: 14,
+  borderRadius: 10,
+  alignItems: 'center',
+  marginTop: 10,
+},
+addButtonText: {
+  fontSize: 16,
+  fontWeight: '600',
+  color: '#FFFFFF',
+},
+sectionTitle: {
+  fontSize: 20,
+  fontWeight: '600',
+  color: COLORS.textPrimary,
+  marginBottom: 12,
+},
+budgetInfo: {
+  fontSize: 16,
+  color: '#000000',
+  marginBottom: 16,
+},
+budgetError: {
+  color: COLORS.error,
+},
+card: {
+  backgroundColor: COLORS.card,
+  borderRadius: 12,
+  padding: 16,
+  marginBottom: 12,
+  shadowColor: COLORS.shadow,
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.2,
+  shadowRadius: 6,
+  elevation: 4,
+  position: 'relative',
+},
+cardContent: {
+  marginBottom: 12,
+},
+cardTitle: {
+  fontSize: 18,
+  fontWeight: '600',
+  color: COLORS.textPrimary,
+  marginBottom: 4,
+},
+cardDetail: {
+  fontSize: 14,
+  color: COLORS.textSecondary,
+  marginBottom: 2,
+},
+cardFooter: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+},
+quantityInput: {
+  width: 80,
+  height: 40,
+  borderWidth: 1,
+  borderColor: COLORS.textSecondary,
+  borderRadius: 8,
+  paddingHorizontal: 10,
+  fontSize: 14,
+  color: COLORS.textPrimary,
+  backgroundColor: '#F7FAFC',
+},
+totalCost: {
+  fontSize: 14,
+  fontWeight: '500',
+  color: '#000000',
+},
+actionButtons: {
+  flexDirection: 'row',
+  position: 'absolute',
+  top: 16,
+  right: 16,
+  gap: 12,
+},
+removeButton: {
+  position: 'absolute',
+  top: 8,
+  right: 8,
+},
+modalTitle: {
+  fontSize: 20,
+  fontWeight: '600',
+  color: COLORS.textPrimary,
+  marginBottom: 20,
+  textAlign: 'center',
+},
+modalText: {
+  fontSize: 16,
+  color: COLORS.textSecondary,
+  textAlign: 'center',
+  marginBottom: 20,
+},
+budgetInput: {
+  width: '100%',
+  height: 48,
+  borderWidth: 1,
+  borderColor: COLORS.textSecondary,
+  borderRadius: 10,
+  paddingHorizontal: 12,
+  fontSize: 16,
+  color: COLORS.textPrimary,
+  marginBottom: 20,
+  backgroundColor: '#F7FAFC',
+},
+modalActions: {
+  flexDirection: 'row',
+  gap: 12,
+  width: '100%',
+},
+addModalContent: {
+  width: '90%',
+  height: '80%',
+  backgroundColor: COLORS.card,
+  borderRadius: 16,
+  padding: 24,
+},
+addItemList: {
+  flexGrow: 1,
+  marginBottom: 20,
+},
+addItemCard: {
+  backgroundColor: COLORS.card,
+  borderRadius: 8,
+  padding: 12,
+  marginBottom: 8,
+  borderWidth: 1,
+  borderColor: COLORS.textSecondary,
+},
+addItemText: {
+  fontSize: 16,
+  color: COLORS.textPrimary,
+},
+loadingContainer: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+loadingText: {
+  fontSize: 16,
+  color: COLORS.textSecondary,
+  marginTop: 10,
+},
+listContent: {
+  flexGrow: 1,
+  paddingBottom: 20,
+},
+emptyContainer: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+emptyText: {
+  fontSize: 16,
+  color: COLORS.textSecondary,
+  marginTop: 10,
+  textAlign: 'center',
+},
+noBudgetContainer: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+noBudgetText: {
+  fontSize: 16,
+  color: COLORS.textSecondary,
+  marginTop: 10,
+  textAlign: 'center',
+},
+
+
+
+
 });
