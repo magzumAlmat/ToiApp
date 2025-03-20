@@ -695,12 +695,12 @@ export default function HomeScreen({ navigation }) {
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
               />
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={styles.addButton}
                 onPress={() => setNewGoodModalVisible(true)}
               >
                 <Text style={styles.addButtonText}>Добавить товар</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </>
           ) : (
             <View style={styles.emptyContainer}>
