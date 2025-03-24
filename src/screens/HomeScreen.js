@@ -128,7 +128,7 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', fetchData);
     return unsubscribe;
-  }, [navigation, token, user]);
+  }, [navigation, token, user,data]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -213,11 +213,13 @@ export default function HomeScreen({ navigation }) {
           }));
           break;
         case 'goods':
-          await api.deleteGood(itemToDelete.id, token);
+
+          await api.deleteGoodsById(itemToDelete.id);
           setData((prev) => ({
             ...prev,
             goods: prev.goods.filter((item) => item.id !== itemToDelete.id),
           }));
+
           break;
         default:
           throw new Error('Неизвестный тип объекта');

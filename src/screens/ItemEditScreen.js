@@ -81,6 +81,9 @@ export default function ItemEditScreen() {
     }
   }, [itemId, token, type]);
 
+  useEffect(()=>{
+    console.log('обновленные данные ',form)
+  },[])
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -170,14 +173,18 @@ export default function ItemEditScreen() {
   };
 
   const handleDelete = async () => {
+    console.log('handleDelete started itemID= ',itemId)
     if (!token || !itemId) {
       alert('Пожалуйста, войдите в систему или выберите объект');
       navigation.navigate('Login');
       return;
     }
+    console.log('Deleting item of type:', type, 'with id:', itemId);
+    console.log('API function:', api.deleteGoodsById);
 
     try {
       switch (type) {
+        
         case 'restaurant': await api.deleteRestaurant(itemId); break;
         case 'clothing': await api.deleteClothing(itemId); break;
         case 'transport': await api.deleteTransport(itemId); break;
@@ -187,9 +194,11 @@ export default function ItemEditScreen() {
         case 'flowers': await api.deleteFlowers(itemId); break;
         case 'cake': await api.deleteCake(itemId); break;
         case 'alcohol': await api.deleteAlcohol(itemId); break;
-        case 'goods': await api.deleteGood(itemId); break; // Предполагаемый метод
+        case 'goods': await api.deleteGoodsById(itemId); break;
         default: throw new Error('Неизвестный тип объекта');
+        
       }
+
       alert(`${type} удалён!`);
       navigation.goBack();
     } catch (error) {
@@ -1103,7 +1112,12 @@ export default function ItemEditScreen() {
           <Text style={styles.buttonText}>Сохранить</Text>
         </TouchableOpacity>
         {itemId && (
-          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+          <TouchableOpacity style={styles.deleteButton} 
+          onPress={() => {
+            console.log('Delete button pressed, calling handleDelete');
+            handleDelete();
+          }}
+          >
             <Text style={styles.buttonText}>Удалить</Text>
           </TouchableOpacity>
         )}

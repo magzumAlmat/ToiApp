@@ -21,7 +21,7 @@ export default function Item2Screen({ navigation }) {
   const restaurantId = route.params?.id;
  const [formDataId, setFormDataId] = useState(''); // Исправлено имя
   
-  console.log('Received restaurant ID:', restaurantId);
+  
   const { user, token } = useSelector((state) => state.auth);
   const [isLoading, setIsLoading] = useState(false);
    const BASE_URL = process.env.EXPO_PUBLIC_API_baseURL; 

@@ -162,7 +162,14 @@ export default {
         
           getGoodById: (id) => api.get(`/api/goodbyid/${id}`),
 
-          updateGoodById:(id,data) => api.put(`/api/updategoodbyid/${id}`,data)
+          updateGoodById:(id,data) => api.put(`/api/updategoodbyid/${id}`,data),
+
+          deleteGoodsById: (id) => api.delete(`/api/removegoodbyid/${id}`
+          //   ,  {
+          //   headers: { Authorization: `Bearer ${token}` },
+          // }
+        )
+          
           // router.get(`/goodbyid/:id`, getGoodById)
         }
       
