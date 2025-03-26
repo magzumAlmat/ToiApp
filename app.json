@@ -1,5 +1,6 @@
 {
   "expo": {
+    "sdkVersion": "52.0.0",
     "scheme": "myapp",
     "name": "mobile",
     "slug": "mobile",
@@ -21,7 +22,12 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "android.permission.READ_CALENDAR",
+        "android.permission.WRITE_CALENDAR"
+      ],
+      "package": "com.amagzum.mobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -35,6 +41,11 @@
           "calendarPermission": "Приложению нужен доступ к вашему календарю для добавления событий свадьбы."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "7eba8c74-3bb1-4e75-bcfe-079db935aaa5"
+      }
+    }
   }
 }
