@@ -12,15 +12,13 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import { useSelector } from 'react-redux';
 import api from '../api/api';
-import {
-  Appbar,
-} from "react-native-paper";
+import { Appbar } from 'react-native-paper';
 
 export default function ItemEditScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const itemId = route.params?.id; // ID объекта для редактирования
-  const type = route.params?.type; // Тип объекта (restaurant, clothing, и т.д.)
+  const type = route.params?.type; // Тип объекта (restaurant, goods и т.д.)
   console.log('Принимаю параметры: id=', itemId, 'type=', type);
   const { user, token } = useSelector((state) => state.auth);
 
@@ -29,7 +27,9 @@ export default function ItemEditScreen() {
     cuisine: false,
     district: false,
     gender: false,
-  }); // Для управления всеми модальными окнами
+    category: false, // Для выбора категории в goods
+  });
+  const [isLoading, setIsLoading] = useState(false);
 
   const cuisineOptions = ['Русская', 'Итальянская', 'Азиатская', 'Французская', 'Американская'];
   const districtOptions = [
@@ -37,12 +37,27 @@ export default function ItemEditScreen() {
     'Алатауский', 'Жетысуйский', 'За пределами Алматы',
   ];
   const genderOptions = ['мужской', 'женский'];
+  const categoryOptions = [
+    'Деньги',
+    'Бытовая техника',
+    'Посуда и кухонные принадлежности',
+    'Текстиль для дома',
+    'Мебель и элементы интерьера',
+    'Подарки для отдыха и путешествий',
+    'Электроника и гаджеты',
+    'Подарки для хобби и увлечений',
+    'Символические и романтические подарки',
+    'Сертификаты и подписки',
+    'Алкоголь и гастрономия',
+    'Традиционные подарки',
+  ];
 
   // Загрузка данных объекта для редактирования
   useEffect(() => {
     if (itemId && token && type) {
       const fetchItem = async () => {
         try {
+          setIsLoading(true);
           let response;
           switch (type) {
             case 'restaurant': response = await api.getRestaurantById(itemId); break;
@@ -60,32 +75,34 @@ export default function ItemEditScreen() {
           const itemData = Array.isArray(response.data) ? response.data[0] : response.data;
           console.log(`Данные ${type} с сервера:`, itemData);
 
-          // Форматируем данные для формы
-          const formattedData = Object.keys(itemData).reduce((acc, key) => {
-            acc[key] = String(itemData[key] || '');
-            return acc;
-          }, {});
-          // Для goods корректируем имена полей, если они приходят в другом формате
-          if (type === 'goods') {
-            formattedData.item_name = formattedData.item_name || formattedData.name || '';
-            formattedData.description = formattedData.description || '';
-            formattedData.cost = formattedData.cost || formattedData.cost || '';
-          }
+          const formattedData = {
+            ...Object.keys(itemData).reduce((acc, key) => {
+              acc[key] = itemData[key] !== null && itemData[key] !== undefined ? String(itemData[key]) : '';
+              return acc;
+            }, {}),
+            specs: itemData.specs || { address: '', phone: '', storeName: '' }, // Обеспечиваем наличие specs для goods
+          };
           setForm(formattedData);
         } catch (error) {
           console.error('Ошибка загрузки данных:', error.response || error);
           alert('Ошибка загрузки: ' + (error.response?.data?.message || error.message));
+        } finally {
+          setIsLoading(false);
         }
       };
       fetchItem();
     }
   }, [itemId, token, type]);
 
-  useEffect(()=>{
-    console.log('обновленные данные ',form)
-  },[])
   const handleChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    if (field === 'specs') {
+      setForm((prev) => ({
+        ...prev,
+        specs: { ...prev.specs, ...value },
+      }));
+    } else {
+      setForm((prev) => ({ ...prev, [field]: value }));
+    }
   };
 
   const formatPhoneNumber = (input) => {
@@ -103,7 +120,7 @@ export default function ItemEditScreen() {
 
   const handlePhoneChange = (text) => {
     const formattedPhone = formatPhoneNumber(text);
-    handleChange('phone', formattedPhone);
+    handleChange('specs', { phone: formattedPhone });
   };
 
   const handleSave = async () => {
@@ -115,25 +132,27 @@ export default function ItemEditScreen() {
 
     let formattedForm = { ...form, supplier_id: user.id };
     if (type === 'restaurant') {
-      formattedForm.averageCost = parseFloat(form.averageCost);
-      formattedForm.capacity = parseInt(form.capacity, 10);
+      formattedForm.averageCost = parseFloat(form.averageCost) || 0;
+      formattedForm.capacity = parseInt(form.capacity, 10) || 0;
     } else if (['clothing', 'tamada', 'program', 'traditionalGift', 'flowers', 'cake', 'alcohol'].includes(type)) {
-      formattedForm.cost = parseFloat(form.cost);
-
-
-
+      formattedForm.cost = parseFloat(form.cost) || 0;
     } else if (type === 'goods') {
+      if (!form.category || !form.item_name) {
+        alert('Заполните обязательные поля: Категория и Название товара');
+        return;
+      }
       formattedForm = {
+        category: form.category,
         item_name: form.item_name,
-        description: form.description,
-        cost: parseFloat(form.cost),
+        description: form.description || '',
+        cost: parseFloat(form.cost) || 0,
+        specs: form.specs || { address: '', phone: '', storeName: '' },
         supplier_id: user.id,
       };
-
-      console.log('FF',formattedForm)
     }
 
     try {
+      setIsLoading(true);
       if (itemId) {
         switch (type) {
           case 'restaurant': await api.updateRestaurant(itemId, formattedForm); break;
@@ -169,22 +188,20 @@ export default function ItemEditScreen() {
     } catch (error) {
       console.error('Ошибка запроса:', error.response || error);
       alert('Ошибка: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    console.log('handleDelete started itemID= ',itemId)
     if (!token || !itemId) {
       alert('Пожалуйста, войдите в систему или выберите объект');
       navigation.navigate('Login');
       return;
     }
-    console.log('Deleting item of type:', type, 'with id:', itemId);
-    console.log('API function:', api.deleteGoodsById);
-
     try {
+      setIsLoading(true);
       switch (type) {
-        
         case 'restaurant': await api.deleteRestaurant(itemId); break;
         case 'clothing': await api.deleteClothing(itemId); break;
         case 'transport': await api.deleteTransport(itemId); break;
@@ -196,18 +213,22 @@ export default function ItemEditScreen() {
         case 'alcohol': await api.deleteAlcohol(itemId); break;
         case 'goods': await api.deleteGoodsById(itemId); break;
         default: throw new Error('Неизвестный тип объекта');
-        
       }
-
       alert(`${type} удалён!`);
       navigation.goBack();
     } catch (error) {
       console.error('Ошибка удаления:', error.response || error);
       alert('Ошибка: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const renderForm = () => {
+    if (isLoading) {
+      return <Text style={styles.loadingText}>Загрузка...</Text>;
+    }
+
     switch (type) {
       case 'restaurant':
         return (
@@ -295,7 +316,7 @@ export default function ItemEditScreen() {
               <TextInput
                 style={styles.input}
                 value={form.phone}
-                onChangeText={handlePhoneChange}
+                onChangeText={(text) => handleChange('phone', formatPhoneNumber(text))}
                 keyboardType="phone-pad"
                 maxLength={18}
                 placeholder="+7 (XXX) XXX-XX-XX"
@@ -369,7 +390,7 @@ export default function ItemEditScreen() {
               <TextInput
                 style={styles.input}
                 value={form.phone}
-                onChangeText={handlePhoneChange}
+                onChangeText={(text) => handleChange('phone', formatPhoneNumber(text))}
                 keyboardType="phone-pad"
                 maxLength={18}
                 placeholder="+7 (XXX) XXX-XX-XX"
@@ -502,7 +523,7 @@ export default function ItemEditScreen() {
               <TextInput
                 style={styles.input}
                 value={form.phone}
-                onChangeText={handlePhoneChange}
+                onChangeText={(text) => handleChange('phone', formatPhoneNumber(text))}
                 keyboardType="phone-pad"
                 maxLength={18}
                 placeholder="+7 (XXX) XXX-XX-XX"
@@ -575,6 +596,16 @@ export default function ItemEditScreen() {
                 placeholder="Марка"
               />
             </View>
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Стоимость:</Text>
+              <TextInput
+                style={styles.input}
+                value={form.cost}
+                onChangeText={(text) => handleChange('cost', text)}
+                keyboardType="numeric"
+                placeholder="Стоимость"
+              />
+            </View>
           </>
         );
       case 'tamada':
@@ -586,14 +617,13 @@ export default function ItemEditScreen() {
                 style={styles.input}
                 value={form.name}
                 onChangeText={(text) => handleChange('name', text)}
-                multiline
-                placeholder="Имя"
+                placeholder="Имя/Псевдоним"
               />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Портфолио:</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
                 value={form.portfolio}
                 onChangeText={(text) => handleChange('portfolio', text)}
                 multiline
@@ -671,7 +701,7 @@ export default function ItemEditScreen() {
               <TextInput
                 style={styles.input}
                 value={form.phone}
-                onChangeText={handlePhoneChange}
+                onChangeText={(text) => handleChange('phone', formatPhoneNumber(text))}
                 keyboardType="phone-pad"
                 maxLength={18}
                 placeholder="+7 (XXX) XXX-XX-XX"
@@ -773,7 +803,7 @@ export default function ItemEditScreen() {
               <TextInput
                 style={styles.input}
                 value={form.phone}
-                onChangeText={handlePhoneChange}
+                onChangeText={(text) => handleChange('phone', formatPhoneNumber(text))}
                 keyboardType="phone-pad"
                 maxLength={18}
                 placeholder="+7 (XXX) XXX-XX-XX"
@@ -875,7 +905,7 @@ export default function ItemEditScreen() {
               <TextInput
                 style={styles.input}
                 value={form.phone}
-                onChangeText={handlePhoneChange}
+                onChangeText={(text) => handleChange('phone', formatPhoneNumber(text))}
                 keyboardType="phone-pad"
                 maxLength={18}
                 placeholder="+7 (XXX) XXX-XX-XX"
@@ -968,7 +998,7 @@ export default function ItemEditScreen() {
               <TextInput
                 style={styles.input}
                 value={form.phone}
-                onChangeText={handlePhoneChange}
+                onChangeText={(text) => handleChange('phone', formatPhoneNumber(text))}
                 keyboardType="phone-pad"
                 maxLength={18}
                 placeholder="+7 (XXX) XXX-XX-XX"
@@ -1048,33 +1078,112 @@ export default function ItemEditScreen() {
         return (
           <>
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Наименование товара:</Text>
+              <Text style={styles.inputLabel}>Категория:</Text>
+              <TouchableOpacity
+                style={styles.cuisineButton}
+                onPress={() => setModalVisible({ ...modalVisible, category: true })}
+              >
+                <Text style={styles.cuisineText}>
+                  {form.category || 'Выберите категорию'}
+                </Text>
+              </TouchableOpacity>
+              <Modal
+                visible={modalVisible.category}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setModalVisible({ ...modalVisible, category: false })}
+              >
+                <View style={styles.modalOverlay}>
+                  <View style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>Выберите категорию</Text>
+                    <Picker
+                      selectedValue={form.category}
+                      onValueChange={(value) => {
+                        handleChange('category', value);
+                        setModalVisible({ ...modalVisible, category: false });
+                      }}
+                      style={styles.modalPicker}
+                    >
+                      <Picker.Item label="Выберите категорию" value="" />
+                      {categoryOptions.map((option) => (
+                        <Picker.Item key={option} label={option} value={option} />
+                      ))}
+                    </Picker>
+                    <TouchableOpacity
+                      style={styles.closeButton}
+                      onPress={() => setModalVisible({ ...modalVisible, category: false })}
+                    >
+                      <Text style={styles.closeButtonText}>Закрыть</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Modal>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Название товара:</Text>
               <TextInput
                 style={styles.input}
                 value={form.item_name}
                 onChangeText={(text) => handleChange('item_name', text)}
-                multiline
-                placeholder="Наименование товара"
+                placeholder="Название товара"
               />
             </View>
+
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Описание:</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
                 value={form.description}
                 onChangeText={(text) => handleChange('description', text)}
                 multiline
                 placeholder="Описание"
               />
             </View>
+
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Стоимость:</Text>
+              <Text style={styles.inputLabel}>Стоимость (₸):</Text>
               <TextInput
                 style={styles.input}
                 value={form.cost}
-                onChangeText={(text) => handleChange('cost', text)}
+                onChangeText={(text) => {
+                  const filteredValue = text.replace(/[^0-9.]/g, '');
+                  handleChange('cost', filteredValue);
+                }}
                 keyboardType="numeric"
                 placeholder="Стоимость"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Адрес магазина:</Text>
+              <TextInput
+                style={styles.input}
+                value={form.specs?.address || ''}
+                onChangeText={(text) => handleChange('specs', { address: text })}
+                placeholder="Адрес магазина"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Телефон:</Text>
+              <TextInput
+                style={styles.input}
+                value={form.specs?.phone || ''}
+                onChangeText={handlePhoneChange}
+                keyboardType="phone-pad"
+                maxLength={18}
+                placeholder="+7 (XXX) XXX-XX-XX"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Название магазина:</Text>
+              <TextInput
+                style={styles.input}
+                value={form.specs?.storeName || ''}
+                onChangeText={(text) => handleChange('specs', { storeName: text })}
+                placeholder="Название магазина"
               />
             </View>
           </>
@@ -1108,17 +1217,20 @@ export default function ItemEditScreen() {
       </View>
       <View style={styles.formContainer}>
         {renderForm()}
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.buttonText}>Сохранить</Text>
+        <TouchableOpacity
+          style={[styles.saveButton, isLoading && styles.disabledButton]}
+          onPress={handleSave}
+          disabled={isLoading}
+        >
+          <Text style={styles.buttonText}>{isLoading ? 'Сохранение...' : 'Сохранить'}</Text>
         </TouchableOpacity>
         {itemId && (
-          <TouchableOpacity style={styles.deleteButton} 
-          onPress={() => {
-            console.log('Delete button pressed, calling handleDelete');
-            handleDelete();
-          }}
+          <TouchableOpacity
+            style={[styles.deleteButton, isLoading && styles.disabledButton]}
+            onPress={handleDelete}
+            disabled={isLoading}
           >
-            <Text style={styles.buttonText}>Удалить</Text>
+            <Text style={styles.buttonText}>{isLoading ? 'Удаление...' : 'Удалить'}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -1130,22 +1242,111 @@ const styles = StyleSheet.create({
   scrollContainer: { flexGrow: 1, backgroundColor: '#F3F4F6', padding: 16 },
   header: { marginBottom: 20 },
   title: { fontSize: 24, fontWeight: 'bold', color: '#1F2937', textAlign: 'center' },
-  formContainer: { backgroundColor: 'white', borderRadius: 12, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 5, elevation: 3 },
+  formContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
   inputContainer: { marginBottom: 12 },
   inputLabel: { fontSize: 16, color: '#4B5563', marginBottom: 4 },
-  input: { fontSize: 16, paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, color: '#374151' },
-  cuisineButton: { paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, justifyContent: 'center' },
+  input: {
+    fontSize: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    color: '#374151',
+  },
+  cuisineButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    justifyContent: 'center',
+  },
   cuisineText: { fontSize: 16, color: '#374151' },
-  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' },
-  modalContent: { width: '80%', backgroundColor: 'white', borderRadius: 12, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#1F2937', textAlign: 'center', marginBottom: 12 },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
   modalPicker: { height: 150, color: '#374151' },
-  closeButton: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#6B7280', paddingVertical: 10, borderRadius: 8, marginTop: 12 },
+  closeButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6B7280',
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 12,
+  },
   closeButtonText: { fontSize: 16, color: 'white', fontWeight: 'bold' },
-  saveButton: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#2563EB', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 8, marginTop: 16 },
-  deleteButton: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#EF4444', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 8, marginTop: 12 },
+  saveButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563EB',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  deleteButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EF4444',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  disabledButton: {
+    backgroundColor: '#A0AEC0',
+  },
   buttonText: { fontSize: 16, color: 'white', fontWeight: 'bold' },
-  noAuthContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F3F4F6', padding: 16 },
+  noAuthContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    padding: 16,
+  },
   noAuthText: { fontSize: 18, color: '#1F2937', textAlign: 'center', marginBottom: 20 },
-  loginButton: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#2563EB', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 8 },
+  loginButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563EB',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#4B5563',
+    textAlign: 'center',
+  },
 });

@@ -67,7 +67,8 @@ export default function Item2Screen({ navigation }) {
   const genderOptions = ['мужской', 'женский'];
 
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev,
+       [field]: value }));
   };
 
   const formatPhoneNumber = (input) => {
@@ -335,6 +336,7 @@ export default function Item2Screen({ navigation }) {
             item_name: formData.item_name,
             description: formData.description || '',
             cost: formData.cost || '',
+            specs: formData.specs || {}, // Передаем specs как объект JSON
             supplier_id: user.id,
           };
           response = await api.postGoodsData(goodsData);
@@ -888,6 +890,44 @@ export default function Item2Screen({ navigation }) {
               value={formData.cost || ''}
               onChangeText={(value) => handleInputChange('cost', value)}
             />
+
+
+            <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Адрес магазина:</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Адрес магазина"
+                      value={formData.specs?.address || ''}
+                      onChangeText={(value) =>
+                        handleInputChange('specs', { ...formData.specs, address: value })
+                      }
+                    />
+                  </View>
+
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Телефон:</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Телефон (например, +7 (777) 123-45-67)"
+                      value={formData.specs?.phone || ''}
+                      onChangeText={(value) =>
+                        handleInputChange('specs', { ...formData.specs, phone: value })
+                      }
+                      keyboardType="phone-pad"
+                    />
+                  </View>
+
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Название магазина:</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Название магазина"
+                      value={formData.specs?.storeName || ''}
+                      onChangeText={(value) =>
+                        handleInputChange('specs', { ...formData.specs, storeName: value })
+                      }
+                    />
+                  </View>
            
           </>
         );

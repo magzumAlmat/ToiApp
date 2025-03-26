@@ -96,9 +96,9 @@ const DetailsScreen = ({ route }) => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <Appbar.Header style={styles.header}>
+      <Appbar.Header >
         <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="Детали" />
+        {/* <Appbar.Content title="Детали" /> */}
       </Appbar.Header>
 
       {/* Main Content */}
@@ -170,7 +170,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
   },
   header: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#f5f5f5",
+    width:'100%'
   },
   scrollContent: {
     flexGrow: 1,

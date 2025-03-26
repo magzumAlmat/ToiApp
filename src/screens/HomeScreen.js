@@ -1297,6 +1297,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    maxHeight: '100%',
+
+    
   },
   modalContent: {
     width: '85%',
@@ -1305,6 +1308,7 @@ const styles = StyleSheet.create({
     maxHeight: '80%',
     overflow: 'hidden',
     alignSelf: 'center',
+    padding:'20'
   },
   scrollViewContent: {
     padding: 20,

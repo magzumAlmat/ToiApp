@@ -11,8 +11,6 @@ PODS:
   - EXImageLoader (5.0.0):
     - ExpoModulesCore
     - React-Core
-  - EXPermissions (14.4.0):
-    - ExpoModulesCore
   - Expo (52.0.39):
     - ExpoModulesCore
   - ExpoAsset (11.0.4):
@@ -1881,7 +1879,6 @@ DEPENDENCIES:
   - EXAV (from `../node_modules/expo-av/ios`)
   - EXConstants (from `../node_modules/expo-constants/ios`)
   - EXImageLoader (from `../node_modules/expo-image-loader/ios`)
-  - EXPermissions (from `../node_modules/expo-permissions/ios`)
   - Expo (from `../node_modules/expo`)
   - ExpoAsset (from `../node_modules/expo-asset/ios`)
   - ExpoCalendar (from `../node_modules/expo-calendar/ios`)
@@ -1984,8 +1981,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-constants/ios"
   EXImageLoader:
     :path: "../node_modules/expo-image-loader/ios"
-  EXPermissions:
-    :path: "../node_modules/expo-permissions/ios"
   Expo:
     :path: "../node_modules/expo"
   ExpoAsset:
@@ -2157,7 +2152,6 @@ SPEC CHECKSUMS:
   EXAV: 4c41f0a6ae54a0b96597abc90e37962ab2ee0d85
   EXConstants: fcfc75800824ac2d5c592b5bc74130bad17b146b
   EXImageLoader: e5da974e25b13585c196b658a440720c075482d5
-  EXPermissions: 490e55ef5b334c5b2072e1ebd40e2bc1950cea73
   Expo: dc113fa18a3212dfdab60fc543b052ef4299f8a9
   ExpoAsset: 4033893dfb333b444bf45e951351254137b658d5
   ExpoCalendar: 12208702ad2461776a5a59b6e51e37ef23f9efac
