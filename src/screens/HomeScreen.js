@@ -128,7 +128,7 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', fetchData);
     return unsubscribe;
-  }, [navigation, token, user,data]);
+  }, [navigation, token, user,data,filteredData]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -885,16 +885,16 @@ export default function HomeScreen({ navigation }) {
               />
               <View style={styles.modalActions}>
                 <TouchableOpacity
-                  style={[styles.modalButton, styles.cancelButton]}
+                  style={[styles.modalButton2, styles.cancelButton]}
                   onPress={() => setBudgetModalVisible(false)}
                 >
-                  <Text style={styles.modalButtonText}>Отмена</Text>
+                  <Text style={styles.modalButtonText2}>Отмена</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.modalButton, styles.confirmButton]}
+                  style={[styles.modalButton2, styles.confirmButton]}
                   onPress={filterDataByBudget}
                 >
-                  <Text style={styles.modalButtonText}>Применить</Text>
+                  <Text style={styles.modalButtonText2}>Применить</Text>
                 </TouchableOpacity>
               </View>
             </Animatable.View>
@@ -1089,6 +1089,7 @@ return (
     <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
         <Text style={styles.title}>Создание мероприятия "Свадьба"</Text>
+        <Text></Text>
         <TextInput
           style={styles.input}
           placeholder="Имя свадьбы (например, Свадьба Ивана и Марии)"
@@ -1120,50 +1121,45 @@ return (
           />
         )}
         <Text style={styles.subtitle}>Выбранные элементы:</Text>
+        {console.log('filteredData- ',filteredData)}
         <View style={styles.itemsContainer}>
-          {filteredData.length > 0 ? (
-            <FlatList
-              data={filteredData}
-              renderItem={({ item }) => (
-                <View style={styles.itemContainer}>
-                  <Text style={styles.itemText}>
-                    {(() => {
-                      switch (item.type) {
-                        case 'restaurant':
-                          return `${item.name} (${item.cuisine}) - ${item.totalCost || item.averageCost} тг`;
-                        case 'clothing':
-                          return `${item.itemName} (${item.storeName}) - ${item.totalCost || item.cost} тг`;
-                        case 'tamada':
-                          return `${item.name} - ${item.totalCost || item.cost} тг`;
-                        case 'program':
-                          return `${item.teamName} - ${item.totalCost || item.cost} тг`;
-                        case 'traditionalGift':
-                          return `${item.itemName} (${item.salonName}) - ${item.totalCost || item.cost} тг`;
-                        case 'flowers':
-                          return `${item.flowerName} (${item.flowerType}) - ${item.totalCost || item.cost} тг`;
-                        case 'cake':
-                          return `${item.name} (${item.cakeType}) - ${item.totalCost || item.cost} тг`;
-                        case 'alcohol':
-                          return `${item.alcoholName} (${item.category}) - ${item.totalCost || item.cost} тг`;
-                        case 'transport':
-                          return `${item.carName} (${item.brand}) - ${item.totalCost || item.cost} тг`;
-                        case 'goods':
-                          return `${item.item_name} - ${item.totalCost || item.cost} тг`;
-                        default:
-                          return 'Неизвестный элемент';
-                      }
-                    })()}
-                  </Text>
-                </View>
+              {filteredData.length > 0 ? (
+                filteredData.map((item) => (
+                  <View key={`${item.type}-${item.id}`} style={styles.itemContainer}>
+                    <Text style={styles.itemText}>
+                      {(() => {
+                        switch (item.type) {
+                          case 'restaurant':
+                            return `${item.name} (${item.cuisine}) - ${item.totalCost || item.averageCost} тг`;
+                          case 'clothing':
+                            return `${item.itemName} (${item.storeName}) - ${item.totalCost || item.cost} тг`;
+                          case 'tamada':
+                            return `${item.name} - ${item.totalCost || item.cost} тг`;
+                          case 'program':
+                            return `${item.teamName} - ${item.totalCost || item.cost} тг`;
+                          case 'traditionalGift':
+                            return `${item.itemName} (${item.salonName}) - ${item.totalCost || item.cost} тг`;
+                          case 'flowers':
+                            return `${item.flowerName} (${item.flowerType}) - ${item.totalCost || item.cost} тг`;
+                          case 'cake':
+                            return `${item.name} (${item.cakeType}) - ${item.totalCost || item.cost} тг`;
+                          case 'alcohol':
+                            return `${item.alcoholName} (${item.category}) - ${item.totalCost || item.cost} тг`;
+                          case 'transport':
+                            return `${item.carName} (${item.brand}) - ${item.totalCost || item.cost} тг`;
+                          case 'goods':
+                            return `${item.item_name} - ${item.totalCost || item.cost} тг`;
+                          default:
+                            return 'Неизвестный элемент';
+                        }
+                      })()}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.noItems}>Выберите элементы для свадьбы</Text>
               )}
-              keyExtractor={(item) => `${item.type}-${item.id}`}
-              nestedScrollEnabled={true} // Включаем вложенную прокрутку
-              scrollEnabled={false} // Отключаем прокрутку внутри FlatList, чтобы ScrollView управлял всем
-            />
-          ) : (
-            <Text style={styles.noItems}>Выберите элементы для свадьбы</Text>
-          )}
-        </View>
+            </View>
         <View style={styles.totalContainer}>
           <Text style={styles.totalText}>
             Общая стоимость:{' '}
@@ -1171,14 +1167,14 @@ return (
           </Text>
         </View>
         <View style={styles.modalButtonContainer}>
-          <TouchableOpacity style={[styles.modalButton, styles.confirmButton]} onPress={handleSubmit}>
-            <Text style={styles.modalButtonText}>Создать свадьбу</Text>
+          <TouchableOpacity style={[styles.modalButton2, styles.confirmButton]} onPress={handleSubmit}>
+            <Text style={styles.modalButtonText2}>Создать свадьбу</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.modalButton, styles.cancelButton]}
+            style={[styles.modalButton2, styles.cancelButton]}
             onPress={() => setModalVisible(false)}
           >
-            <Text style={styles.modalButtonText}>Закрыть</Text>
+            <Text style={styles.modalButtonText2}>Закрыть</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -1315,6 +1311,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   modalTitle: {
+    
     fontSize: 20,
     fontWeight: '600',
     color: COLORS.textPrimary,
@@ -1369,14 +1366,16 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   itemsContainer: {
-    maxHeight: 150, // Уменьшено для компактности
-    marginBottom: 20,
+    flexGrow: 1, // Позволяет контейнеру расти для отображения всего содержимого
   },
   itemContainer: {
     padding: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#ccc',
   },
+ 
+
+
   itemText: {
     fontSize: 13,
   },
@@ -1401,6 +1400,13 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     flex: 1,
+    paddingVertical: 25,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginHorizontal: 50,
+  },
+  modalButton2: {
+    flex: 1,
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: 'center',
@@ -1413,6 +1419,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.textSecondary,
   },
   modalButtonText: {
+    minHeight:40,
+    padding:0,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  modalButtonText2: {
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',

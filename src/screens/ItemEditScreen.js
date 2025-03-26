@@ -1240,8 +1240,8 @@ export default function ItemEditScreen() {
 
 const styles = StyleSheet.create({
   scrollContainer: { flexGrow: 1, backgroundColor: '#F3F4F6', padding: 16 },
-  header: { marginBottom: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#1F2937', textAlign: 'center' },
+  header: { marginBottom: 0 ,backgroundColor: '#F3F4F6'},
+  title: { fontSize: 24, fontWeight: 'bold', color: '#F3F4F6', textAlign: 'center' },
   formContainer: {
     backgroundColor: 'white',
     borderRadius: 12,
