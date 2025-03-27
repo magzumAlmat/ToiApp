@@ -9,9 +9,9 @@ import {
   TextInput,
   SafeAreaView,
   ScrollView,
+  ScrollViewBase,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/authSlice';
@@ -19,9 +19,9 @@ import api from '../api/api';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Appbar, Button } from 'react-native-paper';
 import * as Animatable from 'react-native-animatable';
+import { ActivityIndicator } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import * as ExpoCalendar from 'expo-calendar';
-import SwitchSelector from 'react-native-switch-selector';
 
 const COLORS = {
   primary: '#FF6F61',
@@ -67,11 +67,13 @@ export default function HomeScreen({ navigation }) {
   const [newGoodModalVisible, setNewGoodModalVisible] = useState(false);
   const [newGoodName, setNewGoodName] = useState('');
   const [newGoodCost, setNewGoodCost] = useState('');
-  const [priceFilter, setPriceFilter] = useState('average');
 
   const getCalendarPermissions = async () => {
     const { status } = await ExpoCalendar.requestCalendarPermissionsAsync();
-    if (status !== 'granted') return false;
+    if (status !== 'granted') {
+      // alert('Доступ к календарю не предоставлен.');
+      return false;
+    }
     return true;
   };
 
@@ -126,7 +128,7 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', fetchData);
     return unsubscribe;
-  }, [navigation, token, user]);
+  }, [navigation, token, user,data,filteredData]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -211,11 +213,13 @@ export default function HomeScreen({ navigation }) {
           }));
           break;
         case 'goods':
+
           await api.deleteGoodsById(itemToDelete.id);
           setData((prev) => ({
             ...prev,
             goods: prev.goods.filter((item) => item.id !== itemToDelete.id),
           }));
+
           break;
         default:
           throw new Error('Неизвестный тип объекта');
@@ -256,123 +260,74 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
- const filterDataByBudget = () => {
-  console.log('=== filterDataByBudget started ===');
-  console.log('Budget:', budget, 'Guest Count:', guestCount, 'Price Filter:', priceFilter);
+  const filterDataByBudget = () => {
+    if (!budget || isNaN(budget) || parseFloat(budget) <= 0) {
+      alert('Пожалуйста, введите корректную сумму бюджета');
+      return;
+    }
+    if (!guestCount || isNaN(guestCount) || parseFloat(guestCount) <= 0) {
+      alert('Пожалуйста, введите корректное количество гостей');
+      return;
+    }
 
-  if (!budget || isNaN(budget) || parseFloat(budget) <= 0) {
-    console.log('Invalid budget');
-    alert('Пожалуйста, введите корректную сумму бюджета');
-    return;
-  }
-  if (!guestCount || isNaN(guestCount) || parseFloat(guestCount) <= 0) {
-    console.log('Invalid guest count');
-    alert('Пожалуйста, введите корректное количество гостей');
-    return;
-  }
+    const budgetValue = parseFloat(budget);
+    const guests = parseFloat(guestCount);
+    let remaining = budgetValue;
+    const selectedItems = [];
 
-  const budgetValue = parseFloat(budget);
-  const guests = parseFloat(guestCount);
-  let remaining = budgetValue;
-  const selectedItems = [];
+    const suitableRestaurants = data.restaurants.filter(
+      (restaurant) => parseFloat(restaurant.capacity) >= guests
+    );
 
-  // Фильтрация ресторанов
-  console.log('Filtering restaurants...');
-  const suitableRestaurants = data.restaurants.filter(
-    (restaurant) => parseFloat(restaurant.capacity) >= guests
-  );
-  console.log('Suitable Restaurants:', suitableRestaurants.map(r => ({ name: r.name, capacity: r.capacity, averageCost: r.averageCost })));
+    if (suitableRestaurants.length === 0) {
+      alert('Нет ресторанов с достаточной вместимостью для указанного количества гостей');
+      return;
+    }
 
-  if (suitableRestaurants.length === 0) {
-    console.log('No suitable restaurants found');
-    alert('Нет ресторанов с достаточной вместимостью');
-    return;
-  }
+    const sortedRestaurants = suitableRestaurants.sort(
+      (a, b) => parseFloat(a.averageCost) - parseFloat(b.averageCost)
+    );
 
-  const sortedRestaurants = suitableRestaurants
-    .filter(r => parseFloat(r.averageCost) <= remaining) // Только те, что влезают в бюджет
-    .sort((a, b) => parseFloat(a.averageCost) - parseFloat(b.averageCost)); // Сортировка по возрастанию
+    const medianIndex = Math.floor(sortedRestaurants.length / 2);
+    const selectedRestaurant = sortedRestaurants[medianIndex];
+    const restaurantCost = parseFloat(selectedRestaurant.averageCost);
 
-  if (sortedRestaurants.length === 0) {
-    console.log('No affordable restaurants found');
-    alert('Нет ресторанов, подходящих под ваш бюджет');
-    return;
-  }
+    if (!isNaN(restaurantCost) && restaurantCost <= remaining) {
+      selectedItems.push({ ...selectedRestaurant, type: 'restaurant', totalCost: restaurantCost });
+      remaining -= restaurantCost;
+    }
 
-  let selectedRestaurant;
-  if (priceFilter === 'min') {
-    selectedRestaurant = sortedRestaurants[0]; // Самый дешевый
-  } else if (priceFilter === 'max') {
-    selectedRestaurant = sortedRestaurants[sortedRestaurants.length - 1]; // Самый дорогой
-  } else {
-    selectedRestaurant = sortedRestaurants[Math.floor(sortedRestaurants.length / 2)]; // Средний
-  }
+    const types = [
+      { key: 'clothing', costField: 'cost', type: 'clothing' },
+      { key: 'tamada', costField: 'cost', type: 'tamada' },
+      { key: 'programs', costField: 'cost', type: 'program' },
+      { key: 'traditionalGifts', costField: 'cost', type: 'traditionalGift' },
+      { key: 'flowers', costField: 'cost', type: 'flowers' },
+      { key: 'cakes', costField: 'cost', type: 'cake' },
+      { key: 'alcohol', costField: 'cost', type: 'alcohol' },
+      { key: 'transport', costField: 'cost', type: 'transport' },
+      { key: 'goods', costField: 'cost', type: 'goods' },
+    ];
 
-  const restaurantCost = parseFloat(selectedRestaurant.averageCost);
-  console.log(`Selected Restaurant:`, { name: selectedRestaurant.name, cost: restaurantCost });
-
-  selectedItems.push({ ...selectedRestaurant, type: 'restaurant', totalCost: restaurantCost });
-  remaining -= restaurantCost;
-  console.log('Restaurant added. Remaining budget:', remaining);
-
-  const types = [
-    { key: 'clothing', costField: 'cost', type: 'clothing' },
-    { key: 'tamada', costField: 'cost', type: 'tamada' },
-    { key: 'programs', costField: 'cost', type: 'program' },
-    { key: 'traditionalGifts', costField: 'cost', type: 'traditionalGift' },
-    { key: 'flowers', costField: 'cost', type: 'flowers' },
-    { key: 'cakes', costField: 'cost', type: 'cake' },
-    { key: 'alcohol', costField: 'cost', type: 'alcohol' },
-    { key: 'transport', costField: 'cost', type: 'transport' },
-    // { key: 'goods', costField: 'cost', type: 'goods' },
-  ];
-
-  for (const { key, costField, type } of types) {
-    console.log(`Filtering ${type}...`);
-    const items = data[key]
-      .filter(item => type !== 'goods' || item.category !== 'Прочее')
-      .filter(item => parseFloat(item[costField]) <= remaining); // Только те, что влезают в бюджет
-
-    console.log(`${type} items:`, items.map(i => ({ name: i.name || i.item_name || i.teamName || i.salonName, cost: i[costField] })));
-
-    if (items.length > 0) {
-      const sortedItems = items.sort((a, b) => parseFloat(a[costField]) - parseFloat(b[costField])); // Сортировка по возрастанию
-      let selectedItem;
-
-      if (priceFilter === 'min') {
-        selectedItem = sortedItems[0]; // Самый дешевый
-      } else if (priceFilter === 'max') {
-        selectedItem = sortedItems[sortedItems.length - 1]; // Самый дорогой
-      } else {
-        selectedItem = sortedItems[Math.floor(sortedItems.length / 2)]; // Средний
+    for (const { key, costField, type } of types) {
+      const items = data[key] || [];
+      if (items.length > 0) {
+        const sortedItems = items.sort((a, b) => parseFloat(a[costField]) - parseFloat(b[costField]));
+        const middleItem = sortedItems[Math.floor(sortedItems.length / 2)];
+        const cost = parseFloat(middleItem[costField]);
+        if (!isNaN(cost) && cost <= remaining) {
+          selectedItems.push({ ...middleItem, type, totalCost: cost });
+          remaining -= cost;
+        }
       }
-
-      const cost = parseFloat(selectedItem[costField]);
-      console.log(`Selected ${type}:`, { name: selectedItem.name || selectedItem.item_name || selectedItem.teamName || selectedItem.salonName, cost });
-
-      selectedItems.push({ ...selectedItem, type, totalCost: cost });
-      remaining -= cost;
-      console.log(`${type} added. Remaining budget:`, remaining);
-    } else {
-      console.log(`No affordable items found for ${type}`);
     }
-  }
 
-  console.log('Selected Items:', selectedItems.map(i => ({ type: i.type, name: i.name || i.item_name || i.teamName || i.salonName, totalCost: i.totalCost })));
-  console.log('Remaining Budget:', remaining);
-  setFilteredData(selectedItems);
-  setRemainingBudget(remaining);
-  setQuantities(selectedItems.reduce((acc, item) => ({ ...acc, [`${item.type}-${item.id}`]: '1' }), {}));
-  setBudgetModalVisible(false);
-  console.log('=== filterDataByBudget completed ===');
-};
+    setFilteredData(selectedItems);
+    setRemainingBudget(remaining);
+    setQuantities(selectedItems.reduce((acc, item) => ({ ...acc, [`${item.type}-${item.id}`]: '1' }), {}));
+    setBudgetModalVisible(false);
+  };
 
-  useEffect(() => {
-    if (budget && guestCount) { // Запускать только если бюджет и гости уже заданы
-      filterDataByBudget();
-    }
-  }, [priceFilter, budget, guestCount]);
-  
   const handleQuantityChange = (itemKey, value) => {
     const filteredValue = value.replace(/[^0-9]/g, '');
     if (filteredValue === '' || parseFloat(filteredValue) >= 0) {
@@ -419,17 +374,20 @@ export default function HomeScreen({ navigation }) {
   };
 
   const handleRemoveItem = (itemKey) => {
+    // Удаляем элемент из filteredData
     const updatedFilteredData = filteredData.filter(
       (item) => `${item.type}-${item.id}` !== itemKey
     );
     setFilteredData(updatedFilteredData);
 
+    // Обновляем quantities, удаляя ключ
     setQuantities((prev) => {
       const newQuantities = { ...prev };
       delete newQuantities[itemKey];
       return newQuantities;
     });
 
+    // Пересчитываем оставшийся бюджет
     const totalSpent = updatedFilteredData.reduce((sum, item) => sum + (item.totalCost || 0), 0);
     setRemainingBudget(parseFloat(budget) - totalSpent);
   };
@@ -611,40 +569,40 @@ export default function HomeScreen({ navigation }) {
     );
 
     if (isSelected) return null;
-    if (item.type === 'goods' && item.category === 'Прочее') return null;
 
-    const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
+    if (item.type === 'goods' && item.category === 'Прочее') return null;
+    
     let title;
     switch (item.type) {
       case 'restaurant':
-        title = `Ресторан: ${item.name} (${cost} ₸)`;
+        title = `Ресторан: ${item.name} (${item.averageCost} ₸)`;
         break;
       case 'clothing':
-        title = `Одежда: ${item.storeName} - ${item.itemName} (${cost} ₸)`;
+        title = `Одежда: ${item.storeName} - ${item.itemName} (${item.cost} ₸)`;
         break;
       case 'flowers':
-        title = `Цветы: ${item.salonName} - ${item.flowerName} (${cost} ₸)`;
+        title = `Цветы: ${item.salonName} - ${item.flowerName} (${item.cost} ₸)`;
         break;
       case 'cake':
-        title = `Торты: ${item.name} (${cost} ₸)`;
+        title = `Торты: ${item.name} (${item.cost} ₸)`;
         break;
       case 'alcohol':
-        title = `Алкоголь: ${item.salonName} - ${item.alcoholName} (${cost} ₸)`;
+        title = `Алкоголь: ${item.salonName} - ${item.alcoholName} (${item.cost} ₸)`;
         break;
       case 'program':
-        title = `Программа: ${item.teamName} (${cost} ₸)`;
+        title = `Программа: ${item.teamName} (${item.cost} ₸)`;
         break;
       case 'tamada':
-        title = `Тамада: ${item.name} (${cost} ₸)`;
+        title = `Тамада: ${item.name} (${item.cost} ₸)`;
         break;
       case 'traditionalGift':
-        title = `Традиц. подарки: ${item.salonName} - ${item.itemName} (${cost} ₸)`;
+        title = `Традиц. подарки: ${item.salonName} - ${item.itemName} (${item.cost} ₸)`;
         break;
       case 'transport':
-        title = `Транспорт: ${item.salonName} - ${item.carName} (${cost} ₸)`;
+        title = `Транспорт: ${item.salonName} - ${item.carName} (${item.cost} ₸)`;
         break;
       case 'goods':
-        title = `Товар: ${item.item_name} (${cost} ₸)`;
+        title = `Товар: ${item.item_name} (${item.cost} ₸)`;
         break;
       default:
         title = 'Неизвестный элемент';
@@ -823,6 +781,50 @@ export default function HomeScreen({ navigation }) {
     setShowDatePicker(false);
   };
 
+  const renderWeddingItem = ({ item }) => {
+    let title = '';
+    switch (item.type) {
+      case 'restaurant':
+        title = `${item.name} (${item.cuisine}) - ${item.totalCost || item.averageCost} тг`;
+        break;
+      case 'clothing':
+        title = `${item.itemName} (${item.storeName}) - ${item.totalCost || item.cost} тг`;
+        break;
+      case 'tamada':
+        title = `${item.name} - ${item.totalCost || item.cost} тг`;
+        break;
+      case 'program':
+        title = `${item.teamName} - ${item.totalCost || item.cost} тг`;
+        break;
+      case 'traditionalGift':
+        title = `${item.itemName} (${item.salonName}) - ${item.totalCost || item.cost} тг`;
+        break;
+      case 'flowers':
+        title = `${item.flowerName} (${item.flowerType}) - ${item.totalCost || item.cost} тг`;
+        break;
+      case 'cake':
+        title = `${item.name} (${item.cakeType}) - ${item.totalCost || item.cost} тг`;
+        break;
+      case 'alcohol':
+        title = `${item.alcoholName} (${item.category}) - ${item.totalCost || item.cost} тг`;
+        break;
+      case 'transport':
+        title = `${item.carName} (${item.brand}) - ${item.totalCost || item.cost} тг`;
+        break;
+      case 'goods':
+        title = `${item.item_name} - ${item.totalCost || item.cost} тг`;
+        break;
+      default:
+        title = 'Неизвестный элемент';
+    }
+
+    return (
+      <View style={styles.itemContainer}>
+        <Text style={styles.itemText}>{title}</Text>
+      </View>
+    );
+  };
+
   const renderClientContent = () => {
     const combinedData = [
       ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
@@ -835,12 +837,11 @@ export default function HomeScreen({ navigation }) {
       ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
       ...data.transport.map((item) => ({ ...item, type: 'transport' })),
       ...data.goods.map((item) => ({ ...item, type: 'goods' })),
-    ].filter((item) => item.type !== 'goods' || item.category !== 'Прочее');
-
-    console.log('Combined Data:', combinedData.map(i => ({ type: i.type, name: i.name || i.item_name || i.teamName || i.salonName, cost: i.cost || i.averageCost })));
-
+    ];
+  
     return (
       <View style={styles.clientContainer}>
+        {/* Контейнер для кнопок в одну линию */}
         <View style={styles.buttonRow}>
           <TouchableOpacity
             style={styles.iconButton}
@@ -851,39 +852,20 @@ export default function HomeScreen({ navigation }) {
           <TouchableOpacity
             style={styles.iconButton}
             onPress={() => setAddItemModalVisible(true)}
-            disabled={!budget}
+            disabled={!budget} // Отключаем кнопку, если бюджет не задан
           >
-            <Icon name="add" size={24} color={!budget ? COLORS.textSecondary : '#FFFFFF'} />
+            <Icon name="add" size={24} color={!budget ? COLORS.textSecondary : "#FFFFFF"} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.iconButton}
             onPress={createEvent}
-            disabled={!budget}
+            disabled={!budget} // Отключаем кнопку, если бюджет не задан
           >
-            <Icon name="event" size={24} color={!budget ? COLORS.textSecondary : '#FFFFFF'} />
+            <Icon name="event" size={24} color={!budget ? COLORS.textSecondary : "#FFFFFF"} />
           </TouchableOpacity>
         </View>
-
-        {budget && (
-          <SwitchSelector
-            options={[
-              { label: 'Мин', value: 'min' },
-              { label: 'Сред', value: 'average' },
-              { label: 'Макс', value: 'max' },
-            ]}
-            initial={1}
-            onPress={(value) => {
-              console.log('SwitchSelector changed to:', value);
-              setPriceFilter(value); // Только обновляем состояние, фильтрация сработает в useEffect
-            }}
-            buttonColor={COLORS.primary}
-            backgroundColor={COLORS.background}
-            textColor={COLORS.textSecondary}
-            selectedTextStyle={{ color: '#FFFFFF' }}
-            style={styles.switchSelector}
-          />
-        )}
-
+  
+        {/* Модальное окно для бюджета */}
         <Modal visible={budgetModalVisible} transparent animationType="slide">
           <SafeAreaView style={styles.modalOverlay}>
             <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
@@ -921,7 +903,7 @@ export default function HomeScreen({ navigation }) {
             </Animatable.View>
           </SafeAreaView>
         </Modal>
-
+  
         {budget && (
           <>
             <Text style={styles.sectionTitle}>
@@ -955,7 +937,8 @@ export default function HomeScreen({ navigation }) {
             )}
           </>
         )}
-
+  
+        {/* Модальное окно для добавления элементов */}
         <Modal visible={addItemModalVisible} transparent animationType="slide">
           <View style={styles.modalOverlay}>
             <Animatable.View style={styles.addModalContent} animation="zoomIn" duration={300}>
@@ -975,7 +958,7 @@ export default function HomeScreen({ navigation }) {
             </Animatable.View>
           </View>
         </Modal>
-
+  
         {!budget && (
           <View style={styles.noBudgetContainer}>
             <Icon name="attach-money" size={48} color={COLORS.textSecondary} />
@@ -986,112 +969,226 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {user?.roleId === 2 ? renderSupplierContent() : renderClientContent()}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
-            <ScrollView contentContainerStyle={styles.scrollViewContent}>
-              <Text style={styles.title}>Создание мероприятия "Свадьба"</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Имя свадьбы (например, Свадьба Ивана и Марии)"
-                value={weddingName}
-                onChangeText={setWeddingName}
-              />
-              <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
-                <Text style={styles.dateButtonText}>
-                  {weddingDate.toLocaleDateString('ru-RU') || 'Выберите дату свадьбы'}
-                </Text>
-              </TouchableOpacity>
-              {showDatePicker && (
-                <Calendar
-                  style={{ borderWidth: 1, borderColor: 'gray', marginBottom: 10 }}
-                  current={weddingDate.toISOString().split('T')[0]}
-                  onDayPress={onDateChange}
-                  minDate={new Date().toISOString().split('T')[0]}
-                  markedDates={{
-                    [weddingDate.toISOString().split('T')[0]]: {
-                      selected: true,
-                      selectedColor: COLORS.primary,
-                    },
-                  }}
-                  theme={{
-                    selectedDayBackgroundColor: COLORS.primary,
-                    todayTextColor: COLORS.accent,
-                    arrowColor: COLORS.secondary,
-                  }}
-                />
-              )}
-              <Text style={styles.subtitle}>Выбранные элементы:</Text>
-              <View style={styles.itemsContainer}>
-                {filteredData.length > 0 ? (
-                  filteredData.map((item) => (
-                    <View key={`${item.type}-${item.id}`} style={styles.itemContainer}>
-                      <Text style={styles.itemText}>
-                        {(() => {
-                          switch (item.type) {
-                            case 'restaurant':
-                              return `${item.name} (${item.cuisine}) - ${item.totalCost || item.averageCost} тг`;
-                            case 'clothing':
-                              return `${item.itemName} (${item.storeName}) - ${item.totalCost || item.cost} тг`;
-                            case 'tamada':
-                              return `${item.name} - ${item.totalCost || item.cost} тг`;
-                            case 'program':
-                              return `${item.teamName} - ${item.totalCost || item.cost} тг`;
-                            case 'traditionalGift':
-                              return `${item.itemName} (${item.salonName}) - ${item.totalCost || item.cost} тг`;
-                            case 'flowers':
-                              return `${item.flowerName} (${item.flowerType}) - ${item.totalCost || item.cost} тг`;
-                            case 'cake':
-                              return `${item.name} (${item.cakeType}) - ${item.totalCost || item.cost} тг`;
-                            case 'alcohol':
-                              return `${item.alcoholName} (${item.category}) - ${item.totalCost || item.cost} тг`;
-                            case 'transport':
-                              return `${item.carName} (${item.brand}) - ${item.totalCost || item.cost} тг`;
-                            case 'goods':
-                              return `${item.item_name} - ${item.totalCost || item.cost} тг`;
-                            default:
-                              return 'Неизвестный элемент';
-                          }
-                        })()}
-                      </Text>
-                    </View>
-                  ))
-                ) : (
-                  <Text style={styles.noItems}>Выберите элементы для свадьбы</Text>
+  // ... (весь код до return остается без изменений)
+
+// ... (весь код до return остается без изменений)
+
+
+
+
+return (
+  <SafeAreaView style={styles.container}>
+    {user?.roleId === 2 ? renderSupplierContent() : renderClientContent()}
+    {/* <Modal
+      animationType="slide"
+      transparent={true}
+      visible={modalVisible}
+      onRequestClose={() => setModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
+          <Text style={styles.title}>Создание мероприятия "Свадьба"</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Имя свадьбы (например, Свадьба Ивана и Марии)"
+            value={weddingName}
+            onChangeText={setWeddingName}
+          />
+          <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
+            <Text style={styles.dateButtonText}>
+              {weddingDate.toLocaleDateString('ru-RU') || 'Выберите дату свадьбы'}
+            </Text>
+          </TouchableOpacity>
+          {showDatePicker && (
+            <Calendar
+              style={{ borderWidth: 1, borderColor: 'gray', marginBottom: 10 }}
+              current={weddingDate.toISOString().split('T')[0]}
+              onDayPress={onDateChange}
+              minDate={new Date().toISOString().split('T')[0]}
+              markedDates={{
+                [weddingDate.toISOString().split('T')[0]]: {
+                  selected: true,
+                  selectedColor: COLORS.primary,
+                },
+              }}
+              theme={{
+                selectedDayBackgroundColor: COLORS.primary,
+                todayTextColor: COLORS.accent,
+                arrowColor: COLORS.secondary,
+              }}
+            />
+          )}
+          <Text style={styles.subtitle}>Выбранные элементы:</Text>
+          <View style={styles.itemsContainer}>
+            {filteredData.length > 0 ? (
+              <FlatList
+                data={filteredData}
+                renderItem={({ item }) => (
+                  <View style={styles.itemContainer}>
+                    <Text style={styles.itemText}>
+                      {(() => {
+                        switch (item.type) {
+                          case 'restaurant':
+                            return `${item.name} (${item.cuisine}) - ${item.totalCost || item.averageCost} тг`;
+                          case 'clothing':
+                            return `${item.itemName} (${item.storeName}) - ${item.totalCost || item.cost} тг`;
+                          case 'tamada':
+                            return `${item.name} - ${item.totalCost || item.cost} тг`;
+                          case 'program':
+                            return `${item.teamName} - ${item.totalCost || item.cost} тг`;
+                          case 'traditionalGift':
+                            return `${item.itemName} (${item.salonName}) - ${item.totalCost || item.cost} тг`;
+                          case 'flowers':
+                            return `${item.flowerName} (${item.flowerType}) - ${item.totalCost || item.cost} тг`;
+                          case 'cake':
+                            return `${item.name} (${item.cakeType}) - ${item.totalCost || item.cost} тг`;
+                          case 'alcohol':
+                            return `${item.alcoholName} (${item.category}) - ${item.totalCost || item.cost} тг`;
+                          case 'transport':
+                            return `${item.carName} (${item.brand}) - ${item.totalCost || item.cost} тг`;
+                          case 'goods':
+                            return `${item.item_name} - ${item.totalCost || item.cost} тг`;
+                          default:
+                            return 'Неизвестный элемент';
+                        }
+                      })()}
+                    </Text>
+                  </View>
                 )}
-              </View>
-              <View style={styles.totalContainer}>
-                <Text style={styles.totalText}>
-                  Общая стоимость:{' '}
-                  {filteredData.reduce((sum, item) => sum + (item.totalCost || item.cost), 0)} тг
-                </Text>
-              </View>
-              <View style={styles.modalButtonContainer}>
-                <TouchableOpacity style={[styles.modalButton2, styles.confirmButton]} onPress={handleSubmit}>
-                  <Text style={styles.modalButtonText2}>Создать свадьбу</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalButton2, styles.cancelButton]}
-                  onPress={() => setModalVisible(false)}
-                >
-                  <Text style={styles.modalButtonText2}>Закрыть</Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </Animatable.View>
+                keyExtractor={(item) => `${item.type}-${item.id}`}
+                showsVerticalScrollIndicator={false} // Отключаем стандартный скроллбар, если нужно
+              />
+            ) : (
+              <Text style={styles.noItems}>Выберите элементы для свадьбы</Text>
+            )}
+          </View>
+          <View style={styles.totalContainer}>
+            <Text style={styles.totalText}>
+              Общая стоимость:{' '}
+              {filteredData.reduce((sum, item) => sum + (item.totalCost || item.cost), 0)} тг
+            </Text>
+          </View>
+          <View style={styles.modalButtonContainer}>
+            <TouchableOpacity style={[styles.modalButton, styles.confirmButton]} onPress={handleSubmit}>
+              <Text style={styles.modalButtonText}>Создать свадьбу</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.modalButtonText}>Закрыть</Text>
+            </TouchableOpacity>
+          </View>
+        </Animatable.View>
+      </View>
+    </Modal> */}
+    <Modal
+  animationType="slide"
+  transparent={true}
+  visible={modalVisible}
+  onRequestClose={() => setModalVisible(false)}
+>
+  <View style={styles.modalOverlay}>
+    <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
+      <ScrollView contentContainerStyle={styles.scrollViewContent}>
+        <Text style={styles.title}>Создание мероприятия "Свадьба"</Text>
+        <Text></Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Имя свадьбы (например, Свадьба Ивана и Марии)"
+          value={weddingName}
+          onChangeText={setWeddingName}
+        />
+        <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
+          <Text style={styles.dateButtonText}>
+            {weddingDate.toLocaleDateString('ru-RU') || 'Выберите дату свадьбы'}
+          </Text>
+        </TouchableOpacity>
+        {showDatePicker && (
+          <Calendar
+            style={{ borderWidth: 1, borderColor: 'gray', marginBottom: 10 }}
+            current={weddingDate.toISOString().split('T')[0]}
+            onDayPress={onDateChange}
+            minDate={new Date().toISOString().split('T')[0]}
+            markedDates={{
+              [weddingDate.toISOString().split('T')[0]]: {
+                selected: true,
+                selectedColor: COLORS.primary,
+              },
+            }}
+            theme={{
+              selectedDayBackgroundColor: COLORS.primary,
+              todayTextColor: COLORS.accent,
+              arrowColor: COLORS.secondary,
+            }}
+          />
+        )}
+        <Text style={styles.subtitle}>Выбранные элементы:</Text>
+        {console.log('filteredData- ',filteredData)}
+        <View style={styles.itemsContainer}>
+              {filteredData.length > 0 ? (
+                filteredData.map((item) => (
+                  <View key={`${item.type}-${item.id}`} style={styles.itemContainer}>
+                    <Text style={styles.itemText}>
+                      {(() => {
+                        switch (item.type) {
+                          case 'restaurant':
+                            return `${item.name} (${item.cuisine}) - ${item.totalCost || item.averageCost} тг`;
+                          case 'clothing':
+                            return `${item.itemName} (${item.storeName}) - ${item.totalCost || item.cost} тг`;
+                          case 'tamada':
+                            return `${item.name} - ${item.totalCost || item.cost} тг`;
+                          case 'program':
+                            return `${item.teamName} - ${item.totalCost || item.cost} тг`;
+                          case 'traditionalGift':
+                            return `${item.itemName} (${item.salonName}) - ${item.totalCost || item.cost} тг`;
+                          case 'flowers':
+                            return `${item.flowerName} (${item.flowerType}) - ${item.totalCost || item.cost} тг`;
+                          case 'cake':
+                            return `${item.name} (${item.cakeType}) - ${item.totalCost || item.cost} тг`;
+                          case 'alcohol':
+                            return `${item.alcoholName} (${item.category}) - ${item.totalCost || item.cost} тг`;
+                          case 'transport':
+                            return `${item.carName} (${item.brand}) - ${item.totalCost || item.cost} тг`;
+                          case 'goods':
+                            return `${item.item_name} - ${item.totalCost || item.cost} тг`;
+                          default:
+                            return 'Неизвестный элемент';
+                        }
+                      })()}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.noItems}>Выберите элементы для свадьбы</Text>
+              )}
+            </View>
+        <View style={styles.totalContainer}>
+          <Text style={styles.totalText}>
+            Общая стоимость:{' '}
+            {filteredData.reduce((sum, item) => sum + (item.totalCost || item.cost), 0)} тг
+          </Text>
         </View>
-      </Modal>
-    </SafeAreaView>
-  );
+        <View style={styles.modalButtonContainer}>
+          <TouchableOpacity style={[styles.modalButton2, styles.confirmButton]} onPress={handleSubmit}>
+            <Text style={styles.modalButtonText2}>Создать свадьбу</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modalButton2, styles.cancelButton]}
+            onPress={() => setModalVisible(false)}
+          >
+            <Text style={styles.modalButtonText2}>Закрыть</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </Animatable.View>
+  </View>
+</Modal>
+  </SafeAreaView>
+);
 }
+
+
 
 const styles = StyleSheet.create({
   container: {
@@ -1200,6 +1297,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     maxHeight: '100%',
+
+    
   },
   modalContent: {
     width: '85%',
@@ -1208,13 +1307,14 @@ const styles = StyleSheet.create({
     maxHeight: '80%',
     overflow: 'hidden',
     alignSelf: 'center',
-    padding: 20,
+    padding:'20'
   },
   scrollViewContent: {
     padding: 20,
     flexGrow: 1,
   },
   modalTitle: {
+    
     fontSize: 20,
     fontWeight: '600',
     color: COLORS.textPrimary,
@@ -1269,13 +1369,16 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   itemsContainer: {
-    flexGrow: 1,
+    flexGrow: 1, // Позволяет контейнеру расти для отображения всего содержимого
   },
   itemContainer: {
     padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#ccc',
   },
+ 
+
+
   itemText: {
     fontSize: 13,
   },
@@ -1319,8 +1422,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.textSecondary,
   },
   modalButtonText: {
-    minHeight: 40,
-    padding: 0,
+    minHeight:40,
+    padding:0,
     fontSize: 18,
     fontWeight: '600',
     color: '#FFFFFF',
@@ -1393,8 +1496,5 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 10,
     textAlign: 'center',
-  },
-  switchSelector: {
-    marginBottom: 20,
   },
 });
