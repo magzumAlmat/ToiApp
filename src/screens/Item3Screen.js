@@ -22,9 +22,10 @@ import api from '../api/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
-import { Calendar } from 'react-native-calendars'; // Импорт календаря для UI
-import * as ExpoCalendar from 'expo-calendar'; // Переименован для избежания конфликта имен
+import { Calendar } from 'react-native-calendars';
+import * as ExpoCalendar from 'expo-calendar';
 import * as Contacts from 'expo-contacts';
+
 export default function Item3Screen() {
   const route = useRoute();
   const navigation = useNavigation();
@@ -38,8 +39,8 @@ export default function Item3Screen() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [wishlistViewModalVisible, setWishlistViewModalVisible] = useState(false);
   const [weddingName, setWeddingName] = useState('');
-  const [weddingDate, setWeddingDate] = useState(''); // Теперь строка в формате YYYY-MM-DD
-  const [showCalendar, setShowCalendar] = useState(false); // Для отображения календаря
+  const [weddingDate, setWeddingDate] = useState('');
+  const [showCalendar, setShowCalendar] = useState(false);
   const [selectedWedding, setSelectedWedding] = useState(null);
   const [wishlistItems, setWishlistItems] = useState([]);
   const [goods, setGoods] = useState([]);
@@ -48,7 +49,8 @@ export default function Item3Screen() {
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [errorFiles, setErrorFiles] = useState(null);
   const [loadingWeddings, setLoadingWeddings] = useState(true);
-
+  const [formData, setFormData] = useState({ category: '', item_name: '' });
+  const [isCustomGift, setIsCustomGift] = useState(false); // Для переключения между списком и формой
   const BASE_URL = process.env.EXPO_PUBLIC_API_baseURL;
 
   useFocusEffect(
@@ -210,6 +212,40 @@ export default function Item3Screen() {
     }
   };
 
+  const handleAddCustomGift = async () => {
+    try {
+      if ( !formData.item_name) {
+        Alert.alert('Ошибка', 'Пожалуйста, заполните категорию и название товара');
+        return;
+      }
+
+      const giftData = {
+        category: "Прочее",
+        item_name: formData.item_name,
+        cost: '0',
+        supplier_id: userId, // Добавляем ID пользователя как поставщика
+      };
+
+      const response = await api.postGoodsData(giftData);
+      const newGood = response.data.data;
+
+      const wishlistData = {
+        wedding_id: selectedWedding.id,
+        good_id: newGood.id,
+      };
+
+      await api.createWish(wishlistData, token);
+
+      Alert.alert('Успех', 'Ваш подарок успешно добавлен!');
+      setFormData({ category: '', item_name: '' });
+      setWishlistModalVisible(false);
+      fetchWishlistItems(selectedWedding.id);
+    } catch (error) {
+      console.error('Ошибка при добавлении подарка:', error);
+      Alert.alert('Ошибка', 'Не удалось добавить подарок');
+    }
+  };
+
   const fetchWishlistItems = async (weddingId) => {
     try {
       const response = await api.getWishlistByWeddingId(weddingId, token);
@@ -317,152 +353,16 @@ export default function Item3Screen() {
     }
   };
 
-
-
-  // const handleShareWeddingLink = async (weddingId) => {
-  //   console.log('handleShareWeddingLink started with weddingId:', weddingId);
-  //   try {
-  //     // Запрашиваем доступ к контактам
-  //     const { status } = await Contacts.requestPermissionsAsync();
-  //     if (status !== 'granted') {
-  //       Alert.alert('Ошибка', 'Доступ к контактам не предоставлен');
-  //       console.log('Доступ к контактам отклонен');
-  //       return;
-  //     }
-  
-  //     // Получаем список контактов
-  //     const { data } = await Contacts.getContactsAsync({
-  //       fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Name],
-  //     });
-  
-  //     if (data.length === 0) {
-  //       Alert.alert('Ошибка', 'Контакты не найдены');
-  //       console.log('Контакты не найдены');
-  //       return;
-  //     }
-  
-  //     // Формируем ссылку на свадьбу
-  //     const appLink = Linking.createURL(`wishlist/${weddingId}`);
-  //     const webLink = `${process.env.EXPO_PUBLIC_API_baseURL}/api/weddingwishes/${weddingId}`;
-  //     const message = `Приглашение на свадьбу: ${webLink}`;
-  
-  //     console.log('appLink:', appLink);
-  //     console.log('webLink:', webLink);
-  
-  //     // Показываем диалог с выбором контакта
-  //     Alert.alert(
-  //       'Выберите контакт',
-  //       'Кому отправить приглашение через WhatsApp?',
-  //       [
-  //         ...data.map((contact) => ({
-  //           text: `${contact.name} ${contact.phoneNumbers?.[0]?.number || 'Нет номера'}`,
-  //           onPress: async () => {
-  //             try {
-  //               // Проверяем наличие номера телефона
-  //               if (!contact.phoneNumbers || contact.phoneNumbers.length === 0) {
-  //                 Alert.alert('Ошибка', 'У этого контакта нет номера телефона');
-  //                 console.log('Нет номера у контакта:', contact.name);
-  //                 return;
-  //               }
-  
-  //               // Форматируем номер телефона (удаляем пробелы, скобки, дефисы)
-  //               const phoneNumber = contact.phoneNumbers[0].number.replace(/[\s()-]/g, '');
-  //               console.log('Выбранный номер:', phoneNumber);
-  
-  //               // Формируем URL для WhatsApp с номером телефона
-  //               const whatsappUrl = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
-  
-  //               // Проверяем, поддерживается ли WhatsApp
-  //               const isWhatsAppSupported = await Linking.canOpenURL(whatsappUrl);
-  //               if (!isWhatsAppSupported) {
-  //                 Alert.alert('Ошибка', 'WhatsApp не установлен на устройстве');
-  //                 console.log('WhatsApp не поддерживается');
-  //                 return;
-  //               }
-  
-  //               // Открываем WhatsApp с предзаполненным сообщением
-  //               await Linking.openURL(whatsappUrl);
-  //               console.log(`Отправлено приглашение через WhatsApp на номер ${phoneNumber}`);
-  //             } catch (error) {
-  //               console.error('Ошибка при отправке через WhatsApp:', error.message, error.stack);
-  //               Alert.alert('Ошибка', 'Не удалось отправить сообщение: ' + error.message);
-  //             }
-  //           },
-  //         })),
-  //         { text: 'Отмена', style: 'cancel' },
-  //       ],
-  //       { cancelable: true }
-  //     );
-  //   } catch (error) {
-  //     console.error('Ошибка в handleShareWeddingLink:', error.message, error.stack);
-  //     Alert.alert('Ошибка', 'Не удалось поделиться ссылкой: ' + error.message);
-  //   }
-  // };
-  // const handleShareWeddingLink = async (weddingId) => {
-  //   console.log('handleShareWeddingLink started with weddingId:', weddingId);
-  
-  //   try {
-  //     console.log('Creating appLink...');
-  //     const appLink = Linking.createURL(`wishlist/${weddingId}`); // Замена makeUrl на createURL
-  //     console.log('appLink created:', appLink);
-  
-
-
-  //     console.log('Creating webLink...');
-  //     const webLink =  `${process.env.EXPO_PUBLIC_API_baseURL}/api/weddingwishes/${weddingId}`
-        
-
-  //     console.log('webLink created:', webLink);
-  //     console.log('EXPO_PUBLIC_API_baseURL:', process.env.EXPO_PUBLIC_API_baseURL);
-  
-  //     console.log('Checking canOpenApp...');
-  //     // const canOpenApp = await Linking.canOpenURL(appLink);
-  //     // console.log('canOpenApp result:', canOpenApp);
-  
-  //     const message = webLink
-        
-  //       // Присоединяйтесь к моей свадьбе в приложении: 
-  //       // ? `${appLink}`
-  //       // : `Присоединяйтесь к моей свадьбе через сайт: ${webLink}`;
-
-  //     console.log('Message prepared:', message);
-  
-  //     console.log('Calling Share.share...');
-
-  //     const result = await Share.share({
-  //       message,
-  //       title: 'Приглашение на свадьбу',
-  //     });
-
-  //     // alert(result.url)
-  //     console.log('Share result:', result);
-  
-  //     if (result.action === Share.sharedAction) {
-  //       if (result.activityType) {
-  //         console.log('Поделился через:', result.activityType);
-  //       } else {
-  //         console.log('Поделился успешно');
-  //       }
-  //     } else if (result.action === Share.dismissedAction) {
-  //       console.log('Поделиться отменено');
-  //     }
-  //   } catch (error) {
-  //     console.error('Ошибка в handleShareWeddingLink:', error.message, error.stack);
-  //     Alert.alert('Ошибка', 'Не удалось поделиться ссылкой: ' + error.message);
-  //   }
-  // };
-
-
   const openEditModal = (wedding) => {
     setSelectedWedding(wedding);
     setWeddingName(wedding.name);
-    setWeddingDate(wedding.date); // Устанавливаем дату в формате YYYY-MM-DD
+    setWeddingDate(wedding.date);
     setEditModalVisible(true);
   };
 
   const onDateChange = (day) => {
-    setWeddingDate(day.dateString); // Устанавливаем дату в формате YYYY-MM-DD
-    setShowCalendar(false); // Закрываем календарь после выбора
+    setWeddingDate(day.dateString);
+    setShowCalendar(false);
   };
 
   const renderWeddingItem = ({ item }) => (
@@ -519,7 +419,6 @@ export default function Item3Screen() {
           <TouchableOpacity>
             <Image source={{ uri: fileUrl }} style={styles.media} />
           </TouchableOpacity>
-          {/* <Text style={styles.caption}>{file.name}</Text> */}
         </View>
       );
     } else if (file.mimetype === 'video/mp4') {
@@ -688,21 +587,49 @@ export default function Item3Screen() {
       </Modal>
 
       <Modal visible={wishlistModalVisible} animationType="slide">
-        <SafeAreaView style={styles.modalContainer}>
-          <Text style={styles.subtitle}>Добавить подарок</Text>
-          <FlatList
-            data={goods}
-            renderItem={renderGoodCard}
-            keyExtractor={(item) => item.id.toString()}
-            ListEmptyComponent={<Text style={styles.noItems}>Товаров пока нет</Text>}
-            contentContainerStyle={styles.goodList}
+  <SafeAreaView style={styles.modalContainer}>
+    <Text style={styles.subtitle}>
+      {isCustomGift ? 'Добавить свой подарок' : 'Добавить подарок'}
+    </Text>
+    {isCustomGift ? (
+      <>
+        <TextInput
+          style={styles.input}
+          placeholder="Название подарка"
+          value={formData.item_name}
+          onChangeText={(text) => setFormData({ ...formData, item_name: text })}
+        />
+        <Text style={styles.infoText}>Категория: Прочее</Text>
+        {/* <Text style={styles.infoText}>Стоимость: 0 тенге</Text> */}
+      </>
+    ) : (
+      <FlatList
+        data={goods}
+        renderItem={renderGoodCard}
+        keyExtractor={(item) => item.id.toString()}
+        ListEmptyComponent={<Text style={styles.noItems}>Товаров пока нет</Text>}
+        contentContainerStyle={styles.goodList}
+      />
+    )}
+    <View style={styles.buttonRow}>
+      {isCustomGift ? (
+        <>
+          <Button title="Сохранить" onPress={handleAddCustomGift} />
+          <Button title="Назад" onPress={() => setIsCustomGift(false)} />
+        </>
+      ) : (
+        <>
+          <Button title="Добавить" onPress={handleAddWishlistItem} />
+          <Button
+            title="Добавить свой подарок"
+            onPress={() => setIsCustomGift(true)}
           />
-          <View style={styles.buttonRow}>
-            <Button title="Добавить" onPress={handleAddWishlistItem} />
-            <Button title="Отмена" onPress={() => setWishlistModalVisible(false)} />
-          </View>
-        </SafeAreaView>
-      </Modal>
+        </>
+      )}
+      <Button title="Отмена" onPress={() => setWishlistModalVisible(false)} />
+    </View>
+  </SafeAreaView>
+</Modal>
 
       <Modal visible={wishlistViewModalVisible} animationType="slide">
         <SafeAreaView style={styles.modalContainer}>
@@ -721,6 +648,210 @@ export default function Item3Screen() {
     </SafeAreaView>
   );
 }
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//     padding: 20,
+//     backgroundColor: '#F5F7FA',
+//   },
+//   title: {
+//     fontSize: 24,
+//     fontWeight: 'bold',
+//     marginBottom: 20,
+//     textAlign: 'center',
+//     color: '#1A202C',
+//   },
+//   subtitle: {
+//     fontSize: 18,
+//     fontWeight: 'bold',
+//     marginBottom: 20,
+//     textAlign: 'center',
+//     color: '#1A202C',
+//   },
+//   input: {
+//     borderWidth: 1,
+//     borderColor: '#ccc',
+//     borderRadius: 5,
+//     padding: 10,
+//     marginBottom: 15,
+//     fontSize: 16,
+//     backgroundColor: '#FFFFFF',
+//   },
+//   infoText: {
+//     fontSize: 16,
+//     color: '#718096',
+//     marginBottom: 15,
+//   },
+//   dateButton: {
+//     borderWidth: 1,
+//     borderColor: '#ccc',
+//     borderRadius: 5,
+//     padding: 10,
+//     marginBottom: 15,
+//     backgroundColor: '#FFFFFF',
+//     alignItems: 'center',
+//   },
+//   dateButtonText: {
+//     fontSize: 16,
+//     color: '#1A202C',
+//   },
+//   itemContainer: {
+//     flex:1,
+//     padding: 10,
+//     borderBottomWidth: 1,
+//     borderBottomColor: '#eee',
+//     marginBottom: 10,
+//   },
+//   itemText: {
+//     fontSize: 16,
+//     color: '#1A202C',
+//   },
+//   noItems: {
+//     fontSize: 16,
+//     color: '#666',
+//     textAlign: 'center',
+//     marginTop: 20,
+//   },
+//   modalContainer: {
+//     flex: 1,
+//     padding: 20,
+//     backgroundColor: '#F5F7FA',
+//   },
+//   buttonRow: {
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     marginTop: 20,
+//   },
+//   actionButton: {
+//     padding: 5,
+//     backgroundColor: '#007BFF',
+//     borderRadius: 5,
+//     margin: 2,
+//   },
+//   actionButtonText: {
+//     color: '#fff',
+//     fontSize: 14,
+//   },
+//   strikethroughText: {
+//     fontSize: 16,
+//     textDecorationLine: 'line-through',
+//     color: '#666',
+//   },
+//   goodList: {
+//     paddingBottom: 20,
+//   },
+//   goodCard: {
+//     padding: 15,
+//     marginVertical: 8,
+//     backgroundColor: '#FFFFFF',
+//     borderRadius: 10,
+//     borderWidth: 1,
+//     borderColor: '#E2E8F0',
+//     shadowColor: '#000',
+//     shadowOffset: { width: 0, height: 2 },
+//     shadowOpacity: 0.1,
+//     shadowRadius: 4,
+//     elevation: 3,
+//   },
+//   selectedGoodCard: {
+//     borderColor: '#007BFF',
+//     borderWidth: 2,
+//     backgroundColor: '#E6F0FA',
+//   },
+//   goodCardTitle: {
+//     fontSize: 16,
+//     fontWeight: 'bold',
+//     color: '#1A202C',
+//   },
+//   goodCardCategory: {
+//     fontSize: 14,
+//     color: '#718096',
+//     marginTop: 5,
+//   },
+//   goodCardCost: {
+//     fontSize: 14,
+//     color: '#718096',
+//     marginTop: 5,
+//   },
+//   goodCardDescription: {
+//     fontSize: 12,
+//     color: '#718096',
+//     marginTop: 5,
+//   },
+//   mediaSection: {
+//     marginTop: 16,
+//   },
+//   mediaList: {
+//     paddingVertical: 10,
+//   },
+//   card: {
+//     width: 200,
+//     marginRight: 16,
+//     borderRadius: 8,
+//     overflow: 'hidden',
+//     backgroundColor: '#fff',
+//   },
+//   media: {
+//     width: '100%',
+//     height: 200,
+//   },
+//   video: {
+//     width: '100%',
+//     height: 200,
+//   },
+//   caption: {
+//     fontSize: 12,
+//     color: '#666',
+//     marginTop: 4,
+//     textAlign: 'center',
+//   },
+//   columnWrapper: {
+//     justifyContent: 'space-between',
+//   },
+//   wishlistCard: {
+//     backgroundColor: '#FFFFFF',
+//     borderRadius: 12,
+//     margin: 5,
+//     shadowColor: '#000',
+//     shadowOffset: { width: 0, height: 2 },
+//     shadowOpacity: 0.1,
+//     shadowRadius: 6,
+//     elevation: 4,
+//     borderWidth: 1,
+//     borderColor: '#E2E8F0',
+//     width: '48%',
+//   },
+//   wishlistCardContent: {
+//     padding: 15,
+//   },
+//   wishlistTitle: {
+//     fontSize: 20,
+//     fontWeight: '600',
+//     color: '#1A202C',
+//     marginBottom: 8,
+//   },
+//   wishlistStatus: {
+//     fontSize: 16,
+//     color: '#718096',
+//     marginBottom: 12,
+//   },
+//   loader: {
+//     marginVertical: 10,
+//   },
+//   errorText: {
+//     fontSize: 16,
+//     color: '#FF3B30',
+//     textAlign: 'center',
+//     marginVertical: 10,
+//   },
+//   noFilesText: {
+//     fontSize: 16,
+//     color: '#718096',
+//     textAlign: 'center',
+//     marginVertical: 10,
+//   },
+// });
 
 const styles = StyleSheet.create({
   container: {

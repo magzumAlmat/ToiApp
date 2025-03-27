@@ -567,8 +567,11 @@ export default function HomeScreen({ navigation }) {
     const isSelected = filteredData.some(
       (selectedItem) => `${selectedItem.type}-${selectedItem.id}` === `${item.type}-${item.id}`
     );
+
     if (isSelected) return null;
 
+    if (item.type === 'goods' && item.category === 'Прочее') return null;
+    
     let title;
     switch (item.type) {
       case 'restaurant':
