@@ -22,7 +22,7 @@ import * as Animatable from 'react-native-animatable';
 import { Calendar } from 'react-native-calendars';
 import * as ExpoCalendar from 'expo-calendar';
 import SwitchSelector from 'react-native-switch-selector';
-
+import { Picker } from '@react-native-picker/picker';
 const COLORS = {
   primary: '#FF6F61',
   secondary: '#4A90E2',
@@ -657,6 +657,205 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
+  //-----------------------------------------------------------------------------------------------------
+  const [showRestaurantModal, setShowRestaurantModal] = useState(false); // Для модального окна ресторана
+  const [showCalendarModal, setShowCalendarModal] = useState(false); // Для модального окна календаря
+  const [tempRestaurantId, setTempRestaurantId] = useState(null);
+  const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  const blockRestaurantDay = async (restaurantId, date) => {
+    try {
+      const response = await api.addDataBlockToRestaurant(restaurantId,selectedDate
+       );
+      alert(response.data.message);
+    } catch (error) {
+      console.error('Ошибка блокировки:', error);
+      alert('Ошибка: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const adminRenderContent = () => {
+    const handleBlockDay = async () => {
+      if (!selectedRestaurant) {
+        alert('Пожалуйста, выберите ресторан');
+        return;
+      }
+
+      // const { status } = await ExpoCalendar.requestCalendarPermissionsAsync();
+      // if (status !== 'granted') {
+      //   alert('Доступ к календарю не предоставлен');
+      //   return;
+      // }
+
+      const defaultCalendar = await ExpoCalendar.getDefaultCalendarAsync();
+      await ExpoCalendar.createEventAsync(defaultCalendar.id, {
+        title: `Забронирован день для ${selectedRestaurant.name}`,
+        startDate: selectedDate,
+        endDate: new Date(selectedDate.getTime() + 24 * 60 * 60 * 1000),
+        allDay: true,
+        notes: `Ресторан ${selectedRestaurant.name} забронирован менеджером`,
+        availability: 'busy',
+      });
+
+      await blockRestaurantDay(selectedRestaurant.id, selectedDate);
+      setShowCalendarModal(false);
+    };
+
+    const handleSelectRestaurant = () => {
+      
+      const restaurantId = Number(tempRestaurantId);
+
+  // Проверяем, существует ли data.restaurants и ищем ресторан
+      const restaurant = data?.restaurants?.find((r) => r.id === restaurantId);
+
+      console.log('Найденный ресторан:', restaurant);
+
+  if (!restaurant) {
+    console.log('Ресторан не найден. Проверьте ID или данные.');
+  }
+      console.log('Выбранный ресторан ID:', tempRestaurantId,'data=',data?.restaurants);
+      console.log('Найденный ресторан:', restaurant);
+      setSelectedRestaurant(restaurant || null);
+      setShowRestaurantModal(false); // Закрываем модальное окно ресторана
+      setShowCalendarModal(true); // Открываем модальное окно календаря
+    };
+
+    return (
+      <View style={styles.supplierContainer}>
+        <Text style={styles.title}>Панель менеджера</Text>
+
+        <Text style={styles.subtitle}>
+          {selectedRestaurant
+            ? `Выбран ресторан: ${selectedRestaurant.name}`
+            : 'Ресторан не выбран'}
+        </Text>
+       
+        <Text style={styles.dateText}>
+          Выбранная дата: {selectedDate.toLocaleDateString('ru-RU')}
+        </Text>
+
+        {/* Кнопка для открытия модального окна ресторана */}
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => setShowRestaurantModal(true)}
+        >
+          <Text style={styles.actionButtonText}>Выбрать дату для бронирования</Text>
+        </TouchableOpacity>
+
+        {/* Модальное окно для выбора ресторана */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showRestaurantModal}
+          onRequestClose={() => setShowRestaurantModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <ScrollView contentContainerStyle={styles.scrollContent}>
+                <Text style={styles.modalTitle}>Выбор ресторана</Text>
+
+                <Text style={styles.modalSubtitle}>Выберите ресторан:</Text>
+                {data?.restaurants?.length > 0 ? (
+                  <>
+                    <Picker
+                      selectedValue={tempRestaurantId}
+                      onValueChange={(itemValue) => setTempRestaurantId(itemValue)}
+                      style={styles.picker}
+                      dropdownIconColor="#000000"
+                    >
+                      <Picker.Item label="Выберите ресторан" value={null} />
+                      {data.restaurants.map((item) => (
+                        <Picker.Item key={item.id} label={item.name} value={item.id} />
+                      ))}
+                    </Picker>
+                    <TouchableOpacity
+                      style={styles.actionButton}
+                      onPress={handleSelectRestaurant}
+                    >
+                      <Text style={styles.actionButtonText}>Выбрать ресторан</Text>
+                    </TouchableOpacity>
+                    <Text/>
+                    <Text/>
+                    <Text/>
+                  </>
+                ) : (
+                  <Text style={styles.modalText}>Рестораны не найдены</Text>
+                )}
+
+<Text/>
+                    <Text/>
+                    <Text/>  <Text/>
+                    <Text/>
+                    <Text/>  <Text/>
+                    <Text/>
+                    <Text/>
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => setShowRestaurantModal(false)}
+                >
+                   
+                  <Text style={styles.closeButtonText}>Закрыть</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Модальное окно для выбора даты */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showCalendarModal}
+          onRequestClose={() => setShowCalendarModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <ScrollView contentContainerStyle={styles.scrollContent}>
+                <Text style={styles.modalTitle}>Выбор даты</Text>
+
+                <Text style={styles.modalSubtitle}>Выберите дату:</Text>
+                
+                <Calendar
+                  current={selectedDate.toISOString().split('T')[0]}
+                  onDayPress={(day) => setSelectedDate(new Date(day.timestamp))}
+                  minDate={new Date().toISOString().split('T')[0]}
+                  markedDates={{
+                    [selectedDate.toISOString().split('T')[0]]: {
+                      selected: true,
+                      selectedColor: COLORS.primary,
+                    },
+                  }}
+                  theme={{
+                    selectedDayBackgroundColor: COLORS.primary,
+                    todayTextColor: COLORS.accent,
+                    arrowColor: COLORS.secondary,
+                  }}
+                />
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={handleBlockDay}
+                >
+                  <Text style={styles.actionButtonText}>Забронировать</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => setShowCalendarModal(false)}
+                >
+                  <Text style={styles.closeButtonText}>Закрыть</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      </View>
+    );
+  };
+  //-----------------------------------------------------------------------------------------------------
+
+
+
   const renderSupplierContent = () => {
     const userId = user.id;
 
@@ -768,6 +967,9 @@ export default function HomeScreen({ navigation }) {
     console.log('CreateEvent all Selected data=', filteredData);
     setModalVisible(true);
   };
+
+
+
 
   const handleSubmit = async () => {
     if (!weddingName) {
@@ -911,6 +1113,7 @@ export default function HomeScreen({ navigation }) {
                 >
                   <Text style={styles.modalButtonText2}>Отмена</Text>
                 </TouchableOpacity>
+
                 <TouchableOpacity
                   style={[styles.modalButton2, styles.confirmButton]}
                   onPress={filterDataByBudget}
@@ -988,7 +1191,13 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {user?.roleId === 2 ? renderSupplierContent() : renderClientContent()}
+      {/* {user?.roleId === 2 ? renderSupplierContent() : renderClientContent()} */}
+      {user?.roleId === 1
+    ? adminRenderContent() // Для администратора (roleId === 1)
+    : user?.roleId === 2
+    ? renderSupplierContent() // Для поставщика (roleId === 2)
+    : renderClientContent() // Для клиента (roleId !== 1 и !== 2)
+  }
       <Modal
         animationType="slide"
         transparent={true}
@@ -1396,5 +1605,97 @@ const styles = StyleSheet.create({
   },
   switchSelector: {
     marginBottom: 20,
+  },
+ 
+
+  supplierContainer: {
+    flex: 1,
+    padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#000000',
+  },
+  subtitle: {
+    fontSize: 18,
+    marginVertical: 10,
+    color: '#000000',
+  },
+  dateText: {
+    fontSize: 16,
+    marginVertical: 10,
+    color: '#000000',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    maxHeight: '80%', // Ограничиваем высоту модального окна
+  },
+  scrollContent: {
+    padding: 20,
+    alignItems: 'center',
+    flexGrow: 1, // Позволяет содержимому расти внутри ScrollView
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#000000',
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    marginVertical: 10,
+    color: '#000000',
+  },
+  modalText: {
+    fontSize: 16,
+    color: '#000000',
+  },
+  picker: {
+    height: 300,
+    width: '100%',
+    marginBottom: 10,
+    color: '#000000',
+    backgroundColor: '#F0F0F0',
+  },
+  actionButton: {
+    marginVertical: 10,
+    padding: 12,
+    backgroundColor: '#FF6200',
+    borderRadius: 8,
+    width: '80%',
+    alignItems: 'center',
+  },
+  actionButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  closeButton: {
+    marginTop: 20,
+    marginBottom: 20, // Добавляем отступ снизу для прокрутки
+    padding: 12,
+    backgroundColor: '#000000',
+    borderRadius: 8,
+    width: '80%',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FF6200',
+  },
+  closeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

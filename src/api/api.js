@@ -168,8 +168,15 @@ export default {
           //   ,  {
           //   headers: { Authorization: `Bearer ${token}` },
           // }
-        )
-          
+        ),
+
+
+
+          addDataBlockToRestaurant:(restaurantId,date)=>api.post(`/api/block` , {
+            restaurantId,
+            date: date.toISOString().split('T')[0],
+          }),
+       
           // router.get(`/goodbyid/:id`, getGoodById)
         }
       
