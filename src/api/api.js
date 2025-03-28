@@ -177,6 +177,10 @@ export default {
             date: date.toISOString().split('T')[0],
           }),
        
+          fetchBlockedDaysByResaurantId:(id)=>api.get(`/api/${id}/blocked-days`),
+
+
+          fetchAllBlockDays:()=>api.get('/api/all-blocked-days'),
           // router.get(`/goodbyid/:id`, getGoodById)
         }
       

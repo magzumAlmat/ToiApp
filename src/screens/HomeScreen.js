@@ -23,6 +23,7 @@ import { Calendar } from 'react-native-calendars';
 import * as ExpoCalendar from 'expo-calendar';
 import SwitchSelector from 'react-native-switch-selector';
 import { Picker } from '@react-native-picker/picker';
+
 const COLORS = {
   primary: '#FF6F61',
   secondary: '#4A90E2',
@@ -68,6 +69,58 @@ export default function HomeScreen({ navigation }) {
   const [newGoodName, setNewGoodName] = useState('');
   const [newGoodCost, setNewGoodCost] = useState('');
   const [priceFilter, setPriceFilter] = useState('average');
+  const [blockedDays, setBlockedDays] = useState({}); // Добавляем состояние для заблокированных дней
+  const [showWarningModal, setShowWarningModal] = useState(false); // Модальное окно предупреждения
+  const [occupiedRestaurants, setOccupiedRestaurants] = useState([]);
+
+  // Цвета для каждого ресторана
+  const restaurantColors = {
+    1: '#FF6B6B', // Красный
+    2: '#4ECDC4', // Бирюзовый
+    3: '#45B7D1', // Голубой
+    4: '#96CEB4', // Зеленый
+    5: '#FFEEAD', // Желтый
+  };
+
+  // Функция загрузки заблокированных дней для всех ресторанов
+  const fetchAllBlockedDays = async () => {
+    try {
+      const response = await api.fetchAllBlockDays();
+      const blockedDays = {};
+  
+      // Предполагаемый формат ответа: [{ date: "2025-03-28", restaurantId: 1, restaurantName: "Уютный дом" }, ...]
+      response.data.forEach((entry) => {
+        const { date, restaurantId, restaurantName } = entry;
+  
+        // Если дата еще не существует в blockedDays, создаем массив
+        if (!blockedDays[date]) {
+          blockedDays[date] = {
+            marked: true,
+            dots: [],
+          };
+        }
+  
+        // Добавляем ресторан в массив dots
+        blockedDays[date].dots.push({
+          restaurantId,
+          restaurantName,
+          color: restaurantColors[restaurantId] || '#CCCCCC',
+        });
+      });
+  
+      setBlockedDays(blockedDays);
+      console.log('Fetched blocked days:', blockedDays);
+    } catch (error) {
+      console.error('Ошибка загрузки заблокированных дней:', error);
+    }
+  };
+
+  // Загружаем заблокированные дни при изменении данных ресторанов
+  useEffect(() => {
+    if (data?.restaurants?.length > 0) {
+      fetchAllBlockedDays();
+    }
+  }, [data.restaurants,occupiedRestaurants]);
 
   const getCalendarPermissions = async () => {
     const { status } = await ExpoCalendar.requestCalendarPermissionsAsync();
@@ -256,123 +309,120 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
- const filterDataByBudget = () => {
-  console.log('=== filterDataByBudget started ===');
-  console.log('Budget:', budget, 'Guest Count:', guestCount, 'Price Filter:', priceFilter);
+  const filterDataByBudget = () => {
+    console.log('=== filterDataByBudget started ===');
+    console.log('Budget:', budget, 'Guest Count:', guestCount, 'Price Filter:', priceFilter);
 
-  if (!budget || isNaN(budget) || parseFloat(budget) <= 0) {
-    console.log('Invalid budget');
-    alert('Пожалуйста, введите корректную сумму бюджета');
-    return;
-  }
-  if (!guestCount || isNaN(guestCount) || parseFloat(guestCount) <= 0) {
-    console.log('Invalid guest count');
-    alert('Пожалуйста, введите корректное количество гостей');
-    return;
-  }
-
-  const budgetValue = parseFloat(budget);
-  const guests = parseFloat(guestCount);
-  let remaining = budgetValue;
-  const selectedItems = [];
-
-  // Фильтрация ресторанов
-  console.log('Filtering restaurants...');
-  const suitableRestaurants = data.restaurants.filter(
-    (restaurant) => parseFloat(restaurant.capacity) >= guests
-  );
-  console.log('Suitable Restaurants:', suitableRestaurants.map(r => ({ name: r.name, capacity: r.capacity, averageCost: r.averageCost })));
-
-  if (suitableRestaurants.length === 0) {
-    console.log('No suitable restaurants found');
-    alert('Нет ресторанов с достаточной вместимостью');
-    return;
-  }
-
-  const sortedRestaurants = suitableRestaurants
-    .filter(r => parseFloat(r.averageCost) <= remaining) // Только те, что влезают в бюджет
-    .sort((a, b) => parseFloat(a.averageCost) - parseFloat(b.averageCost)); // Сортировка по возрастанию
-
-  if (sortedRestaurants.length === 0) {
-    console.log('No affordable restaurants found');
-    alert('Нет ресторанов, подходящих под ваш бюджет');
-    return;
-  }
-
-  let selectedRestaurant;
-  if (priceFilter === 'min') {
-    selectedRestaurant = sortedRestaurants[0]; // Самый дешевый
-  } else if (priceFilter === 'max') {
-    selectedRestaurant = sortedRestaurants[sortedRestaurants.length - 1]; // Самый дорогой
-  } else {
-    selectedRestaurant = sortedRestaurants[Math.floor(sortedRestaurants.length / 2)]; // Средний
-  }
-
-  const restaurantCost = parseFloat(selectedRestaurant.averageCost);
-  console.log(`Selected Restaurant:`, { name: selectedRestaurant.name, cost: restaurantCost });
-
-  selectedItems.push({ ...selectedRestaurant, type: 'restaurant', totalCost: restaurantCost });
-  remaining -= restaurantCost;
-  console.log('Restaurant added. Remaining budget:', remaining);
-
-  const types = [
-    { key: 'clothing', costField: 'cost', type: 'clothing' },
-    { key: 'tamada', costField: 'cost', type: 'tamada' },
-    { key: 'programs', costField: 'cost', type: 'program' },
-    { key: 'traditionalGifts', costField: 'cost', type: 'traditionalGift' },
-    { key: 'flowers', costField: 'cost', type: 'flowers' },
-    { key: 'cakes', costField: 'cost', type: 'cake' },
-    { key: 'alcohol', costField: 'cost', type: 'alcohol' },
-    { key: 'transport', costField: 'cost', type: 'transport' },
-    // { key: 'goods', costField: 'cost', type: 'goods' },
-  ];
-
-  for (const { key, costField, type } of types) {
-    console.log(`Filtering ${type}...`);
-    const items = data[key]
-      .filter(item => type !== 'goods' || item.category !== 'Прочее')
-      .filter(item => parseFloat(item[costField]) <= remaining); // Только те, что влезают в бюджет
-
-    console.log(`${type} items:`, items.map(i => ({ name: i.name || i.item_name || i.teamName || i.salonName, cost: i[costField] })));
-
-    if (items.length > 0) {
-      const sortedItems = items.sort((a, b) => parseFloat(a[costField]) - parseFloat(b[costField])); // Сортировка по возрастанию
-      let selectedItem;
-
-      if (priceFilter === 'min') {
-        selectedItem = sortedItems[0]; // Самый дешевый
-      } else if (priceFilter === 'max') {
-        selectedItem = sortedItems[sortedItems.length - 1]; // Самый дорогой
-      } else {
-        selectedItem = sortedItems[Math.floor(sortedItems.length / 2)]; // Средний
-      }
-
-      const cost = parseFloat(selectedItem[costField]);
-      console.log(`Selected ${type}:`, { name: selectedItem.name || selectedItem.item_name || selectedItem.teamName || selectedItem.salonName, cost });
-
-      selectedItems.push({ ...selectedItem, type, totalCost: cost });
-      remaining -= cost;
-      console.log(`${type} added. Remaining budget:`, remaining);
-    } else {
-      console.log(`No affordable items found for ${type}`);
+    if (!budget || isNaN(budget) || parseFloat(budget) <= 0) {
+      console.log('Invalid budget');
+      alert('Пожалуйста, введите корректную сумму бюджета');
+      return;
     }
-  }
+    if (!guestCount || isNaN(guestCount) || parseFloat(guestCount) <= 0) {
+      console.log('Invalid guest count');
+      alert('Пожалуйста, введите корректное количество гостей');
+      return;
+    }
 
-  console.log('Selected Items:', selectedItems.map(i => ({ type: i.type, name: i.name || i.item_name || i.teamName || i.salonName, totalCost: i.totalCost })));
-  console.log('Remaining Budget:', remaining);
-  setFilteredData(selectedItems);
-  setRemainingBudget(remaining);
-  setQuantities(selectedItems.reduce((acc, item) => ({ ...acc, [`${item.type}-${item.id}`]: '1' }), {}));
-  setBudgetModalVisible(false);
-  console.log('=== filterDataByBudget completed ===');
-};
+    const budgetValue = parseFloat(budget);
+    const guests = parseFloat(guestCount);
+    let remaining = budgetValue;
+    const selectedItems = [];
+
+    console.log('Filtering restaurants...');
+    const suitableRestaurants = data.restaurants.filter(
+      (restaurant) => parseFloat(restaurant.capacity) >= guests
+    );
+    console.log('Suitable Restaurants:', suitableRestaurants.map(r => ({ name: r.name, capacity: r.capacity, averageCost: r.averageCost })));
+
+    if (suitableRestaurants.length === 0) {
+      console.log('No suitable restaurants found');
+      alert('Нет ресторанов с достаточной вместимостью');
+      return;
+    }
+
+    const sortedRestaurants = suitableRestaurants
+      .filter(r => parseFloat(r.averageCost) <= remaining)
+      .sort((a, b) => parseFloat(a.averageCost) - parseFloat(b.averageCost));
+
+    if (sortedRestaurants.length === 0) {
+      console.log('No affordable restaurants found');
+      alert('Нет ресторанов, подходящих под ваш бюджет');
+      return;
+    }
+
+    let selectedRestaurant;
+    if (priceFilter === 'min') {
+      selectedRestaurant = sortedRestaurants[0];
+    } else if (priceFilter === 'max') {
+      selectedRestaurant = sortedRestaurants[sortedRestaurants.length - 1];
+    } else {
+      selectedRestaurant = sortedRestaurants[Math.floor(sortedRestaurants.length / 2)];
+    }
+
+    const restaurantCost = parseFloat(selectedRestaurant.averageCost);
+    console.log(`Selected Restaurant:`, { name: selectedRestaurant.name, cost: restaurantCost });
+
+    selectedItems.push({ ...selectedRestaurant, type: 'restaurant', totalCost: restaurantCost });
+    remaining -= restaurantCost;
+    console.log('Restaurant added. Remaining budget:', remaining);
+
+    const types = [
+      { key: 'clothing', costField: 'cost', type: 'clothing' },
+      { key: 'tamada', costField: 'cost', type: 'tamada' },
+      { key: 'programs', costField: 'cost', type: 'program' },
+      { key: 'traditionalGifts', costField: 'cost', type: 'traditionalGift' },
+      { key: 'flowers', costField: 'cost', type: 'flowers' },
+      { key: 'cakes', costField: 'cost', type: 'cake' },
+      { key: 'alcohol', costField: 'cost', type: 'alcohol' },
+      { key: 'transport', costField: 'cost', type: 'transport' },
+    ];
+
+    for (const { key, costField, type } of types) {
+      console.log(`Filtering ${type}...`);
+      const items = data[key]
+        .filter(item => parseFloat(item[costField]) <= remaining);
+
+      console.log(`${type} items:`, items.map(i => ({ name: i.name || i.item_name || i.teamName || i.salonName, cost: i[costField] })));
+
+      if (items.length > 0) {
+        const sortedItems = items.sort((a, b) => parseFloat(a[costField]) - parseFloat(b[costField]));
+        let selectedItem;
+
+        if (priceFilter === 'min') {
+          selectedItem = sortedItems[0];
+        } else if (priceFilter === 'max') {
+          selectedItem = sortedItems[sortedItems.length - 1];
+        } else {
+          selectedItem = sortedItems[Math.floor(sortedItems.length / 2)];
+        }
+
+        const cost = parseFloat(selectedItem[costField]);
+        console.log(`Selected ${type}:`, { name: selectedItem.name || selectedItem.item_name || selectedItem.teamName || selectedItem.salonName, cost });
+
+        selectedItems.push({ ...selectedItem, type, totalCost: cost });
+        remaining -= cost;
+        console.log(`${type} added. Remaining budget:`, remaining);
+      } else {
+        console.log(`No affordable items found for ${type}`);
+      }
+    }
+
+    console.log('Selected Items:', selectedItems.map(i => ({ type: i.type, name: i.name || i.item_name || i.teamName || i.salonName, totalCost: i.totalCost })));
+    console.log('Remaining Budget:', remaining);
+    setFilteredData(selectedItems);
+    setRemainingBudget(remaining);
+    setQuantities(selectedItems.reduce((acc, item) => ({ ...acc, [`${item.type}-${item.id}`]: '1' }), {}));
+    setBudgetModalVisible(false);
+    console.log('=== filterDataByBudget completed ===');
+  };
 
   useEffect(() => {
-    if (budget && guestCount) { // Запускать только если бюджет и гости уже заданы
+    if (budget && guestCount) {
       filterDataByBudget();
     }
   }, [priceFilter, budget, guestCount]);
-  
+
   const handleQuantityChange = (itemKey, value) => {
     const filteredValue = value.replace(/[^0-9]/g, '');
     if (filteredValue === '' || parseFloat(filteredValue) >= 0) {
@@ -633,7 +683,7 @@ export default function HomeScreen({ navigation }) {
         break;
       case 'program':
         title = `Программа: ${item.teamName} (${cost} ₸)`;
-        break;
+       打破;
       case 'tamada':
         title = `Тамада: ${item.name} (${cost} ₸)`;
         break;
@@ -657,9 +707,356 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
-  //-----------------------------------------------------------------------------------------------------
+  const renderSupplierContent = () => {
+    const userId = user.id;
+
+    const combinedData = [
+      ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
+      ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
+      ...data.tamada.map((item) => ({ ...item, type: 'tamada' })),
+      ...data.programs.map((item) => ({ ...item, type: 'program' })),
+      ...data.traditionalGifts.map((item) => ({ ...item, type: 'traditionalGift' })),
+      ...data.flowers.map((item) => ({ ...item, type: 'flowers' })),
+      ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
+      ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
+      ...data.transport.map((item) => ({ ...item, type: 'transport' })),
+      ...data.goods.map((item) => ({ ...item, type: 'goods' })),
+    ].filter((item) => item.supplier_id === userId);
+
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.supplierContainer}>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+              <Text style={styles.loadingText}>Загрузка данных...</Text>
+            </View>
+          ) : combinedData.length > 0 ? (
+            <>
+              <FlatList
+                data={combinedData}
+                renderItem={renderItem}
+                keyExtractor={(item) => `${item.type}-${item.id}`}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+              />
+            </>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Icon name="business" size={48} color={COLORS.textSecondary} />
+              <Text style={styles.emptyText}>У вас пока нет объектов</Text>
+            </View>
+          )}
+          <Modal visible={deleteModalVisible} transparent animationType="fade">
+            <View style={styles.modalOverlay}>
+              <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
+                <Text style={styles.modalTitle}>Подтверждение удаления</Text>
+                <Text style={styles.modalText}>
+                  Вы уверены, что хотите удалить этот объект? Это действие нельзя отменить.
+                </Text>
+                <View style={styles.modalButtonContainer}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => {
+                      setDeleteModalVisible(false);
+                      setItemToDelete(null);
+                    }}
+                  >
+                    <Text style={styles.modalButtonText}>Отмена</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.confirmButton]}
+                    onPress={handleDeleteItem}
+                  >
+                    <Text style={styles.modalButtonText}>Удалить</Text>
+                  </TouchableOpacity>
+                </View>
+              </Animatable.View>
+            </View>
+          </Modal>
+          <Modal visible={newGoodModalVisible} transparent animationType="slide">
+            <View style={styles.modalOverlay}>
+              <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
+                <Text style={styles.modalTitle}>Добавить новый товар</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Название товара"
+                  value={newGoodName}
+                  onChangeText={setNewGoodName}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Стоимость (₸)"
+                  value={newGoodCost}
+                  onChangeText={setNewGoodCost}
+                  keyboardType="numeric"
+                />
+                <View style={styles.modalButtonContainer}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => setNewGoodModalVisible(false)}
+                  >
+                    <Text style={styles.modalButtonText}>Отмена</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.confirmButton]}
+                    onPress={handleCreateGood}
+                  >
+                    <Text style={styles.modalButtonText}>Создать</Text>
+                  </TouchableOpacity>
+                </View>
+              </Animatable.View>
+            </View>
+          </Modal>
+        </View>
+      </SafeAreaView>
+    );
+  };
+
+  const createEvent = () => {
+    console.log('CreateEvent currentUserId=', user?.id);
+    console.log('CreateEvent all Selected data=', filteredData);
+    setModalVisible(true);
+  };
+
+  const handleSubmit = async () => {
+    if (!weddingName) {
+      alert('Пожалуйста, заполните имя свадьбы');
+      return;
+    }
+
+    const dateString = weddingDate.toISOString().split('T')[0];
+    const selectedRestaurant = filteredData.find(item => item.type === 'restaurant');
+    if (selectedRestaurant && blockedDays[dateString]) {
+      setShowWarningModal(true); // Показываем предупреждение, если ресторан забронирован
+      return;
+    }
+
+    if (!user?.id || !token) {
+      alert('Ошибка авторизации. Пожалуйста, войдите в систему.');
+      navigation.navigate('Login');
+      return;
+    }
+
+    const weddingData = {
+      name: weddingName,
+      date: dateString,
+      host_id: user.id,
+      items: filteredData.map((item) => ({
+        id: item.id,
+        type: item.type,
+        totalCost: parseFloat(item.totalCost || item.cost),
+      })),
+    };
+
+    try {
+      const response = await api.createWedding(weddingData, token);
+      const hasPermission = await getCalendarPermissions();
+      if (hasPermission) {
+        const defaultCalendar = await ExpoCalendar.getDefaultCalendarAsync();
+        const eventDetails = {
+          title: weddingName,
+          startDate: weddingDate,
+          endDate: new Date(weddingDate.getTime() + 2 * 60 * 60 * 1000),
+          allDay: true,
+          notes: 'Свадьба создана через приложение',
+          calendarId: defaultCalendar.id,
+        };
+        await ExpoCalendar.createEventAsync(defaultCalendar.id, eventDetails);
+      }
+      alert('Успех', 'Свадьба успешно создана и добавлена в календарь!');
+      setModalVisible(false);
+      setWeddingName('');
+      setWeddingDate(new Date());
+    } catch (error) {
+      console.error('Ошибка при создании свадьбы:', error);
+      alert('Ошибка: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  const onDateChange = (day) => {
+    const selectedDate = new Date(day.timestamp);
+    const dateString = day.dateString;
+    setWeddingDate(selectedDate);
+    if (blockedDays[dateString]) {
+      setShowWarningModal(true); // Показываем предупреждение, если день забронирован
+    }
+    setShowDatePicker(false);
+  };
+
+  const renderClientContent = () => {
+    const combinedData = [
+      ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
+      ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
+      ...data.tamada.map((item) => ({ ...item, type: 'tamada' })),
+      ...data.programs.map((item) => ({ ...item, type: 'program' })),
+      ...data.traditionalGifts.map((item) => ({ ...item, type: 'traditionalGift' })),
+      ...data.flowers.map((item) => ({ ...item, type: 'flowers' })),
+      ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
+      ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
+      ...data.transport.map((item) => ({ ...item, type: 'transport' })),
+      ...data.goods.map((item) => ({ ...item, type: 'goods' })),
+    ].filter((item) => item.type !== 'goods' || item.category !== 'Прочее');
+
+    console.log('Combined Data:', combinedData.map(i => ({ type: i.type, name: i.name || i.item_name || i.teamName || i.salonName, cost: i.cost || i.averageCost })));
+
+    return (
+      <View style={styles.clientContainer}>
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => setBudgetModalVisible(true)}
+          >
+            <Icon name="attach-money" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => setAddItemModalVisible(true)}
+            disabled={!budget}
+          >
+            <Icon name="add" size={24} color={!budget ? COLORS.textSecondary : '#FFFFFF'} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={createEvent}
+            disabled={!budget}
+          >
+            <Icon name="event" size={24} color={!budget ? COLORS.textSecondary : '#FFFFFF'} />
+          </TouchableOpacity>
+        </View>
+
+        {budget && (
+          <SwitchSelector
+            options={[
+              { label: 'Мин', value: 'min' },
+              { label: 'Сред', value: 'average' },
+              { label: 'Макс', value: 'max' },
+            ]}
+            initial={1}
+            onPress={(value) => {
+              console.log('SwitchSelector changed to:', value);
+              setPriceFilter(value);
+            }}
+            buttonColor={COLORS.primary}
+            backgroundColor={COLORS.background}
+            textColor={COLORS.textSecondary}
+            selectedTextStyle={{ color: '#FFFFFF' }}
+            style={styles.switchSelector}
+          />
+        )}
+
+        <Modal visible={budgetModalVisible} transparent animationType="slide">
+          <SafeAreaView style={styles.modalOverlay}>
+            <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
+              <Text style={styles.modalTitle}>Ваш бюджет</Text>
+              <TextInput
+                style={styles.budgetInput}
+                placeholder="Введите сумму (₸)"
+                value={budget}
+                onChangeText={handleBudgetChange}
+                keyboardType="numeric"
+                placeholderTextColor={COLORS.textSecondary}
+              />
+              <TextInput
+                style={styles.budgetInput}
+                placeholder="Количество гостей"
+                value={guestCount}
+                onChangeText={handleGuestCountChange}
+                keyboardType="numeric"
+                placeholderTextColor={COLORS.textSecondary}
+              />
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton2, styles.cancelButton]}
+                  onPress={() => setBudgetModalVisible(false)}
+                >
+                  <Text style={styles.modalButtonText2}>Отмена</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton2, styles.confirmButton]}
+                  onPress={filterDataByBudget}
+                >
+                  <Text style={styles.modalButtonText2}>Применить</Text>
+                </TouchableOpacity>
+              </View>
+            </Animatable.View>
+          </SafeAreaView>
+        </Modal>
+
+        {budget && (
+          <>
+            <Text style={styles.sectionTitle}>
+              {filteredData.length > 0 ? `Рекомендации (${budget} ₸)` : 'Все объекты'}
+            </Text>
+            {filteredData.length > 0 && (
+              <Text style={[styles.budgetInfo, remainingBudget < 0 && styles.budgetError]}>
+                Остаток: {remainingBudget} ₸
+              </Text>
+            )}
+            {loading ? (
+              <ActivityIndicator size="large" color={COLORS.primary} />
+            ) : filteredData.length > 0 ? (
+              <FlatList
+                data={filteredData}
+                renderItem={renderItem}
+                keyExtractor={(item) => `${item.type}-${item.id}`}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+              />
+            ) : combinedData.length > 0 ? (
+              <FlatList
+                data={combinedData}
+                renderItem={renderItem}
+                keyExtractor={(item) => `${item.type}-${item.id}`}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+              />
+            ) : (
+              <Text style={styles.emptyText}>Нет данных для отображения</Text>
+            )}
+          </>
+        )}
+
+        <Modal visible={addItemModalVisible} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <Animatable.View style={styles.addModalContent} animation="zoomIn" duration={300}>
+              <Text style={styles.modalTitle}>Добавить элемент</Text>
+              <FlatList
+                data={combinedData}
+                renderItem={renderAddItem}
+                keyExtractor={(item) => `${item.type}-${item.id}`}
+                contentContainerStyle={styles.addItemList}
+              />
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setAddItemModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Закрыть</Text>
+              </TouchableOpacity>
+            </Animatable.View>
+          </View>
+        </Modal>
+
+        {!budget && (
+          <View style={styles.noBudgetContainer}>
+            <Icon name="attach-money" size={48} color={COLORS.textSecondary} />
+            <Text style={styles.noBudgetText}>Пожалуйста, задайте бюджет для отображения записей</Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+ 
+//----------------------------------------------------------------------
+
+  
+  
+ 
+  
   const [showRestaurantModal, setShowRestaurantModal] = useState(false); // Для модального окна ресторана
   const [showCalendarModal, setShowCalendarModal] = useState(false); // Для модального окна календаря
+  const [showCalendarModal2, setShowCalendarModal2] = useState(false); // Для модального окна календаря
   const [tempRestaurantId, setTempRestaurantId] = useState(null);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -668,12 +1065,35 @@ export default function HomeScreen({ navigation }) {
     try {
       const response = await api.addDataBlockToRestaurant(restaurantId,selectedDate
        );
-      alert(response.data.message);
+      alert('Успешно поставлена бронь',response.data.message);
     } catch (error) {
       console.error('Ошибка блокировки:', error);
-      alert('Ошибка: ' + (error.response?.data?.message || error.message));
+      // alert('Ошибка: ' + (error.response?.data?.message || error.message));
+      alert('В этот день у данного ресторана уже стоит бронь')
     }
   };
+
+ 
+  useEffect(() => {
+    if (data?.restaurants?.length > 0) {
+      fetchAllBlockedDays();
+    }
+    console.log(occupiedRestaurants)
+  }, [data.restaurants,occupiedRestaurants]);
+
+
+
+ 
+
+  useEffect(() => {
+    if (!token) navigation.navigate('Login');
+    else fetchData();
+  }, [token, user]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', fetchData);
+    return unsubscribe;
+  }, [navigation, token, user]);
 
   const adminRenderContent = () => {
     const handleBlockDay = async () => {
@@ -720,6 +1140,8 @@ export default function HomeScreen({ navigation }) {
       setShowRestaurantModal(false); // Закрываем модальное окно ресторана
       setShowCalendarModal(true); // Открываем модальное окно календаря
     };
+
+
 
     return (
       <View style={styles.supplierContainer}>
@@ -849,355 +1271,122 @@ export default function HomeScreen({ navigation }) {
             </View>
           </View>
         </Modal>
-      </View>
-    );
-  };
-  //-----------------------------------------------------------------------------------------------------
 
 
 
-  const renderSupplierContent = () => {
-    const userId = user.id;
+       
+       
+       
+       
+        <TouchableOpacity
+  style={styles.actionButton}
+  onPress={() => setShowCalendarModal2(true)}
+>
+  <Text style={styles.actionButtonText}>Просмотр календаря</Text>
+</TouchableOpacity>
 
-    const combinedData = [
-      ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
-      ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
-      ...data.tamada.map((item) => ({ ...item, type: 'tamada' })),
-      ...data.programs.map((item) => ({ ...item, type: 'program' })),
-      ...data.traditionalGifts.map((item) => ({ ...item, type: 'traditionalGift' })),
-      ...data.flowers.map((item) => ({ ...item, type: 'flowers' })),
-      ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
-      ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
-      ...data.transport.map((item) => ({ ...item, type: 'transport' })),
-      ...data.goods.map((item) => ({ ...item, type: 'goods' })),
-    ].filter((item) => item.supplier_id === userId);
+<Modal
+  animationType="slide"
+  transparent={true}
+  visible={showCalendarModal2}
+  onRequestClose={() => setShowCalendarModal2(false)}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Text style={styles.modalTitle}>Просмотр календаря</Text>
+        <Text style={styles.modalSubtitle}>Выберите дату для проверки:</Text>
+        <Calendar
+          current={selectedDate.toISOString().split('T')[0]}
+          onDayPress={(day) => {
+            const dateString = day.dateString;
+            setSelectedDate(new Date(day.timestamp));
 
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.supplierContainer}>
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={COLORS.primary} />
-              <Text style={styles.loadingText}>Загрузка данных...</Text>
-            </View>
-          ) : combinedData.length > 0 ? (
+            // Получаем рестораны для выбранной даты из blockedDays (было blockedDates)
+            const occupied = blockedDays[dateString]
+              ? blockedDays[dateString].dots.map((entry) => ({
+                  id: entry.restaurantId,
+                  name: entry.restaurantName,
+                }))
+              : [];
+
+            console.log('Selected date:', dateString, 'Occupied:', occupied);
+            setOccupiedRestaurants(occupied);
+          }}
+          minDate={new Date().toISOString().split('T')[0]}
+          markedDates={Object.keys(blockedDays).reduce((acc, date) => {
+            acc[date] = {
+              marked: true,
+              dots: blockedDays[date].dots.map((dot) => ({
+                key: dot.restaurantId.toString(),
+                color: dot.color,
+              })),
+            };
+            return acc;
+          }, {})}
+          markingType={'multi-dot'}
+          theme={{
+            selectedDayBackgroundColor: COLORS.primary,
+            todayTextColor: COLORS.accent,
+            arrowColor: COLORS.secondary,
+          }}
+        />
+
+        {/* Отображение занятых ресторанов под календарем */}
+        <View style={styles.occupiedContainer}>
+          {/* <Text style={styles.modalSubtitle}>
+            Дата: {selectedDate.toLocaleDateString('ru-RU')}
+          </Text> */}
+          {occupiedRestaurants.length > 0 ? (
             <>
-              <FlatList
-                data={combinedData}
-                renderItem={renderItem}
-                keyExtractor={(item) => `${item.type}-${item.id}`}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-              />
+              <Text style={styles.modalText}>
+                На этот день уже заняты следующие рестораны:
+              </Text>
+              {occupiedRestaurants.map((restaurant) => (
+                <Text key={restaurant.id} style={styles.modalText}>
+                  {restaurant.name} 
+                </Text>
+              ))}
             </>
           ) : (
-            <View style={styles.emptyContainer}>
-              <Icon name="business" size={48} color={COLORS.textSecondary} />
-              <Text style={styles.emptyText}>У вас пока нет объектов</Text>
-            </View>
+            <Text style={styles.modalText}>В этот день нет занятых ресторанов</Text>
           )}
-          <Modal visible={deleteModalVisible} transparent animationType="fade">
-            <View style={styles.modalOverlay}>
-              <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
-                <Text style={styles.modalTitle}>Подтверждение удаления</Text>
-                <Text style={styles.modalText}>
-                  Вы уверены, что хотите удалить этот объект? Это действие нельзя отменить.
-                </Text>
-                <View style={styles.modalButtonContainer}>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.cancelButton]}
-                    onPress={() => {
-                      setDeleteModalVisible(false);
-                      setItemToDelete(null);
-                    }}
-                  >
-                    <Text style={styles.modalButtonText}>Отмена</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.confirmButton]}
-                    onPress={handleDeleteItem}
-                  >
-                    <Text style={styles.modalButtonText}>Удалить</Text>
-                  </TouchableOpacity>
-                </View>
-              </Animatable.View>
-            </View>
-          </Modal>
-          <Modal visible={newGoodModalVisible} transparent animationType="slide">
-            <View style={styles.modalOverlay}>
-              <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
-                <Text style={styles.modalTitle}>Добавить новый товар</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Название товара"
-                  value={newGoodName}
-                  onChangeText={setNewGoodName}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Стоимость (₸)"
-                  value={newGoodCost}
-                  onChangeText={setNewGoodCost}
-                  keyboardType="numeric"
-                />
-                <View style={styles.modalButtonContainer}>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.cancelButton]}
-                    onPress={() => setNewGoodModalVisible(false)}
-                  >
-                    <Text style={styles.modalButtonText}>Отмена</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.confirmButton]}
-                    onPress={handleCreateGood}
-                  >
-                    <Text style={styles.modalButtonText}>Создать</Text>
-                  </TouchableOpacity>
-                </View>
-              </Animatable.View>
-            </View>
-          </Modal>
-        </View>
-      </SafeAreaView>
-    );
-  };
-
-  const createEvent = () => {
-    console.log('CreateEvent currentUserId=', user?.id);
-    console.log('CreateEvent all Selected data=', filteredData);
-    setModalVisible(true);
-  };
-
-
-
-
-  const handleSubmit = async () => {
-    if (!weddingName) {
-      alert('Пожалуйста, заполните имя свадьбы');
-      return;
-    }
-
-    if (!user?.id || !token) {
-      alert('Ошибка авторизации. Пожалуйста, войдите в систему.');
-      navigation.navigate('Login');
-      return;
-    }
-
-    const weddingData = {
-      name: weddingName,
-      date: weddingDate.toISOString().split('T')[0],
-      host_id: user.id,
-      items: filteredData.map((item) => ({
-        id: item.id,
-        type: item.type,
-        totalCost: parseFloat(item.totalCost || item.cost),
-      })),
-    };
-
-    try {
-      const response = await api.createWedding(weddingData, token);
-      const hasPermission = await getCalendarPermissions();
-      if (hasPermission) {
-        const defaultCalendar = await ExpoCalendar.getDefaultCalendarAsync();
-        const eventDetails = {
-          title: weddingName,
-          startDate: weddingDate,
-          endDate: new Date(weddingDate.getTime() + 2 * 60 * 60 * 1000),
-          allDay: true,
-          notes: 'Свадьба создана через приложение',
-          calendarId: defaultCalendar.id,
-        };
-        await ExpoCalendar.createEventAsync(defaultCalendar.id, eventDetails);
-      }
-      alert('Успех', 'Свадьба успешно создана и добавлена в календарь!');
-      setModalVisible(false);
-      setWeddingName('');
-      setWeddingDate(new Date());
-    } catch (error) {
-      console.error('Ошибка при создании свадьбы:', error);
-      alert('Ошибка: ' + (error.response?.data?.error || error.message));
-    }
-  };
-
-  const onDateChange = (day) => {
-    const selectedDate = new Date(day.timestamp);
-    setWeddingDate(selectedDate);
-    setShowDatePicker(false);
-  };
-
-  const renderClientContent = () => {
-    const combinedData = [
-      ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
-      ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
-      ...data.tamada.map((item) => ({ ...item, type: 'tamada' })),
-      ...data.programs.map((item) => ({ ...item, type: 'program' })),
-      ...data.traditionalGifts.map((item) => ({ ...item, type: 'traditionalGift' })),
-      ...data.flowers.map((item) => ({ ...item, type: 'flowers' })),
-      ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
-      ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
-      ...data.transport.map((item) => ({ ...item, type: 'transport' })),
-      ...data.goods.map((item) => ({ ...item, type: 'goods' })),
-    ].filter((item) => item.type !== 'goods' || item.category !== 'Прочее');
-
-    console.log('Combined Data:', combinedData.map(i => ({ type: i.type, name: i.name || i.item_name || i.teamName || i.salonName, cost: i.cost || i.averageCost })));
-
-    return (
-      <View style={styles.clientContainer}>
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => setBudgetModalVisible(true)}
-          >
-            <Icon name="attach-money" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => setAddItemModalVisible(true)}
-            disabled={!budget}
-          >
-            <Icon name="add" size={24} color={!budget ? COLORS.textSecondary : '#FFFFFF'} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={createEvent}
-            disabled={!budget}
-          >
-            <Icon name="event" size={24} color={!budget ? COLORS.textSecondary : '#FFFFFF'} />
-          </TouchableOpacity>
+          {/* <Text style={styles.modalText}>
+            Отладка: {JSON.stringify(occupiedRestaurants)}
+          </Text> */}
         </View>
 
-        {budget && (
-          <SwitchSelector
-            options={[
-              { label: 'Мин', value: 'min' },
-              { label: 'Сред', value: 'average' },
-              { label: 'Макс', value: 'max' },
-            ]}
-            initial={1}
-            onPress={(value) => {
-              console.log('SwitchSelector changed to:', value);
-              setPriceFilter(value); // Только обновляем состояние, фильтрация сработает в useEffect
-            }}
-            buttonColor={COLORS.primary}
-            backgroundColor={COLORS.background}
-            textColor={COLORS.textSecondary}
-            selectedTextStyle={{ color: '#FFFFFF' }}
-            style={styles.switchSelector}
-          />
-        )}
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={() => setShowCalendarModal2(false)}
+        >
+          <Text style={styles.closeButtonText}>Закрыть</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  </View>
+</Modal>
 
-        <Modal visible={budgetModalVisible} transparent animationType="slide">
-          <SafeAreaView style={styles.modalOverlay}>
-            <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
-              <Text style={styles.modalTitle}>Ваш бюджет</Text>
-              <TextInput
-                style={styles.budgetInput}
-                placeholder="Введите сумму (₸)"
-                value={budget}
-                onChangeText={handleBudgetChange}
-                keyboardType="numeric"
-                placeholderTextColor={COLORS.textSecondary}
-              />
-              <TextInput
-                style={styles.budgetInput}
-                placeholder="Количество гостей"
-                value={guestCount}
-                onChangeText={handleGuestCountChange}
-                keyboardType="numeric"
-                placeholderTextColor={COLORS.textSecondary}
-              />
-              <View style={styles.modalActions}>
-                <TouchableOpacity
-                  style={[styles.modalButton2, styles.cancelButton]}
-                  onPress={() => setBudgetModalVisible(false)}
-                >
-                  <Text style={styles.modalButtonText2}>Отмена</Text>
-                </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.modalButton2, styles.confirmButton]}
-                  onPress={filterDataByBudget}
-                >
-                  <Text style={styles.modalButtonText2}>Применить</Text>
-                </TouchableOpacity>
-              </View>
-            </Animatable.View>
-          </SafeAreaView>
-        </Modal>
-
-        {budget && (
-          <>
-            <Text style={styles.sectionTitle}>
-              {filteredData.length > 0 ? `Рекомендации (${budget} ₸)` : 'Все объекты'}
-            </Text>
-            {filteredData.length > 0 && (
-              <Text style={[styles.budgetInfo, remainingBudget < 0 && styles.budgetError]}>
-                Остаток: {remainingBudget} ₸
-              </Text>
-            )}
-            {loading ? (
-              <ActivityIndicator size="large" color={COLORS.primary} />
-            ) : filteredData.length > 0 ? (
-              <FlatList
-                data={filteredData}
-                renderItem={renderItem}
-                keyExtractor={(item) => `${item.type}-${item.id}`}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-              />
-            ) : combinedData.length > 0 ? (
-              <FlatList
-                data={combinedData}
-                renderItem={renderItem}
-                keyExtractor={(item) => `${item.type}-${item.id}`}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-              />
-            ) : (
-              <Text style={styles.emptyText}>Нет данных для отображения</Text>
-            )}
-          </>
-        )}
-
-        <Modal visible={addItemModalVisible} transparent animationType="slide">
-          <View style={styles.modalOverlay}>
-            <Animatable.View style={styles.addModalContent} animation="zoomIn" duration={300}>
-              <Text style={styles.modalTitle}>Добавить элемент</Text>
-              <FlatList
-                data={combinedData}
-                renderItem={renderAddItem}
-                keyExtractor={(item) => `${item.type}-${item.id}`}
-                contentContainerStyle={styles.addItemList}
-              />
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setAddItemModalVisible(false)}
-              >
-                <Text style={styles.modalButtonText}>Закрыть</Text>
-              </TouchableOpacity>
-            </Animatable.View>
-          </View>
-        </Modal>
-
-        {!budget && (
-          <View style={styles.noBudgetContainer}>
-            <Icon name="attach-money" size={48} color={COLORS.textSecondary} />
-            <Text style={styles.noBudgetText}>Пожалуйста, задайте бюджет для отображения записей</Text>
-          </View>
-        )}
       </View>
     );
   };
+//----------------------------------------------------------------------
+
+
+
+
+
+
+
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* {user?.roleId === 2 ? renderSupplierContent() : renderClientContent()} */}
       {user?.roleId === 1
-    ? adminRenderContent() // Для администратора (roleId === 1)
-    : user?.roleId === 2
-    ? renderSupplierContent() // Для поставщика (roleId === 2)
-    : renderClientContent() // Для клиента (roleId !== 1 и !== 2)
-  }
+        ? adminRenderContent()
+        : user?.roleId === 2
+        ? renderSupplierContent()
+        : renderClientContent()}
       <Modal
         animationType="slide"
         transparent={true}
@@ -1226,9 +1415,12 @@ export default function HomeScreen({ navigation }) {
                   onDayPress={onDateChange}
                   minDate={new Date().toISOString().split('T')[0]}
                   markedDates={{
+                    ...blockedDays, // Отображаем заблокированные дни
                     [weddingDate.toISOString().split('T')[0]]: {
                       selected: true,
-                      selectedColor: COLORS.primary,
+                      selectedColor: blockedDays[weddingDate.toISOString().split('T')[0]]
+                        ? blockedDays[weddingDate.toISOString().split('T')[0]].dotColor
+                        : COLORS.primary,
                     },
                   }}
                   theme={{
@@ -1255,7 +1447,7 @@ export default function HomeScreen({ navigation }) {
                             case 'program':
                               return `${item.teamName} - ${item.totalCost || item.cost} тг`;
                             case 'traditionalGift':
-                              return `${item.itemName} (${item.salonName}) - ${item.totalCost || item.cost} тг`;
+                              return `${item.itemName} (${item.sallonName}) - ${item.totalCost || item.cost} тг`;
                             case 'flowers':
                               return `${item.flowerName} (${item.flowerType}) - ${item.totalCost || item.cost} тг`;
                             case 'cake':
@@ -1296,6 +1488,30 @@ export default function HomeScreen({ navigation }) {
               </View>
             </ScrollView>
           </Animatable.View>
+        </View>
+      </Modal>
+
+      {/* Модальное окно предупреждения для клиента */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showWarningModal}
+        onRequestClose={() => setShowWarningModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Внимание</Text>
+            <Text style={styles.modalSubtitle}>
+              Этот день ({weddingDate.toLocaleDateString('ru-RU')}) уже забронирован для ресторана{' '}
+              {blockedDays[weddingDate.toISOString().split('T')[0]]?.restaurantName}.
+            </Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowWarningModal(false)}
+            >
+              <Text style={styles.closeButtonText}>Закрыть</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
     </SafeAreaView>
@@ -1606,12 +1822,6 @@ const styles = StyleSheet.create({
   switchSelector: {
     marginBottom: 20,
   },
- 
-
-  supplierContainer: {
-    flex: 1,
-    padding: 20,
-  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -1639,12 +1849,12 @@ const styles = StyleSheet.create({
     width: '90%',
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
-    maxHeight: '80%', // Ограничиваем высоту модального окна
+    maxHeight: '80%',
   },
   scrollContent: {
     padding: 20,
     alignItems: 'center',
-    flexGrow: 1, // Позволяет содержимому расти внутри ScrollView
+    flexGrow: 1,
   },
   modalTitle: {
     fontSize: 20,
@@ -1684,7 +1894,7 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     marginTop: 20,
-    marginBottom: 20, // Добавляем отступ снизу для прокрутки
+    marginBottom: 20,
     padding: 12,
     backgroundColor: '#000000',
     borderRadius: 8,
@@ -1697,5 +1907,77 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+
+
+
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    maxHeight: '80%',
+    padding: 20,
+  },
+  scrollContent: {
+    padding: 20,
+    alignItems: 'center',
+    flexGrow: 1,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#000000',
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    marginVertical: 10,
+    color: '#000000',
+  },
+  modalText: {
+    fontSize: 16,
+    color: '#000000',
+    marginVertical: 5,
+  },
+  occupiedContainer: {
+    marginTop: 20,
+    width: '100%',
+    alignItems: 'center',
+  },
+  closeButton: {
+    marginTop: 20,
+    padding: 12,
+    backgroundColor: '#000000',
+    borderRadius: 8,
+    width: '80%',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FF6200',
+  },
+  closeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  actionButton: {
+    marginVertical: 10,
+    padding: 12,
+    backgroundColor: '#FF6200',
+    borderRadius: 8,
+    width: '80%',
+    alignItems: 'center',
+    alignSelf: 'center',
+  },
+  actionButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
