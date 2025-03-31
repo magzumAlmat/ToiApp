@@ -181,6 +181,15 @@ export default {
 
 
           fetchAllBlockDays:()=>api.get('/api/all-blocked-days'),
+
+
+
+
+
+          fetchByEndpoint:(endpoint) => api.get(`${endpoint}`),
+              // console.log('FetchbyEndPOINT FROM API',endpoint)
+              
+           
           // router.get(`/goodbyid/:id`, getGoodById)
         }
       

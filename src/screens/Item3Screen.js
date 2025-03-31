@@ -62,12 +62,32 @@ export default function Item3Screen() {
   useEffect(() => {
     fetchWeddings();
     fetchGoods();
+    // fetchWeddingItems();
   }, []);
 
   useEffect(() => {
     console.log('Updated weddings:', weddings);
     console.log('Updated weddingItems:', weddingItems);
+
   }, [weddings, weddingItems]);
+
+  const fetchWeddingItems=async({ item })=>{
+
+    console.log('item fron fetchweddingItems=',item)
+    try {
+      const response = await api.getWeddinItems(token,Usid);
+      console.log('API response for weddings:', response.data);
+      setWeddingItems(response.data.data || []);
+    } catch (error) {
+      console.error('Ошибка при загрузке свадеб:', error);
+      Alert.alert('Ошибка', 'Не удалось загрузить список свадеб');
+      setWeddingItems([]);
+    } finally {
+      // setLoadingWeddings(false);
+    }
+
+  }
+
 
   const fetchWeddings = async () => {
     console.log('Fetching weddings with id=', userId, 'token=', token);
@@ -125,6 +145,7 @@ export default function Item3Screen() {
         id: item.id,
         type: item.type,
         totalCost: item.totalCost || 0,
+
       })),
     };
 
@@ -364,51 +385,275 @@ export default function Item3Screen() {
     setWeddingDate(day.dateString);
     setShowCalendar(false);
   };
+//--------------------------------------------------------------------------------------------
+  // const renderWeddingItem = ({ item }) => (
+  //   <View style={styles.itemContainer}>
+  //     <Text style={styles.itemText}>{item.name} ({item.date})</Text>
+  //     <View style={styles.buttonRow}>
+  //       <TouchableOpacity style={styles.actionButton} onPress={() => openEditModal(item)}>
+  //         <Text style={styles.actionButtonText}>Редактировать</Text>
+  //       </TouchableOpacity>
+  //       <TouchableOpacity
+  //         style={styles.actionButton}
+  //         onPress={() => {
+  //           setSelectedWedding(item);
+  //           setWishlistModalVisible(true);
+  //         }}
+  //       >
+  //         <Text style={styles.actionButtonText}>Добавить подарок</Text>
+  //       </TouchableOpacity>
+  //       <TouchableOpacity
+  //         style={styles.actionButton}
+  //         onPress={() => {
+  //           setSelectedWedding(item);
+  //           fetchWishlistItems(item.id);
+  //         }}
+  //       >
+  //         <Text style={styles.actionButtonText}>Просмотреть подарки</Text>
+  //       </TouchableOpacity>
+  //       <TouchableOpacity
+  //         style={styles.actionButton}
+  //         onPress={() => {
+  //           console.log('Share button pressed for weddingId:', item.id);
+  //           handleShareWeddingLink(item.id);
+  //         }}
+  //       >
+  //         <Text style={styles.actionButtonText}>Поделиться</Text>
+  //       </TouchableOpacity>
+  //       <TouchableOpacity
+  //         style={styles.actionButton}
+  //         onPress={() => handleDeleteWedding(item.id)}
+  //       >
+  //         <Text style={styles.actionButtonText}>Удалить</Text>
+  //       </TouchableOpacity>
+  //     </View>
+  //   </View>
+  // );
 
-  const renderWeddingItem = ({ item }) => (
-    <View style={styles.itemContainer}>
-      <Text style={styles.itemText}>{item.name} ({item.date})</Text>
-      <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => openEditModal(item)}>
-          <Text style={styles.actionButtonText}>Редактировать</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => {
-            setSelectedWedding(item);
-            setWishlistModalVisible(true);
-          }}
-        >
-          <Text style={styles.actionButtonText}>Добавить подарок</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => {
-            setSelectedWedding(item);
-            fetchWishlistItems(item.id);
-          }}
-        >
-          <Text style={styles.actionButtonText}>Просмотреть подарки</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => {
-            console.log('Share button pressed for weddingId:', item.id);
-            handleShareWeddingLink(item.id);
-          }}
-        >
-          <Text style={styles.actionButtonText}>Поделиться</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => handleDeleteWedding(item.id)}
-        >
-          <Text style={styles.actionButtonText}>Удалить</Text>
-        </TouchableOpacity>
+  
+    const [selectedItem, setSelectedItem] = useState(null); // Для хранения выбранного WeddingItem
+    const [detailsModalVisible, setDetailsModalVisible] = useState(false); // Для управления видимостью модалки
+    const [loadingDetails, setLoadingDetails] = useState(false); // Для индикации загрузки
+  
+    // Функция для получения дополнительных деталей элемента через API
+    const fetchItemDetails = async (itemType, itemId) => {
+      setLoadingDetails(true);
+      try {
+        let endpoint;
+        switch (itemType) {
+          case 'restaurant':
+            endpoint = `/api/restaurantbyid/${itemId}`;
+            break;
+          case 'clothing':
+            endpoint = `/api/clothing/${itemId}`;
+            break;
+          case 'tamada':
+            endpoint = `/api/tamada/${itemId}`;
+            break;
+          case 'program':
+            endpoint = `/api/programs/${itemId}`;
+            break;
+          case 'traditionalGift':
+            endpoint = `/api/traditional-gifts/${itemId}`;
+            break;
+          case 'flowers':
+            endpoint = `/api/flowers/${itemId}`;
+            break;
+          case 'cake':
+            endpoint = `/api/cakes/${itemId}`;
+            break;
+          case 'alcohol':
+            endpoint = `/api/alcohol/${itemId}`;
+            break;
+          case 'transport':
+            endpoint = `/api/transport/${itemId}`;
+            break;
+          case 'goods':
+            endpoint = `/api/goods/${itemId}`;
+            break;
+          default:
+            throw new Error('Неизвестный тип элемента');
+        }
+  
+        const response = await api.fetchByEndpoint(endpoint)
+
+        const details = Array.isArray(response.data) ? response.data[0] : response.data;
+        console.log('1',details)
+        return details || null; // Возвращаем первый элемент массива или сам объект
+      } catch (error) {
+        console.error(`Ошибка при загрузке деталей для ${itemType}:`, error);
+        Alert.alert('Ошибка', 'Не удалось загрузить детали элемента');
+        return null;
+      } finally {
+        setLoadingDetails(false);
+      }
+    };
+  
+    // Функция для открытия модального окна с деталями
+    const openDetailsModal = async (weddingItem) => {
+      console.log('Сработала кнопка подробнее',weddingItem)
+      const details = await fetchItemDetails(weddingItem.item_type, weddingItem.item_id);
+      console.log('details= ',details)
+      if (details) {
+        setSelectedItem({ ...weddingItem, ...details });
+      } else {
+        setSelectedItem(weddingItem); // Если деталей нет, используем только базовые данные
+      }
+      setDetailsModalVisible(true);
+    };
+
+    const renderWeddingItem = ({ item }) => {
+    return (
+      <View style={styles.itemContainer}>
+        {/* Отображаем название свадьбы и дату */}
+        <Text style={styles.itemText}>
+          {item.name} ({item.date})
+        </Text>
+  
+        {/* Отображаем WeddingItems */}
+        {item.WeddingItems && item.WeddingItems.length > 0 ? (
+          <View style={styles.weddingItemsContainer}>
+            {item.WeddingItems.map((weddingItem) => (
+              console.log('map WI= ',weddingItem),
+              <View
+                key={`${weddingItem.item_type}-${weddingItem.id}`}
+                style={styles.weddingItem}
+              >
+                <Text style={styles.subItemText}>
+                  {(() => {
+                    switch (weddingItem.item_type) {
+                      case 'restaurant':
+                        return `Ресторан - ${weddingItem.total_cost} тг`;
+                      case 'clothing':
+                        return `Одежда - ${weddingItem.total_cost} тг`;
+                      case 'tamada':
+                        return `Тамада - ${weddingItem.total_cost} тг`;
+                      case 'program':
+                        return `Программа - ${weddingItem.total_cost} тг`;
+                      case 'traditionalGift':
+                        return `Традиционный подарок - ${weddingItem.total_cost} тг`;
+                      case 'flowers':
+                        return `Цветы - ${weddingItem.total_cost} тг`;
+                      case 'cake':
+                        return `Торт - ${weddingItem.total_cost} тг`;
+                      case 'alcohol':
+                        return `Алкоголь - ${weddingItem.total_cost} тг`;
+                      case 'transport':
+                        return `Транспорт - ${weddingItem.total_cost} тг`;
+                      case 'goods':
+                        return `Товар - ${weddingItem.total_cost} тг`;
+                      default:
+                        return `Неизвестный элемент - ${weddingItem.total_cost} тг`;
+                    }
+                  })()}
+                </Text>
+                <TouchableOpacity
+                  style={styles.detailsButton}
+                  onPress={() => openDetailsModal(weddingItem)}
+                >
+                  <Text style={styles.detailsButtonText}>Подробнее</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.noItems}>Нет элементов для этой свадьбы</Text>
+        )}
+  
+        {/* Кнопки действий для свадьбы */}
+        <View style={styles.buttonRow}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => openEditModal(item)}>
+            <Text style={styles.actionButtonText}>Редактировать</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              setSelectedWedding(item);
+              setWishlistModalVisible(true);
+            }}
+          >
+            <Text style={styles.actionButtonText}>Добавить подарок</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              setSelectedWedding(item);
+              fetchWishlistItems(item.id);
+            }}
+          >
+            <Text style={styles.actionButtonText}>Просмотреть подарки</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              console.log('Share button pressed for weddingId:', item.id);
+              handleShareWeddingLink(item.id);
+            }}
+          >
+            <Text style={styles.actionButtonText}>Поделиться</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => handleDeleteWedding(item.id)}
+          >
+            <Text style={styles.actionButtonText}>Удалить</Text>
+          </TouchableOpacity>
+        </View>
+  
+        {/* Модальное окно для отображения деталей WeddingItem */}
+        <Modal visible={detailsModalVisible} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Детали элемента</Text>
+              {loadingDetails ? (
+                <ActivityIndicator size="large" color="#007AFF" />
+              ) : selectedItem ? (
+                <ScrollView>
+                  {/* Базовые данные из WeddingItem */}
+                  {console.log('SI= = ',selectedItem)}
+                  <Text style={styles.modalText}>ID: {selectedItem.id}</Text>
+                  <Text style={styles.modalText}>Тип: {selectedItem.item_type}</Text>
+                  <Text style={styles.modalText}>Наименование: {selectedItem.name || selectedItem.alcoholName || selectedItem.name || selectedItem.itemName || selectedItem.teamName || selectedItem.flowerName || selectedItem.carName }</Text>
+                  {/* <Text style={styles.modalText}>ID элемента: {selectedItem.item_id}</Text> */}
+                  <Text style={styles.modalText}>Стоимость: {selectedItem.total_cost} тг</Text>
+
+                  <Text style={styles.modalText}>
+                    Создан: {new Date(selectedItem.created_at).toLocaleString()}
+                  </Text>
+                  <Text style={styles.modalText}>
+                    Обновлен: {new Date(selectedItem.updated_at).toLocaleString()}
+                  </Text>
+                  {/* <Text style={styles.modalText}>
+                    ID свадьбы: {selectedItem.wedding_id || 'Не указано'}
+                  </Text> */}
+  
+                  {/* Дополнительные данные из API */}
+                  <Text style={styles.modalText}>
+                    Наименование: {selectedItem.name || 'Не указано'}
+                  </Text>
+                  <Text style={styles.modalText}>
+                    Адрес: {selectedItem.address || 'Не указано'}
+                  </Text>
+                  <Text style={styles.modalText}>
+                    Телефон: {selectedItem.phone || 'Не указано'}
+                  </Text>
+                </ScrollView>
+              ) : (
+                <Text style={styles.modalText}>Данные недоступны</Text>
+              )}
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setDetailsModalVisible(false)}
+              >
+                <Text style={styles.closeButtonText}>Закрыть</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
-    </View>
-  );
-
+    );
+  };
+//--------------------------------------------------------------------------------------------
   const renderFileItem = ({ item: file }) => {
     const fileUrl = `${BASE_URL}/${file.path}`;
     console.log('fileUrl', fileUrl);
@@ -1066,5 +1311,99 @@ const styles = StyleSheet.create({
     color: '#718096',
     textAlign: 'center',
     marginVertical: 10,
+  },
+
+
+
+
+
+
+
+  itemContainer: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+  itemText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  weddingItemsContainer: {
+    marginBottom: 10,
+  },
+  weddingItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  subItemText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  detailsButton: {
+    backgroundColor: '#007AFF',
+    padding: 5,
+    borderRadius: 5,
+  },
+  detailsButtonText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  actionButton: {
+    backgroundColor: '#007AFF',
+    padding: 8,
+    borderRadius: 5,
+    flex: 1,
+    marginHorizontal: 2,
+    alignItems: 'center',
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  noItems: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  closeButton: {
+    backgroundColor: '#FF3B30',
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 15,
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
