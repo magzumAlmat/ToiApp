@@ -53,11 +53,15 @@ export default function HomeScreen({ navigation }) {
   });
   const [filteredData, setFilteredData] = useState([]);
   const [quantities, setQuantities] = useState({});
-  const [loading, setLoading] = useState(false);
+
   const [budget, setBudget] = useState('');
   const [guestCount, setGuestCount] = useState('');
-  const [budgetModalVisible, setBudgetModalVisible] = useState(false);
   const [remainingBudget, setRemainingBudget] = useState(0);
+
+  const [loading, setLoading] = useState(false);
+
+  const [budgetModalVisible, setBudgetModalVisible] = useState(false);
+  
   const [addItemModalVisible, setAddItemModalVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
@@ -628,6 +632,7 @@ export default function HomeScreen({ navigation }) {
                 style={styles.quantityInput}
                 placeholder="Кол-во"
                 value={quantities[itemKey] || ''}
+                
                 onChangeText={(value) => handleQuantityChange(itemKey, value)}
                 keyboardType="numeric"
               />
@@ -683,7 +688,7 @@ export default function HomeScreen({ navigation }) {
         break;
       case 'program':
         title = `Программа: ${item.teamName} (${cost} ₸)`;
-       打破;
+    
       case 'tamada':
         title = `Тамада: ${item.name} (${cost} ₸)`;
         break;
@@ -885,6 +890,9 @@ export default function HomeScreen({ navigation }) {
   };
 
   const renderClientContent = () => {
+
+
+    
     const combinedData = [
       ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
       ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
@@ -897,9 +905,9 @@ export default function HomeScreen({ navigation }) {
       ...data.transport.map((item) => ({ ...item, type: 'transport' })),
       ...data.goods.map((item) => ({ ...item, type: 'goods' })),
     ].filter((item) => item.type !== 'goods' || item.category !== 'Прочее');
-
+  
     console.log('Combined Data:', combinedData.map(i => ({ type: i.type, name: i.name || i.item_name || i.teamName || i.salonName, cost: i.cost || i.averageCost })));
-
+  
     return (
       <View style={styles.clientContainer}>
         <View style={styles.buttonRow}>
@@ -924,7 +932,7 @@ export default function HomeScreen({ navigation }) {
             <Icon name="event" size={24} color={!budget ? COLORS.textSecondary : '#FFFFFF'} />
           </TouchableOpacity>
         </View>
-
+  
         {budget && (
           <SwitchSelector
             options={[
@@ -944,7 +952,7 @@ export default function HomeScreen({ navigation }) {
             style={styles.switchSelector}
           />
         )}
-
+  
         <Modal visible={budgetModalVisible} transparent animationType="slide">
           <SafeAreaView style={styles.modalOverlay}>
             <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
@@ -972,6 +980,7 @@ export default function HomeScreen({ navigation }) {
                 >
                   <Text style={styles.modalButtonText2}>Отмена</Text>
                 </TouchableOpacity>
+                
                 <TouchableOpacity
                   style={[styles.modalButton2, styles.confirmButton]}
                   onPress={filterDataByBudget}
@@ -982,7 +991,7 @@ export default function HomeScreen({ navigation }) {
             </Animatable.View>
           </SafeAreaView>
         </Modal>
-
+  
         {budget && (
           <>
             <Text style={styles.sectionTitle}>
@@ -1016,7 +1025,7 @@ export default function HomeScreen({ navigation }) {
             )}
           </>
         )}
-
+  
         <Modal visible={addItemModalVisible} transparent animationType="slide">
           <View style={styles.modalOverlay}>
             <Animatable.View style={styles.addModalContent} animation="zoomIn" duration={300}>
@@ -1036,7 +1045,7 @@ export default function HomeScreen({ navigation }) {
             </Animatable.View>
           </View>
         </Modal>
-
+  
         {!budget && (
           <View style={styles.noBudgetContainer}>
             <Icon name="attach-money" size={48} color={COLORS.textSecondary} />
@@ -1206,12 +1215,7 @@ export default function HomeScreen({ navigation }) {
                 )}
 
 <Text/>
-                    <Text/>
-                    <Text/>  <Text/>
-                    <Text/>
-                    <Text/>  <Text/>
-                    <Text/>
-                    <Text/>
+                  
                 <TouchableOpacity
                   style={styles.closeButton}
                   onPress={() => setShowRestaurantModal(false)}
