@@ -889,10 +889,15 @@ export default function HomeScreen({ navigation }) {
     setShowDatePicker(false);
   };
 
+
+  //----------------------------------------------------------------------------------------------------------------------------------------------
+  const [searchQuery, setSearchQuery] = useState('');
+    const [selectedType, setSelectedType] = useState('all');
+    const [selectedDistrict, setSelectedDistrict] = useState('all');
+    const [costRange, setCostRange] = useState('all');
+
+
   const renderClientContent = () => {
-
-
-    
     const combinedData = [
       ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
       ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
@@ -907,6 +912,68 @@ export default function HomeScreen({ navigation }) {
     ].filter((item) => item.type !== 'goods' || item.category !== 'Прочее');
   
     console.log('Combined Data:', combinedData.map(i => ({ type: i.type, name: i.name || i.item_name || i.teamName || i.salonName, cost: i.cost || i.averageCost })));
+  
+    // Состояния для поиска и фильтров
+  
+  
+    // Уникальные значения для фильтров
+    const types = ['all', ...new Set(combinedData.map((item) => item.type))];
+    const districts = ['all', ...new Set(combinedData.map((item) => item.district).filter(Boolean))];
+  
+    // Функция фильтрации данных
+    const getFilteredData = () => {
+      let result = combinedData;
+  
+      if (searchQuery) {
+        result = result.filter((item) => {
+          const fieldsToSearch = [
+            item.name,
+            item.itemName,
+            item.flowerName,
+            item.alcoholName,
+            item.carName,
+            item.teamName,
+            item.salonName,
+            item.storeName,
+            item.address,
+            item.phone,
+            item.cuisine,
+            item.category,
+            item.brand,
+            item.gender,
+            item.portfolio,
+            item.cakeType,
+            item.flowerType,
+          ].filter(Boolean);
+  
+          return fieldsToSearch.some((field) =>
+            field.toLowerCase().includes(searchQuery.toLowerCase())
+          );
+        });
+      }
+  
+      if (selectedType !== 'all') {
+        result = result.filter((item) => item.type === selectedType);
+      }
+  
+      if (selectedDistrict !== 'all') {
+        result = result.filter((item) => item.district === selectedDistrict);
+      }
+  
+      if (costRange !== 'all') {
+        result = result.filter((item) => {
+          const cost = item.averageCost || item.cost;
+          if (costRange === '0-10000') return cost <= 10000;
+          if (costRange === '10000-50000') return cost > 10000 && cost <= 50000;
+          if (costRange === '50000+') return cost > 50000;
+          return true;
+        });
+      }
+  
+      return result;
+    };
+  
+    const filteredItems = getFilteredData();
   
     return (
       <View style={styles.clientContainer}>
@@ -980,7 +1047,6 @@ export default function HomeScreen({ navigation }) {
                 >
                   <Text style={styles.modalButtonText2}>Отмена</Text>
                 </TouchableOpacity>
-                
                 <TouchableOpacity
                   style={[styles.modalButton2, styles.confirmButton]}
                   onPress={filterDataByBudget}
@@ -1026,25 +1092,115 @@ export default function HomeScreen({ navigation }) {
           </>
         )}
   
+        {/* Обновлённое модальное окно "Добавить элемент" */}
         <Modal visible={addItemModalVisible} transparent animationType="slide">
-          <View style={styles.modalOverlay}>
-            <Animatable.View style={styles.addModalContent} animation="zoomIn" duration={300}>
-              <Text style={styles.modalTitle}>Добавить элемент</Text>
-              <FlatList
-                data={combinedData}
-                renderItem={renderAddItem}
-                keyExtractor={(item) => `${item.type}-${item.id}`}
-                contentContainerStyle={styles.addItemList}
-              />
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setAddItemModalVisible(false)}
-              >
-                <Text style={styles.modalButtonText}>Закрыть</Text>
-              </TouchableOpacity>
-            </Animatable.View>
+      <View style={styles.modalOverlay}>
+        <Animatable.View style={styles.addModalContainer} animation="zoomIn" duration={300}>
+          {/* Заголовок и кнопка закрытия */}
+          <View style={styles.addModalHeader}>
+            <Text style={styles.addModalTitle}>Добавить элемент</Text>
+            <TouchableOpacity
+              style={styles.addModalCloseIcon}
+              onPress={() => {
+                setAddItemModalVisible(false);
+                setSearchQuery('');
+                setSelectedType('all');
+                setSelectedDistrict('all');
+                setCostRange('all');
+              }}
+            >
+              <Icon name="close" size={24} color={COLORS.textSecondary} />
+            </TouchableOpacity>
           </View>
-        </Modal>
+
+          {/* Поиск */}
+          <View style={styles.addModalSearchContainer}>
+            <Icon name="search" size={20} color={COLORS.textSecondary} style={styles.addModalSearchIcon} />
+            <TextInput
+              style={styles.addModalSearchInput}
+              placeholder="Поиск по названию..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                style={styles.addModalClearIcon}
+                onPress={() => setSearchQuery('')}
+              >
+                <Icon name="clear" size={20} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Фильтры */}
+          <View style={styles.addModalFilterContainer}>
+            <View style={styles.addModalFilterItem}>
+              <Text style={styles.addModalFilterLabel}>Тип</Text>
+              <Picker
+                selectedValue={selectedType}
+                style={styles.addModalPicker}
+                onValueChange={(itemValue) => setSelectedType(itemValue)}
+              >
+                {types.map((type) => (
+                  <Picker.Item key={type} label={type === 'all' ? 'Все' : type} value={type} />
+                ))}
+              </Picker>
+            </View>
+            <View style={styles.addModalFilterItem}>
+              <Text style={styles.addModalFilterLabel}>Район</Text>
+              <Picker
+                selectedValue={selectedDistrict}
+                style={styles.addModalPicker}
+                onValueChange={(itemValue) => setSelectedDistrict(itemValue)}
+              >
+                {districts.map((district) => (
+                  <Picker.Item
+                    key={district}
+                    label={district === 'all' ? 'Все' : district}
+                    value={district}
+                  />
+                ))}
+              </Picker>
+            </View>
+            <View style={styles.addModalFilterItem}>
+              <Text style={styles.addModalFilterLabel}>Цена</Text>
+              <Picker
+                selectedValue={costRange}
+                style={styles.addModalPicker}
+                onValueChange={(itemValue) => setCostRange(itemValue)}
+              >
+                <Picker.Item label="Все" value="all" />
+                <Picker.Item label="0-10k" value="0-10000" />
+                <Picker.Item label="10k-50k" value="10000-50000" />
+                <Picker.Item label="50k+" value="50000+" />
+              </Picker>
+            </View>
+
+
+            
+          </View>
+
+          {/* Список элементов */}
+         
+          <FlatList
+          style={{flex:'1',marginTop:'200'}}
+            data={filteredItems}
+            renderItem={renderAddItem}
+            keyExtractor={(item) => `${item.type}-${item.id}`}
+            contentContainerStyle={styles.addModalItemList}
+            ListEmptyComponent={<Text style={styles.addModalEmptyText}>Ничего не найдено</Text>}
+          />
+        </Animatable.View>
+    
+      </View>
+
+     
+      <View>
+      
+      </View>
+    </Modal>
+
+
   
         {!budget && (
           <View style={styles.noBudgetContainer}>
@@ -1523,6 +1679,7 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  // Основные контейнеры
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -1537,6 +1694,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     padding: 20,
   },
+
+  // Кнопки и панель
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1550,6 +1709,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
+  // Текст и информация
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
@@ -1564,6 +1725,8 @@ const styles = StyleSheet.create({
   budgetError: {
     color: COLORS.error,
   },
+
+  // Карточки
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 12,
@@ -1595,6 +1758,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+
+  // Инпуты и элементы управления
   quantityInput: {
     width: 80,
     height: 40,
@@ -1623,31 +1788,31 @@ const styles = StyleSheet.create({
     top: 8,
     right: 8,
   },
+
+  // Общие стили для модальных окон
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    maxHeight: '100%',
   },
   modalContent: {
-    width: '85%',
+    width: '90%',
     backgroundColor: COLORS.card,
     borderRadius: 16,
     maxHeight: '80%',
-    overflow: 'hidden',
-    alignSelf: 'center',
     padding: 20,
-  },
-  scrollViewContent: {
-    padding: 20,
-    flexGrow: 1,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.textPrimary,
-    marginBottom: 20,
+    marginBottom: 16,
     textAlign: 'center',
   },
   modalText: {
@@ -1655,15 +1820,6 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: 'center',
     marginBottom: 20,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 15,
-    fontSize: 16,
-    width: '100%',
   },
   budgetInput: {
     width: '100%',
@@ -1691,48 +1847,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textPrimary,
   },
-  subtitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    marginVertical: 10,
-    color: COLORS.textPrimary,
-  },
-  itemsContainer: {
-    flexGrow: 1,
-  },
-  itemContainer: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-  },
-  itemText: {
-    fontSize: 13,
-  },
-  noItems: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  totalContainer: {
-    marginVertical: 20,
-    alignItems: 'center',
-  },
-  totalText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  modalButtonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
   modalButton: {
-    flex: 1,
-    paddingVertical: 25,
+    paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
-    marginHorizontal: 50,
+    marginTop: 12,
+    backgroundColor: COLORS.secondary,
   },
   modalButton2: {
     flex: 1,
@@ -1748,9 +1868,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.textSecondary,
   },
   modalButtonText: {
-    minHeight: 40,
-    padding: 0,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
   },
@@ -1764,53 +1882,135 @@ const styles = StyleSheet.create({
     gap: 12,
     width: '100%',
   },
-  addModalContent: {
-    width: '90%',
-    height: '80%',
+
+  // Стили для модального окна "Добавить элемент"
+  addModalContainer: {
+    width: '95%',
+    maxHeight: '85%',
     backgroundColor: COLORS.card,
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: 24,
+    padding: 16,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
+    overflow: 'hidden',
   },
-  addItemList: {
-    flexGrow: 1,
-    marginBottom: 20,
+  addModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  addItemCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
+  addModalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    flex: 1,
+    textAlign: 'center',
+  },
+  addModalCloseIcon: {
+    padding: 4,
+  },
+  addModalSearchContainer: {
+    position: 'relative',
+    marginBottom: 12,
+  },
+  addModalSearchInput: {
+    height: 44,
     borderWidth: 1,
-    borderColor: COLORS.textSecondary,
-  },
-  addItemText: {
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 40,
     fontSize: 16,
     color: COLORS.textPrimary,
+    backgroundColor: '#F7FAFC',
   },
-  loadingContainer: {
+  addModalSearchIcon: {
+    position: 'absolute',
+    left: 12,
+    top: 12,
+    zIndex: 1,
+  },
+  addModalClearIcon: {
+    position: 'absolute',
+    right: 12,
+    top: 12,
+    zIndex: 1,
+  },
+  addModalFilterContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    backgroundColor: '#F7FAFC',
+    borderRadius: 12,
+    padding: 8,
+    flexWrap: 'wrap',
+  },
+  addModalFilterItem: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    minWidth: 100,
+    marginHorizontal: 4,
   },
-  loadingText: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    marginTop: 10,
+  addModalFilterLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 4,
   },
-  listContent: {
+  addModalPicker: {
+    height: 40,
+    backgroundColor: COLORS.card,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    color: COLORS.textPrimary,
+  },
+  addModalItemList: {
     flexGrow: 1,
-    paddingBottom: 20,
+    paddingBottom: 16,
   },
-  emptyContainer: {
+  addModalItemCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#EDF2F7',
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  addModalItemText: {
+    fontSize: 16,
+    color: COLORS.textPrimary,
     flex: 1,
+    marginRight: 12,
+  },
+  addModalAddButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 20,
+    width: 32,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  emptyText: {
+  addModalEmptyText: {
     fontSize: 16,
     color: COLORS.textSecondary,
-    marginTop: 10,
     textAlign: 'center',
+    paddingVertical: 20,
+  },
+
+  // Дополнительные стили
+  switchSelector: {
+    marginBottom: 20,
   },
   noBudgetContainer: {
     flex: 1,
@@ -1823,165 +2023,18 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: 'center',
   },
-  switchSelector: {
-    marginBottom: 20,
+  listContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-    color: '#000000',
-  },
-  subtitle: {
-    fontSize: 18,
-    marginVertical: 10,
-    color: '#000000',
-  },
-  dateText: {
-    fontSize: 16,
-    marginVertical: 10,
-    color: '#000000',
-  },
-  modalOverlay: {
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  modalContent: {
-    width: '90%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    maxHeight: '80%',
-  },
-  scrollContent: {
-    padding: 20,
-    alignItems: 'center',
-    flexGrow: 1,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#000000',
-  },
-  modalSubtitle: {
+  loadingText: {
     fontSize: 16,
-    marginVertical: 10,
-    color: '#000000',
-  },
-  modalText: {
-    fontSize: 16,
-    color: '#000000',
-  },
-  picker: {
-    height: 300,
-    width: '100%',
-    marginBottom: 10,
-    color: '#000000',
-    backgroundColor: '#F0F0F0',
-  },
-  actionButton: {
-    marginVertical: 10,
-    padding: 12,
-    backgroundColor: '#FF6200',
-    borderRadius: 8,
-    width: '80%',
-    alignItems: 'center',
-  },
-  actionButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  closeButton: {
-    marginTop: 20,
-    marginBottom: 20,
-    padding: 12,
-    backgroundColor: '#000000',
-    borderRadius: 8,
-    width: '80%',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FF6200',
-  },
-  closeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-
-
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    width: '90%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    maxHeight: '80%',
-    padding: 20,
-  },
-  scrollContent: {
-    padding: 20,
-    alignItems: 'center',
-    flexGrow: 1,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#000000',
-  },
-  modalSubtitle: {
-    fontSize: 16,
-    marginVertical: 10,
-    color: '#000000',
-  },
-  modalText: {
-    fontSize: 16,
-    color: '#000000',
-    marginVertical: 5,
-  },
-  occupiedContainer: {
-    marginTop: 20,
-    width: '100%',
-    alignItems: 'center',
-  },
-  closeButton: {
-    marginTop: 20,
-    padding: 12,
-    backgroundColor: '#000000',
-    borderRadius: 8,
-    width: '80%',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FF6200',
-  },
-  closeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  actionButton: {
-    marginVertical: 10,
-    padding: 12,
-    backgroundColor: '#FF6200',
-    borderRadius: 8,
-    width: '80%',
-    alignItems: 'center',
-    alignSelf: 'center',
-  },
-  actionButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
+    color: COLORS.textSecondary,
+    marginTop: 10,
   },
 });
