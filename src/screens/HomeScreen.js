@@ -1094,111 +1094,141 @@ export default function HomeScreen({ navigation }) {
   
         {/* Обновлённое модальное окно "Добавить элемент" */}
         <Modal visible={addItemModalVisible} transparent animationType="slide">
-      <View style={styles.modalOverlay}>
-        <Animatable.View style={styles.addModalContainer} animation="zoomIn" duration={300}>
-          {/* Заголовок и кнопка закрытия */}
-          <View style={styles.addModalHeader}>
-            <Text style={styles.addModalTitle}>Добавить элемент</Text>
-            <TouchableOpacity
-              style={styles.addModalCloseIcon}
-              onPress={() => {
-                setAddItemModalVisible(false);
-                setSearchQuery('');
-                setSelectedType('all');
-                setSelectedDistrict('all');
-                setCostRange('all');
-              }}
-            >
-              <Icon name="close" size={24} color={COLORS.textSecondary} />
-            </TouchableOpacity>
+          <View style={styles.modalOverlay}>
+            <Animatable.View style={styles.addModalContainer} animation="zoomIn" duration={300}>
+              {/* Заголовок и кнопка закрытия */}
+              <View style={styles.addModalHeader}>
+                <Text style={styles.addModalTitle}>Добавить элемент</Text>
+                <TouchableOpacity
+                  style={styles.addModalCloseIcon}
+                  onPress={() => {
+                    setAddItemModalVisible(false);
+                    setSearchQuery('');
+                    setSelectedType('all');
+                    setSelectedDistrict('all');
+                    setCostRange('all');
+                  }}
+                >
+                  <Icon name="close" size={24} color={COLORS.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Поиск */}
+              <View style={styles.addModalSearchContainer}>
+                <Icon name="search" size={20} color={COLORS.textSecondary} style={styles.addModalSearchIcon} />
+                <TextInput
+                  style={styles.addModalSearchInput}
+                  placeholder="Поиск по названию..."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.addModalClearIcon}
+                    onPress={() => setSearchQuery('')}
+                  >
+                    <Icon name="clear" size={20} color={COLORS.textSecondary} />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Фильтры */}
+              <View style={styles.addModalFilterContainer}>
+                {/* Фильтр "Тип" в виде кнопок */}
+                <View style={styles.addModalTypeFilterContainer}>
+                  <Text style={styles.addModalFilterLabel}>Тип</Text>
+                  <View style={styles.addModalTypeButtons}>
+                    {types.map((type) => (
+                      <TouchableOpacity
+                        key={type}
+                        style={[
+                          styles.addModalTypeButton,
+                          selectedType === type && styles.addModalTypeButtonActive,
+                        ]}
+                        onPress={() => setSelectedType(type)}
+                      >
+                        <Text
+                          style={[
+                            styles.addModalTypeButtonText,
+                            selectedType === type && styles.addModalTypeButtonTextActive,
+                          ]}
+                        >
+                          {type === 'all' ? 'Все' : type}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Фильтр "Район" в виде кнопок */}
+                <View style={styles.addModalDistrictFilterContainer}>
+                  <Text style={styles.addModalFilterLabel}>Район</Text>
+                  <View style={styles.addModalDistrictButtons}>
+                    {districts.map((district) => (
+                      <TouchableOpacity
+                        key={district}
+                        style={[
+                          styles.addModalDistrictButton,
+                          selectedDistrict === district && styles.addModalDistrictButtonActive,
+                        ]}
+                        onPress={() => setSelectedDistrict(district)}
+                      >
+                        <Text
+                          style={[
+                            styles.addModalDistrictButtonText,
+                            selectedDistrict === district && styles.addModalDistrictButtonTextActive,
+                          ]}
+                        >
+                          {district === 'all' ? 'Все' : district}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Фильтр "Цена" в виде кнопок */}
+                <View style={styles.addModalPriceFilterContainer}>
+                  <Text style={styles.addModalFilterLabel}>Цена</Text>
+                  <View style={styles.addModalPriceButtons}>
+                    {[
+                      { label: 'Все', value: 'all' },
+                      { label: '0-10k', value: '0-10000' },
+                      { label: '10k-50k', value: '10000-50000' },
+                      { label: '50k+', value: '50000+' },
+                    ].map((option) => (
+                      <TouchableOpacity
+                        key={option.value}
+                        style={[
+                          styles.addModalPriceButton,
+                          costRange === option.value && styles.addModalPriceButtonActive,
+                        ]}
+                        onPress={() => setCostRange(option.value)}
+                      >
+                        <Text
+                          style={[
+                            styles.addModalPriceButtonText,
+                            costRange === option.value && styles.addModalPriceButtonTextActive,
+                          ]}
+                        >
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+
+              {/* Список элементов */}
+              <FlatList
+                data={filteredItems}
+                renderItem={renderAddItem}
+                keyExtractor={(item) => `${item.type}-${item.id}`}
+                contentContainerStyle={styles.addModalItemList}
+                ListEmptyComponent={<Text style={styles.addModalEmptyText}>Ничего не найдено</Text>}
+              />
+            </Animatable.View>
           </View>
-
-          {/* Поиск */}
-          <View style={styles.addModalSearchContainer}>
-            <Icon name="search" size={20} color={COLORS.textSecondary} style={styles.addModalSearchIcon} />
-            <TextInput
-              style={styles.addModalSearchInput}
-              placeholder="Поиск по названию..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity
-                style={styles.addModalClearIcon}
-                onPress={() => setSearchQuery('')}
-              >
-                <Icon name="clear" size={20} color={COLORS.textSecondary} />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Фильтры */}
-          <View style={styles.addModalFilterContainer}>
-            <View style={styles.addModalFilterItem}>
-              <Text style={styles.addModalFilterLabel}>Тип</Text>
-              <Picker
-                selectedValue={selectedType}
-                style={styles.addModalPicker}
-                onValueChange={(itemValue) => setSelectedType(itemValue)}
-              >
-                {types.map((type) => (
-                  <Picker.Item key={type} label={type === 'all' ? 'Все' : type} value={type} />
-                ))}
-              </Picker>
-            </View>
-            <View style={styles.addModalFilterItem}>
-              <Text style={styles.addModalFilterLabel}>Район</Text>
-              <Picker
-                selectedValue={selectedDistrict}
-                style={styles.addModalPicker}
-                onValueChange={(itemValue) => setSelectedDistrict(itemValue)}
-              >
-                {districts.map((district) => (
-                  <Picker.Item
-                    key={district}
-                    label={district === 'all' ? 'Все' : district}
-                    value={district}
-                  />
-                ))}
-              </Picker>
-            </View>
-            <View style={styles.addModalFilterItem}>
-              <Text style={styles.addModalFilterLabel}>Цена</Text>
-              <Picker
-                selectedValue={costRange}
-                style={styles.addModalPicker}
-                onValueChange={(itemValue) => setCostRange(itemValue)}
-              >
-                <Picker.Item label="Все" value="all" />
-                <Picker.Item label="0-10k" value="0-10000" />
-                <Picker.Item label="10k-50k" value="10000-50000" />
-                <Picker.Item label="50k+" value="50000+" />
-              </Picker>
-            </View>
-
-
-            
-          </View>
-
-          {/* Список элементов */}
-         
-          <FlatList
-          style={{flex:'1',marginTop:'200'}}
-            data={filteredItems}
-            renderItem={renderAddItem}
-            keyExtractor={(item) => `${item.type}-${item.id}`}
-            contentContainerStyle={styles.addModalItemList}
-            ListEmptyComponent={<Text style={styles.addModalEmptyText}>Ничего не найдено</Text>}
-          />
-        </Animatable.View>
-    
-      </View>
-
-     
-      <View>
-      
-      </View>
-    </Modal>
+        </Modal>
 
 
   
@@ -1885,17 +1915,16 @@ const styles = StyleSheet.create({
 
   // Стили для модального окна "Добавить элемент"
   addModalContainer: {
-    width: '95%',
-    maxHeight: '85%',
+    width: '92%',
+    maxHeight: '80%',
     backgroundColor: COLORS.card,
-    borderRadius: 24,
+    borderRadius: 20,
     padding: 16,
     shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 8,
-    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   addModalHeader: {
     flexDirection: 'row',
@@ -1904,76 +1933,140 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   addModalTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
     color: COLORS.textPrimary,
     flex: 1,
     textAlign: 'center',
   },
   addModalCloseIcon: {
-    padding: 4,
+    padding: 6,
+    borderRadius: 20,
+    backgroundColor: '#F7FAFC',
   },
   addModalSearchContainer: {
     position: 'relative',
     marginBottom: 12,
   },
   addModalSearchInput: {
-    height: 44,
+    height: 40,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 40,
-    fontSize: 16,
+    borderRadius: 10,
+    paddingHorizontal: 36,
+    fontSize: 14,
     color: COLORS.textPrimary,
     backgroundColor: '#F7FAFC',
   },
   addModalSearchIcon: {
     position: 'absolute',
-    left: 12,
-    top: 12,
+    left: 10,
+    top: 10,
     zIndex: 1,
   },
   addModalClearIcon: {
     position: 'absolute',
-    right: 12,
-    top: 12,
+    right: 10,
+    top: 10,
     zIndex: 1,
   },
   addModalFilterContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     marginBottom: 12,
-    backgroundColor: '#F7FAFC',
-    borderRadius: 12,
-    padding: 8,
+  },
+  // Стили для фильтра "Тип" в виде кнопок
+  addModalTypeFilterContainer: {
+    marginBottom: 10,
+  },
+  addModalTypeButtons: {
+    flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: 6,
   },
-  addModalFilterItem: {
-    flex: 1,
-    minWidth: 100,
-    marginHorizontal: 4,
-  },
-  addModalFilterLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: 4,
-  },
-  addModalPicker: {
-    height: 40,
-    backgroundColor: COLORS.card,
-    borderRadius: 8,
+  addModalTypeButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    backgroundColor: '#F7FAFC',
+  },
+  addModalTypeButtonActive: {
+    backgroundColor: COLORS.accent, // Оранжевый для активной кнопки
+    borderColor: COLORS.accent,
+  },
+  addModalTypeButtonText: {
+    fontSize: 12,
     color: COLORS.textPrimary,
+    fontWeight: '500',
+  },
+  addModalTypeButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  // Стили для фильтра "Район" в виде кнопок
+  addModalDistrictFilterContainer: {
+    marginBottom: 10,
+  },
+  addModalDistrictButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  addModalDistrictButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F7FAFC',
+  },
+  addModalDistrictButtonActive: {
+    backgroundColor: COLORS.accent, // Оранжевый для активной кнопки
+    borderColor: COLORS.accent,
+  },
+  addModalDistrictButtonText: {
+    fontSize: 12,
+    color: COLORS.textPrimary,
+    fontWeight: '500',
+  },
+  addModalDistrictButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  // Стили для фильтра "Цена" в виде кнопок
+  addModalPriceFilterContainer: {
+    marginBottom: 12,
+  },
+  addModalPriceButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  addModalPriceButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F7FAFC',
+  },
+  addModalPriceButtonActive: {
+    backgroundColor: COLORS.accent, // Оранжевый для активной кнопки
+    borderColor: COLORS.accent,
+  },
+  addModalPriceButtonText: {
+    fontSize: 12,
+    color: COLORS.textPrimary,
+    fontWeight: '500',
+  },
+  addModalPriceButtonTextActive: {
+    color: '#FFFFFF',
   },
   addModalItemList: {
     flexGrow: 1,
-    paddingBottom: 16,
+    paddingBottom: 12,
   },
   addModalItemCard: {
     backgroundColor: COLORS.card,
-    borderRadius: 12,
+    borderRadius: 10,
     padding: 12,
     marginBottom: 8,
     flexDirection: 'row',
@@ -1988,53 +2081,26 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   addModalItemText: {
-    fontSize: 16,
+    fontSize: 14,
     color: COLORS.textPrimary,
     flex: 1,
-    marginRight: 12,
+    marginRight: 10,
   },
   addModalAddButton: {
     backgroundColor: COLORS.primary,
-    borderRadius: 20,
-    width: 32,
-    height: 32,
+    borderRadius: 16,
+    width: 28,
+    height: 28,
     justifyContent: 'center',
     alignItems: 'center',
   },
   addModalEmptyText: {
-    fontSize: 16,
+    fontSize: 14,
     color: COLORS.textSecondary,
     textAlign: 'center',
-    paddingVertical: 20,
+    paddingVertical: 16,
   },
 
-  // Дополнительные стили
-  switchSelector: {
-    marginBottom: 20,
-  },
-  noBudgetContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  noBudgetText: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  listContent: {
-    flexGrow: 1,
-    paddingBottom: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    marginTop: 10,
-  },
+
+
 });
