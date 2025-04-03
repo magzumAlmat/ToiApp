@@ -915,7 +915,25 @@ export default function HomeScreen({ navigation }) {
   
     // Состояния для поиска и фильтров
   
+    const typeOrder = {
+      restaurant: 1,
+      clothing: 2,
+      tamada: 3,
+      program: 4,
+      traditionalGift: 5,
+      flowers: 6,
+      transport: 7,
+    };
   
+    // Сортировка данных
+    const sortedFilteredData = [...filteredData].sort((a, b) => {
+      return (typeOrder[a.type] || 8) - (typeOrder[b.type] || 8);
+    });
+  
+    const sortedCombinedData = [...combinedData].sort((a, b) => {
+      return (typeOrder[a.type] || 8) - (typeOrder[b.type] || 8);
+    });
+
     // Уникальные значения для фильтров
     const types = ['all', ...new Set(combinedData.map((item) => item.type))];
     const districts = ['all', ...new Set(combinedData.map((item) => item.district).filter(Boolean))];
@@ -1000,7 +1018,8 @@ const [selectedItem, setSelectedItem] = useState(null);
             <Icon name="event" size={24} color={!budget ? COLORS.textSecondary : '#FFFFFF'} />
           </TouchableOpacity>
         </View>
-  
+     
+
         {budget && (
           <SwitchSelector
             options={[
@@ -1058,7 +1077,7 @@ const [selectedItem, setSelectedItem] = useState(null);
             </Animatable.View>
           </SafeAreaView>
         </Modal>
-  
+        <Text> </Text>
         {budget && (
           <>
             <Text style={styles.sectionTitle}>
@@ -1072,21 +1091,37 @@ const [selectedItem, setSelectedItem] = useState(null);
             {loading ? (
               <ActivityIndicator size="large" color={COLORS.primary} />
             ) : filteredData.length > 0 ? (
-              <FlatList
-                data={filteredData}
-                renderItem={renderItem}
-                keyExtractor={(item) => `${item.type}-${item.id}`}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-              />
-            ) : combinedData.length > 0 ? (
-              <FlatList
-                data={combinedData}
-                renderItem={renderItem}
-                keyExtractor={(item) => `${item.type}-${item.id}`}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-              />
+              
+            //   <FlatList
+            //     data={filteredData}
+            //     renderItem={renderItem}
+            //     keyExtractor={(item) => `${item.type}-${item.id}`}
+            //     contentContainerStyle={styles.listContent}
+            //     showsVerticalScrollIndicator={false}
+            //   />
+            // ) : combinedData.length > 0 ? (
+            //   <FlatList
+            //     data={combinedData}
+            //     renderItem={renderItem}
+            //     keyExtractor={(item) => `${item.type}-${item.id}`}
+            //     contentContainerStyle={styles.listContent}
+            //     showsVerticalScrollIndicator={false}
+            //   />
+            <FlatList
+              data={sortedFilteredData} // Используем отсортированные данные
+              renderItem={renderItem}
+              keyExtractor={(item) => `${item.type}-${item.id}`}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+            />
+          ) : combinedData.length > 0 ? (
+            <FlatList
+              data={sortedCombinedData} // Используем отсортированные данные
+              renderItem={renderItem}
+              keyExtractor={(item) => `${item.type}-${item.id}`}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+            />
             ) : (
               <Text style={styles.emptyText}>Нет данных для отображения</Text>
             )}
@@ -1134,6 +1169,7 @@ const [selectedItem, setSelectedItem] = useState(null);
           </TouchableOpacity>
         )}
       </View>
+
 
       {/* Фильтры */}
       <View style={styles.addModalFilterContainer}>
