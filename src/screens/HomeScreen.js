@@ -499,67 +499,67 @@ export default function HomeScreen({ navigation }) {
       case 'restaurant':
         content = (
           <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Ресторан</Text>
-            <Text style={styles.cardTitle}>{item.name}</Text>
+            <Text style={styles.cardTitle}>Ресторан - {item.name}</Text>
+            {/* <Text style={styles.cardTitle}>{item.name}</Text> */}
             <Text style={styles.cardDetail}>Вместимость: {item.capacity}</Text>
-            <Text style={styles.cardDetail}>Кухня: {item.cuisine}</Text>
+            {/* <Text style={styles.cardDetail}>Кухня: {item.cuisine}</Text> */}
             <Text style={styles.cardDetail}>Средний чек: {item.averageCost} ₸</Text>
-            <Text style={styles.cardDetail}>Адрес: {item.address || 'Не указан'}</Text>
+            {/* <Text style={styles.cardDetail}>Адрес: {item.address || 'Не указан'}</Text> */}
           </View>
         );
         break;
       case 'clothing':
         content = (
           <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Одежда</Text>
-            <Text style={styles.cardTitle}>{item.storeName}</Text>
-            <Text style={styles.cardDetail}>Товар: {item.itemName}</Text>
-            <Text style={styles.cardDetail}>Пол: {item.gender}</Text>
+            <Text style={styles.cardTitle}>Одежда - {item.storeName}</Text>
+            {/* <Text style={styles.cardTitle}>{item.storeName}</Text> */}
+            {/* <Text style={styles.cardDetail}>Товар: {item.itemName}</Text> */}
+            {/* <Text style={styles.cardDetail}>Пол: {item.gender}</Text> */}
             <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
-            <Text style={styles.cardDetail}>Адрес: {item.address}</Text>
+            {/* <Text style={styles.cardDetail}>Адрес: {item.address}</Text> */}
           </View>
         );
         break;
       case 'flowers':
         content = (
           <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Цветы</Text>
-            <Text style={styles.cardTitle}>{item.salonName}</Text>
+            <Text style={styles.cardTitle}>Салон цветов - {item.salonName}</Text>
+            {/* <Text style={styles.cardTitle}>{item.salonName}</Text> */}
             <Text style={styles.cardDetail}>Цветы: {item.flowerName}</Text>
-            <Text style={styles.cardDetail}>Тип: {item.flowerType}</Text>
+            {/* <Text style={styles.cardDetail}>Тип: {item.flowerType}</Text> */}
             <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
-            <Text style={styles.cardDetail}>Адрес: {item.address}</Text>
+            {/* <Text style={styles.cardDetail}>Адрес: {item.address}</Text> */}
           </View>
         );
         break;
       case 'cake':
         content = (
           <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Торты</Text>
-            <Text style={styles.cardTitle}>{item.name}</Text>
+            <Text style={styles.cardTitle}>Кондитерская - {item.name} </Text>
+            {/* <Text style={styles.cardTitle}>{item.name}</Text> */}
             <Text style={styles.cardDetail}>Тип торта: {item.cakeType}</Text>
             <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
-            <Text style={styles.cardDetail}>Адрес: {item.address}</Text>
+            {/* <Text style={styles.cardDetail}>Адрес: {item.address}</Text> */}
           </View>
         );
         break;
       case 'alcohol':
         content = (
           <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Алкоголь</Text>
-            <Text style={styles.cardTitle}>{item.salonName}</Text>
+            <Text style={styles.cardTitle}>Алкогольный магазин - {item.salonName} </Text>
+            {/* <Text style={styles.cardTitle}>{item.salonName}</Text> */}
             <Text style={styles.cardDetail}>Напиток: {item.alcoholName}</Text>
-            <Text style={styles.cardDetail}>Категория: {item.category}</Text>
+            {/* <Text style={styles.cardDetail}>Категория: {item.category}</Text> */}
             <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
-            <Text style={styles.cardDetail}>Адрес: {item.address}</Text>
+            {/* <Text style={styles.cardDetail}>Адрес: {item.address}</Text> */}
           </View>
         );
         break;
       case 'program':
         content = (
           <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Программы</Text>
-            <Text style={styles.cardTitle}>{item.teamName}</Text>
+            <Text style={styles.cardTitle}>Программа - {item.teamName}</Text>
+            {/* <Text style={styles.cardTitle}>{item.teamName}</Text> */}
             <Text style={styles.cardDetail}>Тип: {item.type}</Text>
             <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
           </View>
@@ -568,9 +568,9 @@ export default function HomeScreen({ navigation }) {
       case 'tamada':
         content = (
           <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Тамада</Text>
-            <Text style={styles.cardTitle}>{item.name}</Text>
-            <Text style={styles.cardDetail}>Портфолио: {item.portfolio}</Text>
+            <Text style={styles.cardTitle}>Тамада {item.name}</Text>
+            {/* <Text style={styles.cardTitle}></Text> */}
+            {/* <Text style={styles.cardDetail}>Портфолио: {item.portfolio}</Text> */}
             <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
           </View>
         );
@@ -578,12 +578,12 @@ export default function HomeScreen({ navigation }) {
       case 'traditionalGift':
         content = (
           <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Традиционные подарки</Text>
-            <Text style={styles.cardTitle}>{item.salonName}</Text>
+            <Text style={styles.cardTitle}>Традиционные подарки - {item.salonName}</Text>
+            {/* <Text style={styles.cardTitle}>{item.salonName}</Text> */}
             <Text style={styles.cardDetail}>Товар: {item.itemName}</Text>
-            <Text style={styles.cardDetail}>Тип: {item.type}</Text>
+            {/* <Text style={styles.cardDetail}>Тип: {item.type}</Text> */}
             <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
-            <Text style={styles.cardDetail}>Адрес: {item.address}</Text>
+            {/* <Text style={styles.cardDetail}>Адрес: {item.address}</Text> */}
           </View>
         );
         break;
@@ -605,9 +605,9 @@ export default function HomeScreen({ navigation }) {
       case 'goods':
         content = (
           <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Товар</Text>
-            <Text style={styles.cardTitle}>{item.item_name}</Text>
-            <Text style={styles.cardDetail}>Описание: {item.description} </Text>
+            <Text style={styles.cardTitle}>Товар - {item.item_name}</Text>
+            {/* <Text style={styles.cardTitle}></Text> */}
+            {/* <Text style={styles.cardDetail}>Описание: {item.description} </Text> */}
             <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
           </View>
         );
@@ -1138,7 +1138,7 @@ const [selectedItem, setSelectedItem] = useState(null);
             //     contentContainerStyle={styles.listContent}
             //     showsVerticalScrollIndicator={false}
             //   />
-            <FlatList
+            <FlatList 
               data={sortedFilteredData} // Используем отсортированные данные
               renderItem={renderItem}
               keyExtractor={(item) => `${item.type}-${item.id}`}
@@ -1349,6 +1349,7 @@ const [selectedItem, setSelectedItem] = useState(null);
                 })()}
               </Text>
             </TouchableOpacity>
+            
             <TouchableOpacity
               style={styles.addModalDetailsButton}
               onPress={() => {
@@ -1358,6 +1359,14 @@ const [selectedItem, setSelectedItem] = useState(null);
             >
               <Text style={styles.addModalDetailsButtonText}>Подробнее</Text>
             </TouchableOpacity>
+            {/* <TouchableOpacity
+                style={styles.detailsButton}
+                onPress={() => navigation.navigate('Details', { item })}
+              >
+                <Button style={styles.detailsButtonText}>Подробнее</Button>
+              </TouchableOpacity> */}
+
+
           </View>
         )}
         keyExtractor={(item) => `${item.type}-${item.id}`}

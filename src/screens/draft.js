@@ -343,3 +343,34 @@ const styles = StyleSheet.create({
   removeButton: { marginLeft: 10 },
   removeButtonText: { color: 'red', fontSize: 14 },
 });
+
+
+
+
+
+
+const typesMapping = [
+  { key: 'clothing', costField: 'cost', type: 'clothing', label: 'Одежда' },
+  { key: 'tamada', costField: 'cost', type: 'tamada', label: 'Тамада' },
+  { key: 'programs', costField: 'cost', type: 'program', label: 'Программа' },
+  { key: 'traditionalGifts', costField: 'cost', type: 'traditionalGift', label: 'Традиционные подарки' },
+  { key: 'flowers', costField: 'cost', type: 'flowers', label: 'Цветы' },
+  { key: 'cakes', costField: 'cost', type: 'cake', label: 'Торты' },
+  { key: 'alcohol', costField: 'cost', type: 'alcohol', label: 'Алкоголь' },
+  { key: 'transport', costField: 'cost', type: 'transport', label: 'Транспорт' },
+  { key: 'restaurants', costField: 'averageCost', type: 'restaurant', label: 'Ресторан' },
+  { key: 'goods', costField: 'cost', type: 'goods', label: 'Товары' },
+];
+
+const allTypes = [
+  { type: 'all', label: 'Все' },
+  ...combinedData.map((item) => ({
+    type: item.type,
+    label: typesMapping.find((t) => t.type === item.type)?.label || item.type,
+  })),
+];
+
+
+
+
+
