@@ -9,8 +9,6 @@ import {
   TextInput,
   SafeAreaView,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
@@ -61,7 +59,6 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   const [budgetModalVisible, setBudgetModalVisible] = useState(false);
-  
   const [addItemModalVisible, setAddItemModalVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
@@ -73,63 +70,67 @@ export default function HomeScreen({ navigation }) {
   const [newGoodName, setNewGoodName] = useState('');
   const [newGoodCost, setNewGoodCost] = useState('');
   const [priceFilter, setPriceFilter] = useState('average');
-  const [blockedDays, setBlockedDays] = useState({}); // Добавляем состояние для заблокированных дней
-  const [showWarningModal, setShowWarningModal] = useState(false); // Модальное окно предупреждения
+  const [blockedDays, setBlockedDays] = useState({});
+  const [showWarningModal, setShowWarningModal] = useState(false);
   const [occupiedRestaurants, setOccupiedRestaurants] = useState([]);
 
-  // Цвета для каждого ресторана
+  // Состояния для поиска и фильтров в модальном окне "Добавить элемент"
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState('all');
+  const [selectedDistrict, setSelectedDistrict] = useState('all');
+  const [costRange, setCostRange] = useState('all');
+
+  // Состояния для резервирования
+  const [showTypeModal, setShowTypeModal] = useState(false);
+  const [selectedType, setSelectedType] = useState(null);
+  const [showItemModal, setShowItemModal] = useState(false);
+  const [tempItemId, setTempItemId] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [showCalendarModal2, setShowCalendarModal2] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
   const restaurantColors = {
-    1: '#FF6B6B', // Красный
-    2: '#4ECDC4', // Бирюзовый
-    3: '#45B7D1', // Голубой
-    4: '#96CEB4', // Зеленый
-    5: '#FFEEAD', // Желтый
+    1: '#FF6B6B',
+    2: '#4ECDC4',
+    3: '#45B7D1',
+    4: '#96CEB4',
+    5: '#FFEEAD',
   };
 
-  // Функция загрузки заблокированных дней для всех ресторанов
   const fetchAllBlockedDays = async () => {
     try {
-      const response = await api.fetchAllBlockDays();
+      const responses = await Promise.all([
+        api.fetchAllBlockDays('restaurant'),
+        api.fetchAllBlockDays('transport'),
+        api.fetchAllBlockDays('program'),
+        api.fetchAllBlockDays('tamada'),
+      ]);
       const blockedDays = {};
-  
-      // Предполагаемый формат ответа: [{ date: "2025-03-28", restaurantId: 1, restaurantName: "Уютный дом" }, ...]
-      response.data.forEach((entry) => {
-        const { date, restaurantId, restaurantName } = entry;
-  
-        // Если дата еще не существует в blockedDays, создаем массив
-        if (!blockedDays[date]) {
-          blockedDays[date] = {
-            marked: true,
-            dots: [],
-          };
-        }
-  
-        // Добавляем ресторан в массив dots
-        blockedDays[date].dots.push({
-          restaurantId,
-          restaurantName,
-          color: restaurantColors[restaurantId] || '#CCCCCC',
+      responses.forEach((response, index) => {
+        const type = ['restaurant', 'transport', 'program', 'tamada'][index];
+        response.data.forEach((entry) => {
+          const { date, id, name } = entry;
+          if (!blockedDays[date]) {
+            blockedDays[date] = { marked: true, dots: [] };
+          }
+          blockedDays[date].dots.push({
+            key: `${type}-${id}`,
+            color: restaurantColors[id] || '#CCCCCC',
+            type,
+            name,
+          });
         });
       });
-  
       setBlockedDays(blockedDays);
-      console.log('Fetched blocked days:', blockedDays);
     } catch (error) {
       console.error('Ошибка загрузки заблокированных дней:', error);
     }
   };
 
-  // Загружаем заблокированные дни при изменении данных ресторанов
-  useEffect(() => {
-    if (data?.restaurants?.length > 0) {
-      fetchAllBlockedDays();
-    }
-  }, [data.restaurants,occupiedRestaurants]);
-
   const getCalendarPermissions = async () => {
     const { status } = await ExpoCalendar.requestCalendarPermissionsAsync();
-    if (status !== 'granted') return false;
-    return true;
+    return status === 'granted';
   };
 
   const fetchData = async () => {
@@ -184,6 +185,17 @@ export default function HomeScreen({ navigation }) {
     const unsubscribe = navigation.addListener('focus', fetchData);
     return unsubscribe;
   }, [navigation, token, user]);
+
+  useEffect(() => {
+    if (
+      data?.restaurants?.length > 0 ||
+      data?.transport?.length > 0 ||
+      data?.programs?.length > 0 ||
+      data?.tamada?.length > 0
+    ) {
+      fetchAllBlockedDays();
+    }
+  }, [data.restaurants, data.transport, data.programs, data.tamada, occupiedRestaurants]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -314,16 +326,11 @@ export default function HomeScreen({ navigation }) {
   };
 
   const filterDataByBudget = () => {
-    console.log('=== filterDataByBudget started ===');
-    console.log('Budget:', budget, 'Guest Count:', guestCount, 'Price Filter:', priceFilter);
-
     if (!budget || isNaN(budget) || parseFloat(budget) <= 0) {
-      console.log('Invalid budget');
       alert('Пожалуйста, введите корректную сумму бюджета');
       return;
     }
     if (!guestCount || isNaN(guestCount) || parseFloat(guestCount) <= 0) {
-      console.log('Invalid guest count');
       alert('Пожалуйста, введите корректное количество гостей');
       return;
     }
@@ -333,24 +340,20 @@ export default function HomeScreen({ navigation }) {
     let remaining = budgetValue;
     const selectedItems = [];
 
-    console.log('Filtering restaurants...');
     const suitableRestaurants = data.restaurants.filter(
       (restaurant) => parseFloat(restaurant.capacity) >= guests
     );
-    console.log('Suitable Restaurants:', suitableRestaurants.map(r => ({ name: r.name, capacity: r.capacity, averageCost: r.averageCost })));
 
     if (suitableRestaurants.length === 0) {
-      console.log('No suitable restaurants found');
       alert('Нет ресторанов с достаточной вместимостью');
       return;
     }
 
     const sortedRestaurants = suitableRestaurants
-      .filter(r => parseFloat(r.averageCost) <= remaining)
+      .filter((r) => parseFloat(r.averageCost) <= remaining)
       .sort((a, b) => parseFloat(a.averageCost) - parseFloat(b.averageCost));
 
     if (sortedRestaurants.length === 0) {
-      console.log('No affordable restaurants found');
       alert('Нет ресторанов, подходящих под ваш бюджет');
       return;
     }
@@ -365,11 +368,8 @@ export default function HomeScreen({ navigation }) {
     }
 
     const restaurantCost = parseFloat(selectedRestaurant.averageCost);
-    console.log(`Selected Restaurant:`, { name: selectedRestaurant.name, cost: restaurantCost });
-
     selectedItems.push({ ...selectedRestaurant, type: 'restaurant', totalCost: restaurantCost });
     remaining -= restaurantCost;
-    console.log('Restaurant added. Remaining budget:', remaining);
 
     const types = [
       { key: 'clothing', costField: 'cost', type: 'clothing' },
@@ -383,11 +383,7 @@ export default function HomeScreen({ navigation }) {
     ];
 
     for (const { key, costField, type } of types) {
-      console.log(`Filtering ${type}...`);
-      const items = data[key]
-        .filter(item => parseFloat(item[costField]) <= remaining);
-
-      console.log(`${type} items:`, items.map(i => ({ name: i.name || i.item_name || i.teamName || i.salonName, cost: i[costField] })));
+      const items = data[key].filter((item) => parseFloat(item[costField]) <= remaining);
 
       if (items.length > 0) {
         const sortedItems = items.sort((a, b) => parseFloat(a[costField]) - parseFloat(b[costField]));
@@ -402,23 +398,15 @@ export default function HomeScreen({ navigation }) {
         }
 
         const cost = parseFloat(selectedItem[costField]);
-        console.log(`Selected ${type}:`, { name: selectedItem.name || selectedItem.item_name || selectedItem.teamName || selectedItem.salonName, cost });
-
         selectedItems.push({ ...selectedItem, type, totalCost: cost });
         remaining -= cost;
-        console.log(`${type} added. Remaining budget:`, remaining);
-      } else {
-        console.log(`No affordable items found for ${type}`);
       }
     }
 
-    console.log('Selected Items:', selectedItems.map(i => ({ type: i.type, name: i.name || i.item_name || i.teamName || i.salonName, totalCost: i.totalCost })));
-    console.log('Remaining Budget:', remaining);
     setFilteredData(selectedItems);
     setRemainingBudget(remaining);
     setQuantities(selectedItems.reduce((acc, item) => ({ ...acc, [`${item.type}-${item.id}`]: '1' }), {}));
     setBudgetModalVisible(false);
-    console.log('=== filterDataByBudget completed ===');
   };
 
   useEffect(() => {
@@ -607,7 +595,7 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.cardContent}>
             <Text style={styles.cardTitle}>Товар</Text>
             <Text style={styles.cardTitle}>{item.item_name}</Text>
-            <Text style={styles.cardDetail}>Описание: {item.description} </Text>
+            <Text style={styles.cardDetail}>Описание: {item.description}</Text>
             <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
           </View>
         );
@@ -632,7 +620,6 @@ export default function HomeScreen({ navigation }) {
                 style={styles.quantityInput}
                 placeholder="Кол-во"
                 value={quantities[itemKey] || ''}
-                
                 onChangeText={(value) => handleQuantityChange(itemKey, value)}
                 keyboardType="numeric"
               />
@@ -688,7 +675,7 @@ export default function HomeScreen({ navigation }) {
         break;
       case 'program':
         title = `Программа: ${item.teamName} (${cost} ₸)`;
-    
+        break;
       case 'tamada':
         title = `Тамада: ${item.name} (${cost} ₸)`;
         break;
@@ -727,6 +714,31 @@ export default function HomeScreen({ navigation }) {
       ...data.transport.map((item) => ({ ...item, type: 'transport' })),
       ...data.goods.map((item) => ({ ...item, type: 'goods' })),
     ].filter((item) => item.supplier_id === userId);
+
+    const typesMapping = [
+      { key: 'clothing', costField: 'cost', type: 'clothing', label: 'Одежда' },
+      { key: 'tamada', costField: 'cost', type: 'tamada', label: 'Тамада' },
+      { key: 'programs', costField: 'cost', type: 'program', label: 'Программа' },
+      { key: 'traditionalGifts', costField: 'cost', type: 'traditionalGift', label: 'Традиционные подарки' },
+      { key: 'flowers', costField: 'cost', type: 'flowers', label: 'Цветы' },
+      { key: 'cakes', costField: 'cost', type: 'cake', label: 'Торты' },
+      { key: 'alcohol', costField: 'cost', type: 'alcohol', label: 'Алкоголь' },
+      { key: 'transport', costField: 'cost', type: 'transport', label: 'Транспорт' },
+      { key: 'restaurants', costField: 'averageCost', type: 'restaurant', label: 'Ресторан' },
+      { key: 'goods', costField: 'cost', type: 'goods', label: 'Товары' },
+    ];
+
+    const allTypes = [
+      { type: 'all', label: 'Все' },
+      ...combinedData.map((item) => ({
+        type: item.type,
+        label: typesMapping.find((t) => t.type === item.type)?.label || item.type,
+      })),
+    ];
+
+    const uniqueTypes = Array.from(new Set(allTypes.map((t) => t.type))).map((type) =>
+      allTypes.find((t) => t.type === type)
+    );
 
     return (
       <SafeAreaView style={styles.container}>
@@ -819,8 +831,6 @@ export default function HomeScreen({ navigation }) {
   };
 
   const createEvent = () => {
-    console.log('CreateEvent currentUserId=', user?.id);
-    console.log('CreateEvent all Selected data=', filteredData);
     setModalVisible(true);
   };
 
@@ -831,9 +841,9 @@ export default function HomeScreen({ navigation }) {
     }
 
     const dateString = weddingDate.toISOString().split('T')[0];
-    const selectedRestaurant = filteredData.find(item => item.type === 'restaurant');
+    const selectedRestaurant = filteredData.find((item) => item.type === 'restaurant');
     if (selectedRestaurant && blockedDays[dateString]) {
-      setShowWarningModal(true); // Показываем предупреждение, если ресторан забронирован
+      setShowWarningModal(true);
       return;
     }
 
@@ -869,7 +879,7 @@ export default function HomeScreen({ navigation }) {
         };
         await ExpoCalendar.createEventAsync(defaultCalendar.id, eventDetails);
       }
-      alert('Успех', 'Свадьба успешно создана и добавлена в календарь!');
+      alert('Свадьба успешно создана и добавлена в календарь!');
       setModalVisible(false);
       setWeddingName('');
       setWeddingDate(new Date());
@@ -884,18 +894,10 @@ export default function HomeScreen({ navigation }) {
     const dateString = day.dateString;
     setWeddingDate(selectedDate);
     if (blockedDays[dateString]) {
-      setShowWarningModal(true); // Показываем предупреждение, если день забронирован
+      setShowWarningModal(true);
     }
     setShowDatePicker(false);
   };
-
-
-  //----------------------------------------------------------------------------------------------------------------------------------------------
-  const [searchQuery, setSearchQuery] = useState('');
-    const [selectedType, setSelectedType] = useState('all');
-    const [selectedDistrict, setSelectedDistrict] = useState('all');
-    const [costRange, setCostRange] = useState('all');
-
 
   const renderClientContent = () => {
     const combinedData = [
@@ -910,11 +912,31 @@ export default function HomeScreen({ navigation }) {
       ...data.transport.map((item) => ({ ...item, type: 'transport' })),
       ...data.goods.map((item) => ({ ...item, type: 'goods' })),
     ].filter((item) => item.type !== 'goods' || item.category !== 'Прочее');
-  
-    console.log('Combined Data:', combinedData.map(i => ({ type: i.type, name: i.name || i.item_name || i.teamName || i.salonName, cost: i.cost || i.averageCost })));
-  
-    // Состояния для поиска и фильтров
-  
+
+    const typesMapping = [
+      { key: 'clothing', costField: 'cost', type: 'clothing', label: 'Одежда' },
+      { key: 'tamada', costField: 'cost', type: 'tamada', label: 'Тамада' },
+      { key: 'programs', costField: 'cost', type: 'program', label: 'Программа' },
+      { key: 'traditionalGifts', costField: 'cost', type: 'traditionalGift', label: 'Традиционные подарки' },
+      { key: 'flowers', costField: 'cost', type: 'flowers', label: 'Цветы' },
+      { key: 'cakes', costField: 'cost', type: 'cake', label: 'Торты' },
+      { key: 'alcohol', costField: 'cost', type: 'alcohol', label: 'Алкоголь' },
+      { key: 'transport', costField: 'cost', type: 'transport', label: 'Транспорт' },
+      { key: 'restaurants', costField: 'averageCost', type: 'restaurant', label: 'Ресторан' },
+    ];
+
+    const allTypes = [
+      { type: 'all', label: 'Все' },
+      ...combinedData.map((item) => ({
+        type: item.type,
+        label: typesMapping.find((t) => t.type === item.type)?.label || item.type,
+      })),
+    ];
+
+    const uniqueTypes = Array.from(new Set(allTypes.map((t) => t.type))).map((type) =>
+      allTypes.find((t) => t.type === type)
+    );
+
     const typeOrder = {
       restaurant: 1,
       clothing: 2,
@@ -924,24 +946,20 @@ export default function HomeScreen({ navigation }) {
       flowers: 6,
       transport: 7,
     };
-  
-    // Сортировка данных
+
     const sortedFilteredData = [...filteredData].sort((a, b) => {
       return (typeOrder[a.type] || 8) - (typeOrder[b.type] || 8);
     });
-  
+
     const sortedCombinedData = [...combinedData].sort((a, b) => {
       return (typeOrder[a.type] || 8) - (typeOrder[b.type] || 8);
     });
 
-    // Уникальные значения для фильтров
-    const types = ['all', ...new Set(combinedData.map((item) => item.type))];
     const districts = ['all', ...new Set(combinedData.map((item) => item.district).filter(Boolean))];
-  
-    // Функция фильтрации данных
+
     const getFilteredData = () => {
       let result = combinedData;
-  
+
       if (searchQuery) {
         result = result.filter((item) => {
           const fieldsToSearch = [
@@ -963,21 +981,21 @@ export default function HomeScreen({ navigation }) {
             item.cakeType,
             item.flowerType,
           ].filter(Boolean);
-  
+
           return fieldsToSearch.some((field) =>
             field.toLowerCase().includes(searchQuery.toLowerCase())
           );
         });
       }
-  
-      if (selectedType !== 'all') {
-        result = result.filter((item) => item.type === selectedType);
+
+      if (selectedTypeFilter !== 'all') {
+        result = result.filter((item) => item.type === selectedTypeFilter);
       }
-  
+
       if (selectedDistrict !== 'all') {
         result = result.filter((item) => item.district === selectedDistrict);
       }
-  
+
       if (costRange !== 'all') {
         result = result.filter((item) => {
           const cost = item.averageCost || item.cost;
@@ -987,13 +1005,12 @@ export default function HomeScreen({ navigation }) {
           return true;
         });
       }
-  
+
       return result;
     };
-  
+
     const filteredItems = getFilteredData();
-    const [detailsModalVisible, setDetailsModalVisible] = useState(false);
-const [selectedItem, setSelectedItem] = useState(null);
+
     return (
       <View style={styles.clientContainer}>
         <View style={styles.buttonRow}>
@@ -1018,7 +1035,6 @@ const [selectedItem, setSelectedItem] = useState(null);
             <Icon name="event" size={24} color={!budget ? COLORS.textSecondary : '#FFFFFF'} />
           </TouchableOpacity>
         </View>
-     
 
         {budget && (
           <SwitchSelector
@@ -1028,10 +1044,7 @@ const [selectedItem, setSelectedItem] = useState(null);
               { label: 'Макс', value: 'max' },
             ]}
             initial={1}
-            onPress={(value) => {
-              console.log('SwitchSelector changed to:', value);
-              setPriceFilter(value);
-            }}
+            onPress={(value) => setPriceFilter(value)}
             buttonColor={COLORS.primary}
             backgroundColor={COLORS.background}
             textColor={COLORS.textSecondary}
@@ -1039,18 +1052,17 @@ const [selectedItem, setSelectedItem] = useState(null);
             style={styles.switchSelector}
           />
         )}
-  
+
         <Modal visible={budgetModalVisible} transparent animationType="slide">
-          <SafeAreaView style={styles.modalOverlay}>
+          <View style={styles.modalOverlay}>
             <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
-              <Text style={styles.modalTitle}>Ваш бюджет</Text>
+              <Text style={styles.modalTitle}>Установить бюджет</Text>
               <TextInput
                 style={styles.budgetInput}
-                placeholder="Введите сумму (₸)"
+                placeholder="Введите бюджет (₸)"
                 value={budget}
                 onChangeText={handleBudgetChange}
                 keyboardType="numeric"
-                placeholderTextColor={COLORS.textSecondary}
               />
               <TextInput
                 style={styles.budgetInput}
@@ -1058,26 +1070,25 @@ const [selectedItem, setSelectedItem] = useState(null);
                 value={guestCount}
                 onChangeText={handleGuestCountChange}
                 keyboardType="numeric"
-                placeholderTextColor={COLORS.textSecondary}
               />
-              <View style={styles.modalActions}>
+              <View style={styles.modalButtonContainer}>
                 <TouchableOpacity
-                  style={[styles.modalButton2, styles.cancelButton]}
+                  style={[styles.modalButton, styles.cancelButton]}
                   onPress={() => setBudgetModalVisible(false)}
                 >
-                  <Text style={styles.modalButtonText2}>Отмена</Text>
+                  <Text style={styles.modalButtonText}>Отмена</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.modalButton2, styles.confirmButton]}
+                  style={[styles.modalButton, styles.confirmButton]}
                   onPress={filterDataByBudget}
                 >
-                  <Text style={styles.modalButtonText2}>Применить</Text>
+                  <Text style={styles.modalButtonText}>Применить</Text>
                 </TouchableOpacity>
               </View>
             </Animatable.View>
-          </SafeAreaView>
+          </View>
         </Modal>
-        <Text> </Text>
+
         {budget && (
           <>
             <Text style={styles.sectionTitle}>
@@ -1091,365 +1102,157 @@ const [selectedItem, setSelectedItem] = useState(null);
             {loading ? (
               <ActivityIndicator size="large" color={COLORS.primary} />
             ) : filteredData.length > 0 ? (
-              
-            //   <FlatList
-            //     data={filteredData}
-            //     renderItem={renderItem}
-            //     keyExtractor={(item) => `${item.type}-${item.id}`}
-            //     contentContainerStyle={styles.listContent}
-            //     showsVerticalScrollIndicator={false}
-            //   />
-            // ) : combinedData.length > 0 ? (
-            //   <FlatList
-            //     data={combinedData}
-            //     renderItem={renderItem}
-            //     keyExtractor={(item) => `${item.type}-${item.id}`}
-            //     contentContainerStyle={styles.listContent}
-            //     showsVerticalScrollIndicator={false}
-            //   />
-            <FlatList
-              data={sortedFilteredData} // Используем отсортированные данные
-              renderItem={renderItem}
-              keyExtractor={(item) => `${item.type}-${item.id}`}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-            />
-          ) : combinedData.length > 0 ? (
-            <FlatList
-              data={sortedCombinedData} // Используем отсортированные данные
-              renderItem={renderItem}
-              keyExtractor={(item) => `${item.type}-${item.id}`}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-            />
+              <FlatList
+                data={sortedFilteredData}
+                renderItem={renderItem}
+                keyExtractor={(item) => `${item.type}-${item.id}`}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+              />
+            ) : combinedData.length > 0 ? (
+              <FlatList
+                data={sortedCombinedData}
+                renderItem={renderItem}
+                keyExtractor={(item) => `${item.type}-${item.id}`}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+              />
             ) : (
               <Text style={styles.emptyText}>Нет данных для отображения</Text>
             )}
           </>
         )}
-  
-        {/* Обновлённое модальное окно "Добавить элемент" */}
-      
 
-<Modal visible={addItemModalVisible} transparent animationType="slide">
-  <View style={styles.modalOverlay}>
-    <Animatable.View style={styles.addModalContainer} animation="zoomIn" duration={300}>
-      {/* Заголовок и кнопка закрытия */}
-      <View style={styles.addModalHeader}>
-        <Text style={styles.addModalTitle}>Добавить элемент</Text>
-        <TouchableOpacity
-          style={styles.addModalCloseIcon}
-          onPress={() => {
-            setAddItemModalVisible(false);
-            setSearchQuery('');
-            setSelectedType('all');
-            setSelectedDistrict('all');
-            setCostRange('all');
-          }}
-        >
-          <Icon name="close" size={24} color={COLORS.textSecondary} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Поиск */}
-      <View style={styles.addModalSearchContainer}>
-        <Icon name="search" size={20} color={COLORS.textSecondary} style={styles.addModalSearchIcon} />
-        <TextInput
-          style={styles.addModalSearchInput}
-          placeholder="Поиск по названию..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity
-            style={styles.addModalClearIcon}
-            onPress={() => setSearchQuery('')}
-          >
-            <Icon name="clear" size={20} color={COLORS.textSecondary} />
-          </TouchableOpacity>
-        )}
-      </View>
-
-
-      {/* Фильтры */}
-      <View style={styles.addModalFilterContainer}>
-        {/* Фильтр "Тип" в виде кнопок */}
-        <View style={styles.addModalTypeFilterContainer}>
-          <Text style={styles.addModalFilterLabel}>Тип</Text>
-          <View style={styles.addModalTypeButtons}>
-            {types.map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={[
-                  styles.addModalTypeButton,
-                  selectedType === type && styles.addModalTypeButtonActive,
-                ]}
-                onPress={() => setSelectedType(type)}
-              >
-                <Text
-                  style={[
-                    styles.addModalTypeButtonText,
-                    selectedType === type && styles.addModalTypeButtonTextActive,
-                  ]}
+        <Modal visible={addItemModalVisible} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <Animatable.View style={styles.addModalContainer} animation="zoomIn" duration={300}>
+              <View style={styles.addModalHeader}>
+                <Text style={styles.addModalTitle}>Добавить элемент</Text>
+                <TouchableOpacity
+                  style={styles.addModalCloseIcon}
+                  onPress={() => {
+                    setAddItemModalVisible(false);
+                    setSearchQuery('');
+                    setSelectedTypeFilter('all');
+                    setSelectedDistrict('all');
+                    setCostRange('all');
+                  }}
                 >
-                  {type === 'all' ? 'Все' : type}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Фильтр "Район" в виде кнопок */}
-        <View style={styles.addModalDistrictFilterContainer}>
-          <Text style={styles.addModalFilterLabel}>Район</Text>
-          <View style={styles.addModalDistrictButtons}>
-            {districts.map((district) => (
-              <TouchableOpacity
-                key={district}
-                style={[
-                  styles.addModalDistrictButton,
-                  selectedDistrict === district && styles.addModalDistrictButtonActive,
-                ]}
-                onPress={() => setSelectedDistrict(district)}
-              >
-                <Text
-                  style={[
-                    styles.addModalDistrictButtonText,
-                    selectedDistrict === district && styles.addModalDistrictButtonTextActive,
-                  ]}
-                >
-                  {district === 'all' ? 'Все' : district}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Фильтр "Цена" в виде кнопок */}
-        <View style={styles.addModalPriceFilterContainer}>
-          <Text style={styles.addModalFilterLabel}>Цена</Text>
-          <View style={styles.addModalPriceButtons}>
-            {[
-              { label: 'Все', value: 'all' },
-              { label: '0-10k', value: '0-10000' },
-              { label: '10k-50k', value: '10000-50000' },
-              { label: '50k+', value: '50000+' },
-            ].map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                style={[
-                  styles.addModalPriceButton,
-                  costRange === option.value && styles.addModalPriceButtonActive,
-                ]}
-                onPress={() => setCostRange(option.value)}
-              >
-                <Text
-                  style={[
-                    styles.addModalPriceButtonText,
-                    costRange === option.value && styles.addModalPriceButtonTextActive,
-                  ]}
-                >
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      </View>
-
-      {/* Список элементов */}
-      <FlatList
-        data={filteredItems}
-        renderItem={({ item }) => (
-          <View style={styles.addModalItemCard}>
-            <TouchableOpacity
-              style={styles.addModalItemContent}
-              onPress={() => handleAddItem(item)}
-            >
-              <Text style={styles.addModalItemText}>
-                {(() => {
-                  const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
-                  switch (item.type) {
-                    case 'restaurant':
-                      return `Ресторан: ${item.name} (${cost} ₸)`;
-                    case 'clothing':
-                      return `Одежда: ${item.storeName} - ${item.itemName} (${cost} ₸)`;
-                    case 'flowers':
-                      return `Цветы: ${item.salonName} - ${item.flowerName} (${cost} ₸)`;
-                    case 'cake':
-                      return `Торты: ${item.name} (${cost} ₸)`;
-                    case 'alcohol':
-                      return `Алкоголь: ${item.salonName} - ${item.alcoholName} (${cost} ₸)`;
-                    case 'program':
-                      return `Программа: ${item.teamName} (${cost} ₸)`;
-                    case 'tamada':
-                      return `Тамада: ${item.name} (${cost} ₸)`;
-                    case 'traditionalGift':
-                      return `Традиц. подарки: ${item.salonName} - ${item.itemName} (${cost} ₸)`;
-                    case 'transport':
-                      return `Транспорт: ${item.salonName} - ${item.carName} (${cost} ₸)`;
-                    case 'goods':
-                      return `Товар: ${item.item_name} (${cost} ₸)`;
-                    default:
-                      return 'Неизвестный элемент';
-                  }
-                })()}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.addModalDetailsButton}
-              onPress={() => {
-                setSelectedItem(item);
-                setDetailsModalVisible(true);
-              }}
-            >
-              <Text style={styles.addModalDetailsButtonText}>Подробнее</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        keyExtractor={(item) => `${item.type}-${item.id}`}
-        contentContainerStyle={styles.addModalItemList}
-        ListEmptyComponent={<Text style={styles.addModalEmptyText}>Ничего не найдено</Text>}
-      />
-
-      {/* Модальное окно с подробной информацией */}
-      <Modal visible={detailsModalVisible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <Animatable.View style={styles.detailsModalContainer} animation="zoomIn" duration={300}>
-            <View style={styles.detailsModalHeader}>
-              <Text style={styles.detailsModalTitle}>Подробности</Text>
-              <TouchableOpacity
-                style={styles.detailsModalCloseIcon}
-                onPress={() => setDetailsModalVisible(false)}
-              >
-                <Icon name="close" size={24} color={COLORS.textSecondary} />
-              </TouchableOpacity>
-            </View>
-            {selectedItem && (
-              <View style={styles.detailsModalContent}>
-                {(() => {
-                  switch (selectedItem.type) {
-                    case 'restaurant':
-                      return (
-                        <>
-                          <Text style={styles.detailsModalText}>Тип: Ресторан</Text>
-                          <Text style={styles.detailsModalText}>Название: {selectedItem.name}</Text>
-                          <Text style={styles.detailsModalText}>Вместимость: {selectedItem.capacity}</Text>
-                          <Text style={styles.detailsModalText}>Кухня: {selectedItem.cuisine}</Text>
-                          <Text style={styles.detailsModalText}>Средний чек: {selectedItem.averageCost} ₸</Text>
-                          <Text style={styles.detailsModalText}>Адрес: {selectedItem.address || 'Не указан'}</Text>
-                        </>
-                      );
-                    case 'clothing':
-                      return (
-                        <>
-                          <Text style={styles.detailsModalText}>Тип: Одежда</Text>
-                          <Text style={styles.detailsModalText}>Магазин: {selectedItem.storeName}</Text>
-                          <Text style={styles.detailsModalText}>Товар: {selectedItem.itemName}</Text>
-                          <Text style={styles.detailsModalText}>Пол: {selectedItem.gender}</Text>
-                          <Text style={styles.detailsModalText}>Стоимость: {selectedItem.cost} ₸</Text>
-                          <Text style={styles.detailsModalText}>Адрес: {selectedItem.address}</Text>
-                        </>
-                      );
-                    case 'flowers':
-                      return (
-                        <>
-                          <Text style={styles.detailsModalText}>Тип: Цветы</Text>
-                          <Text style={styles.detailsModalText}>Салон: {selectedItem.salonName}</Text>
-                          <Text style={styles.detailsModalText}>Цветы: {selectedItem.flowerName}</Text>
-                          <Text style={styles.detailsModalText}>Тип цветов: {selectedItem.flowerType}</Text>
-                          <Text style={styles.detailsModalText}>Стоимость: {selectedItem.cost} ₸</Text>
-                          <Text style={styles.detailsModalText}>Адрес: {selectedItem.address}</Text>
-                        </>
-                      );
-                    case 'cake':
-                      return (
-                        <>
-                          <Text style={styles.detailsModalText}>Тип: Торты</Text>
-                          <Text style={styles.detailsModalText}>Название: {selectedItem.name}</Text>
-                          <Text style={styles.detailsModalText}>Тип торта: {selectedItem.cakeType}</Text>
-                          <Text style={styles.detailsModalText}>Стоимость: {selectedItem.cost} ₸</Text>
-                          <Text style={styles.detailsModalText}>Адрес: {selectedItem.address}</Text>
-                        </>
-                      );
-                    case 'alcohol':
-                      return (
-                        <>
-                          <Text style={styles.detailsModalText}>Тип: Алкоголь</Text>
-                          <Text style={styles.detailsModalText}>Салон: {selectedItem.salonName}</Text>
-                          <Text style={styles.detailsModalText}>Напиток: {selectedItem.alcoholName}</Text>
-                          <Text style={styles.detailsModalText}>Категория: {selectedItem.category}</Text>
-                          <Text style={styles.detailsModalText}>Стоимость: {selectedItem.cost} ₸</Text>
-                          <Text style={styles.detailsModalText}>Адрес: {selectedItem.address}</Text>
-                        </>
-                      );
-                    case 'program':
-                      return (
-                        <>
-                          <Text style={styles.detailsModalText}>Тип: Программа</Text>
-                          <Text style={styles.detailsModalText}>Команда: {selectedItem.teamName}</Text>
-                          <Text style={styles.detailsModalText}>Тип программы: {selectedItem.type}</Text>
-                          <Text style={styles.detailsModalText}>Стоимость: {selectedItem.cost} ₸</Text>
-                        </>
-                      );
-                    case 'tamada':
-                      return (
-                        <>
-                          <Text style={styles.detailsModalText}>Тип: Тамада</Text>
-                          <Text style={styles.detailsModalText}>Имя: {selectedItem.name}</Text>
-                          <Text style={styles.detailsModalText}>Портфолио: {selectedItem.portfolio}</Text>
-                          <Text style={styles.detailsModalText}>Стоимость: {selectedItem.cost} ₸</Text>
-                        </>
-                      );
-                    case 'traditionalGift':
-                      return (
-                        <>
-                          <Text style={styles.detailsModalText}>Тип: Традиционные подарки</Text>
-                          <Text style={styles.detailsModalText}>Салон: {selectedItem.salonName}</Text>
-                          <Text style={styles.detailsModalText}>Товар: {selectedItem.itemName}</Text>
-                          <Text style={styles.detailsModalText}>Тип: {selectedItem.type}</Text>
-                          <Text style={styles.detailsModalText}>Стоимость: {selectedItem.cost} ₸</Text>
-                          <Text style={styles.detailsModalText}>Адрес: {selectedItem.address}</Text>
-                        </>
-                      );
-                    case 'transport':
-                      return (
-                        <>
-                          <Text style={styles.detailsModalText}>Тип: Транспорт</Text>
-                          <Text style={styles.detailsModalText}>Салон: {selectedItem.salonName}</Text>
-                          <Text style={styles.detailsModalText}>Авто: {selectedItem.carName}</Text>
-                          <Text style={styles.detailsModalText}>Марка: {selectedItem.brand}</Text>
-                          <Text style={styles.detailsModalText}>Цвет: {selectedItem.color}</Text>
-                          <Text style={styles.detailsModalText}>Телефон: {selectedItem.phone}</Text>
-                          <Text style={styles.detailsModalText}>Район: {selectedItem.district}</Text>
-                          <Text style={styles.detailsModalText}>Стоимость: {selectedItem.cost} ₸</Text>
-                          <Text style={styles.detailsModalText}>Адрес: {selectedItem.address}</Text>
-                        </>
-                      );
-                    case 'goods':
-                      return (
-                        <>
-                          <Text style={styles.detailsModalText}>Тип: Товар</Text>
-                          <Text style={styles.detailsModalText}>Название: {selectedItem.item_name}</Text>
-                          <Text style={styles.detailsModalText}>Описание: {selectedItem.description || 'Не указано'}</Text>
-                          <Text style={styles.detailsModalText}>Стоимость: {selectedItem.cost} ₸</Text>
-                        </>
-                      );
-                    default:
-                      return <Text style={styles.detailsModalText}>Неизвестный тип</Text>;
-                  }
-                })()}
+                  <Icon name="close" size={24} color={COLORS.textSecondary} />
+                </TouchableOpacity>
               </View>
-            )}
-          </Animatable.View>
-        </View>
-      </Modal>
-    </Animatable.View>
-  </View>
-</Modal>
 
+              <View style={styles.addModalSearchContainer}>
+                <Icon name="search" size={20} color={COLORS.textSecondary} style={styles.addModalSearchIcon} />
+                <TextInput
+                  style={styles.addModalSearchInput}
+                  placeholder="Поиск по названию..."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.addModalClearIcon}
+                    onPress={() => setSearchQuery('')}
+                  >
+                    <Icon name="clear" size={20} color={COLORS.textSecondary} />
+                  </TouchableOpacity>
+                )}
+              </View>
 
-  
+              <View style={styles.addModalFilterContainer}>
+                <View style={styles.addModalTypeFilterContainer}>
+                  <Text style={styles.addModalFilterLabel}>Тип</Text>
+                  <View style={styles.addModalTypeButtons}>
+                    {uniqueTypes.map((typeObj) => (
+                      <TouchableOpacity
+                        key={typeObj.type}
+                        style={[
+                          styles.addModalTypeButton,
+                          selectedTypeFilter === typeObj.type && styles.addModalTypeButtonActive,
+                        ]}
+                        onPress={() => setSelectedTypeFilter(typeObj.type)}
+                      >
+                        <Text
+                          style={[
+                            styles.addModalTypeButtonText,
+                            selectedTypeFilter === typeObj.type && styles.addModalTypeButtonTextActive,
+                          ]}
+                        >
+                          {typeObj.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <View style={styles.addModalDistrictFilterContainer}>
+                  <Text style={styles.addModalFilterLabel}>Район</Text>
+                  <View style={styles.addModalDistrictButtons}>
+                    {districts.map((district) => (
+                      <TouchableOpacity
+                        key={district}
+                        style={[
+                          styles.addModalDistrictButton,
+                          selectedDistrict === district && styles.addModalDistrictButtonActive,
+                        ]}
+                        onPress={() => setSelectedDistrict(district)}
+                      >
+                        <Text
+                          style={[
+                            styles.addModalDistrictButtonText,
+                            selectedDistrict === district && styles.addModalDistrictButtonTextActive,
+                          ]}
+                        >
+                          {district === 'all' ? 'Все' : district}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <View style={styles.addModalPriceFilterContainer}>
+                  <Text style={styles.addModalFilterLabel}>Цена</Text>
+                  <View style={styles.addModalPriceButtons}>
+                    {[
+                      { label: 'Все', value: 'all' },
+                      { label: '0-10k', value: '0-10000' },
+                      { label: '10k-50k', value: '10000-50000' },
+                      { label: '50k+', value: '50000+' },
+                    ].map((option) => (
+                      <TouchableOpacity
+                        key={option.value}
+                        style={[
+                          styles.addModalPriceButton,
+                          costRange === option.value && styles.addModalPriceButtonActive,
+                        ]}
+                        onPress={() => setCostRange(option.value)}
+                      >
+                        <Text
+                          style={[
+                            styles.addModalPriceButtonText,
+                            costRange === option.value && styles.addModalPriceButtonTextActive,
+                          ]}
+                        >
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+
+              <FlatList
+                data={filteredItems}
+                renderItem={renderAddItem}
+                keyExtractor={(item) => `${item.type}-${item.id}`}
+                contentContainerStyle={styles.addModalItemList}
+                ListEmptyComponent={<Text style={styles.addModalEmptyText}>Ничего не найдено</Text>}
+              />
+            </Animatable.View>
+          </View>
+        </Modal>
+
         {!budget && (
           <View style={styles.noBudgetContainer}>
             <Icon name="attach-money" size={48} color={COLORS.textSecondary} />
@@ -1460,171 +1263,141 @@ const [selectedItem, setSelectedItem] = useState(null);
     );
   };
 
- 
-//----------------------------------------------------------------------
-
-  
-  
- 
-  
-  const [showRestaurantModal, setShowRestaurantModal] = useState(false); // Для модального окна ресторана
-  const [showCalendarModal, setShowCalendarModal] = useState(false); // Для модального окна календаря
-  const [showCalendarModal2, setShowCalendarModal2] = useState(false); // Для модального окна календаря
-  const [tempRestaurantId, setTempRestaurantId] = useState(null);
-  const [selectedRestaurant, setSelectedRestaurant] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-
-  const blockRestaurantDay = async (restaurantId, date) => {
+  const blockItemDay = async (type, itemId, date) => {
     try {
-      const response = await api.addDataBlockToRestaurant(restaurantId,selectedDate
-       );
-      alert('Успешно поставлена бронь',response.data.message);
-    } catch (error) {
-      console.error('Ошибка блокировки:', error);
-      // alert('Ошибка: ' + (error.response?.data?.message || error.message));
-      alert('В этот день у данного ресторана уже стоит бронь')
-    }
-  };
-
- 
-  useEffect(() => {
-    if (data?.restaurants?.length > 0) {
-      fetchAllBlockedDays();
-    }
-    console.log(occupiedRestaurants)
-  }, [data.restaurants,occupiedRestaurants]);
-
-
-
- 
-
-  useEffect(() => {
-    if (!token) navigation.navigate('Login');
-    else fetchData();
-  }, [token, user]);
-
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', fetchData);
-    return unsubscribe;
-  }, [navigation, token, user]);
-
-  const adminRenderContent = () => {
-    const handleBlockDay = async () => {
-      if (!selectedRestaurant) {
-        alert('Пожалуйста, выберите ресторан');
-        return;
+      let response;
+      switch (type) {
+        case 'restaurant':
+          response = await api.addDataBlockToRestaurant(itemId, date);
+          break;
+        case 'transport':
+          response = await api.addDataBlockToTransport(itemId, date);
+          break;
+        case 'program':
+          response = await api.addDataBlockToProgram(itemId, date);
+          break;
+        case 'tamada':
+          response = await api.addDataBlockToTamada(itemId, date);
+          break;
+        default:
+          throw new Error('Неизвестный тип объекта');
       }
-
-      // const { status } = await ExpoCalendar.requestCalendarPermissionsAsync();
-      // if (status !== 'granted') {
-      //   alert('Доступ к календарю не предоставлен');
-      //   return;
-      // }
+      alert('Успешно поставлена бронь');
 
       const defaultCalendar = await ExpoCalendar.getDefaultCalendarAsync();
       await ExpoCalendar.createEventAsync(defaultCalendar.id, {
-        title: `Забронирован день для ${selectedRestaurant.name}`,
-        startDate: selectedDate,
-        endDate: new Date(selectedDate.getTime() + 24 * 60 * 60 * 1000),
+        title: `Забронирован день для ${selectedItem.name || selectedItem.carName || selectedItem.teamName}`,
+        startDate: date,
+        endDate: new Date(date.getTime() + 24 * 60 * 60 * 1000),
         allDay: true,
-        notes: `Ресторан ${selectedRestaurant.name} забронирован менеджером`,
+        notes: `${type === 'restaurant' ? 'Ресторан' : type === 'transport' ? 'Транспорт' : type === 'program' ? 'Программа' : 'Тамада'} забронирован менеджером`,
         availability: 'busy',
       });
+    } catch (error) {
+      console.error(`Ошибка блокировки ${type}:`, error);
+      alert(`В этот день данный ${type} уже забронирован`);
+    }
+  };
 
-      await blockRestaurantDay(selectedRestaurant.id, selectedDate);
+  const adminRenderContent = () => {
+    const handleBlockDay = async () => {
+      if (!selectedItem || !selectedType) {
+        alert('Пожалуйста, выберите объект и тип');
+        return;
+      }
+
+      await blockItemDay(selectedType, selectedItem.id, selectedDate);
       setShowCalendarModal(false);
+      setSelectedItem(null);
+      setSelectedType(null);
+      fetchAllBlockedDays();
     };
 
-    const handleSelectRestaurant = () => {
-      
-      const restaurantId = Number(tempRestaurantId);
-
-  // Проверяем, существует ли data.restaurants и ищем ресторан
-      const restaurant = data?.restaurants?.find((r) => r.id === restaurantId);
-
-      console.log('Найденный ресторан:', restaurant);
-
-  if (!restaurant) {
-    console.log('Ресторан не найден. Проверьте ID или данные.');
-  }
-      console.log('Выбранный ресторан ID:', tempRestaurantId,'data=',data?.restaurants);
-      console.log('Найденный ресторан:', restaurant);
-      setSelectedRestaurant(restaurant || null);
-      setShowRestaurantModal(false); // Закрываем модальное окно ресторана
-      setShowCalendarModal(true); // Открываем модальное окно календаря
+    const handleSelectItem = () => {
+      let item;
+      switch (selectedType) {
+        case 'restaurant':
+          item = data?.restaurants?.find((r) => r.id === Number(tempItemId));
+          break;
+        case 'transport':
+          item = data?.transport?.find((t) => t.id === Number(tempItemId));
+          break;
+        case 'program':
+          item = data?.programs?.find((p) => p.id === Number(tempItemId));
+          break;
+        case 'tamada':
+          item = data?.tamada?.find((t) => t.id === Number(tempItemId));
+          break;
+      }
+      setSelectedItem(item || null);
+      setShowItemModal(false);
+      setShowCalendarModal(true);
     };
 
-
+    const handleSelectType = (type) => {
+      setSelectedType(type);
+      setShowTypeModal(false);
+      setShowItemModal(true);
+    };
 
     return (
       <View style={styles.supplierContainer}>
         <Text style={styles.title}>Панель менеджера</Text>
 
         <Text style={styles.subtitle}>
-          {selectedRestaurant
-            ? `Выбран ресторан: ${selectedRestaurant.name}`
-            : 'Ресторан не выбран'}
+          {selectedItem
+            ? `Выбран ${selectedType === 'restaurant' ? 'ресторан' : selectedType === 'transport' ? 'транспорт' : selectedType === 'program' ? 'программа' : 'тамада'}: ${selectedItem.name || selectedItem.carName || selectedItem.teamName}`
+            : 'Объект не выбран'}
         </Text>
-       
         <Text style={styles.dateText}>
           Выбранная дата: {selectedDate.toLocaleDateString('ru-RU')}
         </Text>
 
-        {/* Кнопка для открытия модального окна ресторана */}
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => setShowRestaurantModal(true)}
+          onPress={() => setShowTypeModal(true)}
         >
-          <Text style={styles.actionButtonText}>Выбрать дату для бронирования</Text>
+          <Text style={styles.actionButtonText}>Выбрать объект для бронирования</Text>
         </TouchableOpacity>
 
-        {/* Модальное окно для выбора ресторана */}
         <Modal
           animationType="slide"
           transparent={true}
-          visible={showRestaurantModal}
-          onRequestClose={() => setShowRestaurantModal(false)}
+          visible={showTypeModal}
+          onRequestClose={() => setShowTypeModal(false)}
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <ScrollView contentContainerStyle={styles.scrollContent}>
-                <Text style={styles.modalTitle}>Выбор ресторана</Text>
-
-                <Text style={styles.modalSubtitle}>Выберите ресторан:</Text>
-                {data?.restaurants?.length > 0 ? (
-                  <>
-                    <Picker
-                      selectedValue={tempRestaurantId}
-                      onValueChange={(itemValue) => setTempRestaurantId(itemValue)}
-                      style={styles.picker}
-                      dropdownIconColor="#000000"
-                    >
-                      <Picker.Item label="Выберите ресторан" value={null} />
-                      {data.restaurants.map((item) => (
-                        <Picker.Item key={item.id} label={item.name} value={item.id} />
-                      ))}
-                    </Picker>
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={handleSelectRestaurant}
-                    >
-                      <Text style={styles.actionButtonText}>Выбрать ресторан</Text>
-                    </TouchableOpacity>
-                    <Text/>
-                    <Text/>
-                    <Text/>
-                  </>
-                ) : (
-                  <Text style={styles.modalText}>Рестораны не найдены</Text>
-                )}
-
-<Text/>
-                  
+                <Text style={styles.modalTitle}>Выбор типа объекта</Text>
+                <TouchableOpacity
+                  style={styles.typeButton}
+                  onPress={() => handleSelectType('restaurant')}
+                >
+                  <Text style={styles.typeButtonText}>Ресторан</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.typeButton}
+                  onPress={() => handleSelectType('transport')}
+                >
+                  <Text style={styles.typeButtonText}>Транспорт</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.typeButton}
+                  onPress={() => handleSelectType('program')}
+                >
+                  <Text style={styles.typeButtonText}>Программа</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.typeButton}
+                  onPress={() => handleSelectType('tamada')}
+                >
+                  <Text style={styles.typeButtonText}>Тамада</Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.closeButton}
-                  onPress={() => setShowRestaurantModal(false)}
+                  onPress={() => setShowTypeModal(false)}
                 >
-                   
                   <Text style={styles.closeButtonText}>Закрыть</Text>
                 </TouchableOpacity>
               </ScrollView>
@@ -1632,7 +1405,55 @@ const [selectedItem, setSelectedItem] = useState(null);
           </View>
         </Modal>
 
-        {/* Модальное окно для выбора даты */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showItemModal}
+          onRequestClose={() => setShowItemModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <ScrollView contentContainerStyle={styles.scrollContent}>
+                <Text style={styles.modalTitle}>
+                  Выбор {selectedType === 'restaurant' ? 'ресторана' : selectedType === 'transport' ? 'транспорта' : selectedType === 'program' ? 'программы' : 'тамады'}
+                </Text>
+                {selectedType && data[selectedType + 's']?.length > 0 ? (
+                  <>
+                    <Picker
+                      selectedValue={tempItemId}
+                      onValueChange={(itemValue) => setTempItemId(itemValue)}
+                      style={styles.picker}
+                    >
+                      <Picker.Item label={`Выберите ${selectedType}`} value={null} />
+                      {data[selectedType + 's'].map((item) => (
+                        <Picker.Item
+                          key={item.id}
+                          label={item.name || item.carName || item.teamName}
+                          value={item.id}
+                        />
+                      ))}
+                    </Picker>
+                    <TouchableOpacity
+                      style={styles.actionButton}
+                      onPress={handleSelectItem}
+                    >
+                      <Text style={styles.actionButtonText}>Выбрать</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <Text style={styles.modalText}>Объекты не найдены</Text>
+                )}
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => setShowItemModal(false)}
+                >
+                  <Text style={styles.closeButtonText}>Закрыть</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
         <Modal
           animationType="slide"
           transparent={true}
@@ -1643,9 +1464,7 @@ const [selectedItem, setSelectedItem] = useState(null);
             <View style={styles.modalContent}>
               <ScrollView contentContainerStyle={styles.scrollContent}>
                 <Text style={styles.modalTitle}>Выбор даты</Text>
-
                 <Text style={styles.modalSubtitle}>Выберите дату:</Text>
-                
                 <Calendar
                   current={selectedDate.toISOString().split('T')[0]}
                   onDayPress={(day) => setSelectedDate(new Date(day.timestamp))}
@@ -1655,7 +1474,18 @@ const [selectedItem, setSelectedItem] = useState(null);
                       selected: true,
                       selectedColor: COLORS.primary,
                     },
+                    ...Object.keys(blockedDays).reduce((acc, date) => {
+                      acc[date] = {
+                        marked: true,
+                        dots: blockedDays[date].dots.map((dot) => ({
+                          key: dot.key,
+                          color: dot.color,
+                        })),
+                      };
+                      return acc;
+                    }, {}),
                   }}
+                  markingType={'multi-dot'}
                   theme={{
                     selectedDayBackgroundColor: COLORS.primary,
                     todayTextColor: COLORS.accent,
@@ -1668,7 +1498,6 @@ const [selectedItem, setSelectedItem] = useState(null);
                 >
                   <Text style={styles.actionButtonText}>Забронировать</Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity
                   style={styles.closeButton}
                   onPress={() => setShowCalendarModal(false)}
@@ -1680,113 +1509,85 @@ const [selectedItem, setSelectedItem] = useState(null);
           </View>
         </Modal>
 
-
-
-       
-       
-       
-       
         <TouchableOpacity
-  style={styles.actionButton}
-  onPress={() => setShowCalendarModal2(true)}
->
-  <Text style={styles.actionButtonText}>Просмотр календаря</Text>
-</TouchableOpacity>
-
-<Modal
-  animationType="slide"
-  transparent={true}
-  visible={showCalendarModal2}
-  onRequestClose={() => setShowCalendarModal2(false)}
->
-  <View style={styles.modalOverlay}>
-    <View style={styles.modalContent}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.modalTitle}>Просмотр календаря</Text>
-        <Text style={styles.modalSubtitle}>Выберите дату для проверки:</Text>
-        <Calendar
-          current={selectedDate.toISOString().split('T')[0]}
-          onDayPress={(day) => {
-            const dateString = day.dateString;
-            setSelectedDate(new Date(day.timestamp));
-
-            // Получаем рестораны для выбранной даты из blockedDays (было blockedDates)
-            const occupied = blockedDays[dateString]
-              ? blockedDays[dateString].dots.map((entry) => ({
-                  id: entry.restaurantId,
-                  name: entry.restaurantName,
-                }))
-              : [];
-
-            console.log('Selected date:', dateString, 'Occupied:', occupied);
-            setOccupiedRestaurants(occupied);
-          }}
-          minDate={new Date().toISOString().split('T')[0]}
-          markedDates={Object.keys(blockedDays).reduce((acc, date) => {
-            acc[date] = {
-              marked: true,
-              dots: blockedDays[date].dots.map((dot) => ({
-                key: dot.restaurantId.toString(),
-                color: dot.color,
-              })),
-            };
-            return acc;
-          }, {})}
-          markingType={'multi-dot'}
-          theme={{
-            selectedDayBackgroundColor: COLORS.primary,
-            todayTextColor: COLORS.accent,
-            arrowColor: COLORS.secondary,
-          }}
-        />
-
-        {/* Отображение занятых ресторанов под календарем */}
-        <View style={styles.occupiedContainer}>
-          {/* <Text style={styles.modalSubtitle}>
-            Дата: {selectedDate.toLocaleDateString('ru-RU')}
-          </Text> */}
-          {occupiedRestaurants.length > 0 ? (
-            <>
-              <Text style={styles.modalText}>
-                На этот день уже заняты следующие рестораны:
-              </Text>
-              {occupiedRestaurants.map((restaurant) => (
-                <Text key={restaurant.id} style={styles.modalText}>
-                  {restaurant.name} 
-                </Text>
-              ))}
-            </>
-          ) : (
-            <Text style={styles.modalText}>В этот день нет занятых ресторанов</Text>
-          )}
-          {/* <Text style={styles.modalText}>
-            Отладка: {JSON.stringify(occupiedRestaurants)}
-          </Text> */}
-        </View>
-
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={() => setShowCalendarModal2(false)}
+          style={styles.actionButton}
+          onPress={() => setShowCalendarModal2(true)}
         >
-          <Text style={styles.closeButtonText}>Закрыть</Text>
+          <Text style={styles.actionButtonText}>Просмотр календаря</Text>
         </TouchableOpacity>
-      </ScrollView>
-    </View>
-  </View>
-</Modal>
 
-
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showCalendarModal2}
+          onRequestClose={() => setShowCalendarModal2(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <ScrollView contentContainerStyle={styles.scrollContent}>
+                <Text style={styles.modalTitle}>Просмотр календаря</Text>
+                <Text style={styles.modalSubtitle}>Выберите дату для проверки:</Text>
+                <Calendar
+                  current={selectedDate.toISOString().split('T')[0]}
+                  onDayPress={(day) => {
+                    const dateString = day.dateString;
+                    setSelectedDate(new Date(day.timestamp));
+                    const occupied = blockedDays[dateString]
+                      ? blockedDays[dateString].dots.map((entry) => ({
+                          id: entry.key,
+                          name: entry.name,
+                          type: entry.type,
+                        }))
+                      : [];
+                    setOccupiedRestaurants(occupied);
+                  }}
+                  minDate={new Date().toISOString().split('T')[0]}
+                  markedDates={Object.keys(blockedDays).reduce((acc, date) => {
+                    acc[date] = {
+                      marked: true,
+                      dots: blockedDays[date].dots.map((dot) => ({
+                        key: dot.key,
+                        color: dot.color,
+                      })),
+                    };
+                    return acc;
+                  }, {})}
+                  markingType={'multi-dot'}
+                  theme={{
+                    selectedDayBackgroundColor: COLORS.primary,
+                    todayTextColor: COLORS.accent,
+                    arrowColor: COLORS.secondary,
+                  }}
+                />
+                <View style={styles.occupiedContainer}>
+                  {occupiedRestaurants.length > 0 ? (
+                    <>
+                      <Text style={styles.modalText}>
+                        На этот день уже заняты следующие объекты:
+                      </Text>
+                      {occupiedRestaurants.map((item) => (
+                        <Text key={item.id} style={styles.modalText}>
+                          {item.type === 'restaurant' ? 'Ресторан' : item.type === 'transport' ? 'Транспорт' : item.type === 'program' ? 'Программа' : 'Тамада'}: {item.name}
+                        </Text>
+                      ))}
+                    </>
+                  ) : (
+                    <Text style={styles.modalText}>В этот день нет занятых объектов</Text>
+                  )}
+                </View>
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => setShowCalendarModal2(false)}
+                >
+                  <Text style={styles.closeButtonText}>Закрыть</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   };
-//----------------------------------------------------------------------
-
-
-
-
-
-
-
 
   return (
     <SafeAreaView style={styles.container}>
@@ -1823,7 +1624,7 @@ const [selectedItem, setSelectedItem] = useState(null);
                   onDayPress={onDateChange}
                   minDate={new Date().toISOString().split('T')[0]}
                   markedDates={{
-                    ...blockedDays, // Отображаем заблокированные дни
+                    ...blockedDays,
                     [weddingDate.toISOString().split('T')[0]]: {
                       selected: true,
                       selectedColor: blockedDays[weddingDate.toISOString().split('T')[0]]
@@ -1842,7 +1643,6 @@ const [selectedItem, setSelectedItem] = useState(null);
               <View style={styles.itemsContainer}>
                 {filteredData.length > 0 ? (
                   filteredData.map((item) => (
-                    console.log('item= ',item),
                     <View key={`${item.type}-${item.id}`} style={styles.itemContainer}>
                       <Text style={styles.itemText}>
                         {(() => {
@@ -1856,7 +1656,7 @@ const [selectedItem, setSelectedItem] = useState(null);
                             case 'program':
                               return `${item.teamName} - ${item.totalCost || item.cost} тг`;
                             case 'traditionalGift':
-                              return `${item.itemName} (${item.sallonName}) - ${item.totalCost || item.cost} тг`;
+                              return `${item.itemName} (${item.salonName}) - ${item.totalCost || item.cost} тг`;
                             case 'flowers':
                               return `${item.flowerName} (${item.flowerType}) - ${item.totalCost || item.cost} тг`;
                             case 'cake':
@@ -1900,7 +1700,6 @@ const [selectedItem, setSelectedItem] = useState(null);
         </View>
       </Modal>
 
-      {/* Модальное окно предупреждения для клиента */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -1911,8 +1710,7 @@ const [selectedItem, setSelectedItem] = useState(null);
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Внимание</Text>
             <Text style={styles.modalSubtitle}>
-              Этот день ({weddingDate.toLocaleDateString('ru-RU')}) уже забронирован для ресторана{' '}
-              {blockedDays[weddingDate.toISOString().split('T')[0]]?.restaurantName}.
+              Этот день ({weddingDate.toLocaleDateString('ru-RU')}) уже забронирован.
             </Text>
             <TouchableOpacity
               style={styles.closeButton}
@@ -1928,7 +1726,6 @@ const [selectedItem, setSelectedItem] = useState(null);
 }
 
 const styles = StyleSheet.create({
-  // Основные контейнеры
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -1943,8 +1740,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     padding: 20,
   },
-
-  // Кнопки и панель
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1958,8 +1753,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
-  // Текст и информация
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
@@ -1974,8 +1767,6 @@ const styles = StyleSheet.create({
   budgetError: {
     color: COLORS.error,
   },
-
-  // Карточки
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 12,
@@ -2007,8 +1798,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-
-  // Инпуты и элементы управления
   quantityInput: {
     width: 80,
     height: 40,
@@ -2037,8 +1826,6 @@ const styles = StyleSheet.create({
     top: 8,
     right: 8,
   },
-
-  // Общие стили для модальных окон
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
@@ -2126,13 +1913,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    width: '100%',
-  },
-
-  // Стили для модального окна "Добавить элемент"
   addModalContainer: {
     width: '92%',
     maxHeight: '80%',
@@ -2207,6 +1987,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     backgroundColor: '#F7FAFC',
+  },
+  addModalTypeButtonActive: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  addModalTypeButtonText: {
+    fontSize: 12,
+    color: COLORS.textPrimary
   },
   addModalTypeButtonActive: {
     backgroundColor: COLORS.accent,
