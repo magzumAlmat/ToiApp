@@ -18,7 +18,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.amagzum.mobile",
       "infoPlist": {
-        "NSCalendarsUsageDescription": "This app needs access to your calendar to add wedding events."
+        "NSCalendarsFullAccessUsageDescription": "Это приложение требует доступ к вашему календарю для добавления событий, связанных с вашей свадьбой."
       }
     },
     "android": {

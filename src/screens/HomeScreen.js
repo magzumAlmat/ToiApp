@@ -513,7 +513,7 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.cardContent}>
             <Text style={styles.cardTitle}>Одежда - {item.storeName}</Text>
             {/* <Text style={styles.cardTitle}>{item.storeName}</Text> */}
-            {/* <Text style={styles.cardDetail}>Товар: {item.itemName}</Text> */}
+            <Text style={styles.cardDetail}>Товар: {item.itemName}</Text>
             {/* <Text style={styles.cardDetail}>Пол: {item.gender}</Text> */}
             <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
             {/* <Text style={styles.cardDetail}>Адрес: {item.address}</Text> */}
@@ -590,15 +590,15 @@ export default function HomeScreen({ navigation }) {
       case 'transport':
         content = (
           <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Транспорт</Text>
-            <Text style={styles.cardTitle}>{item.salonName}</Text>
-            <Text style={styles.cardDetail}>Авто: {item.carName}</Text>
-            <Text style={styles.cardDetail}>Марка: {item.brand}</Text>
+            <Text style={styles.cardTitle}>Транспорт - {item.salonName}</Text>
+            {/* <Text style={styles.cardTitle}>{item.salonName}</Text> */}
+            <Text style={styles.cardDetail}>Авто: {item.carName} Марка: {item.brand}</Text>
+            {/* <Text style={styles.cardDetail}>Марка: {item.brand}</Text>
             <Text style={styles.cardDetail}>Цвет: {item.color}</Text>
             <Text style={styles.cardDetail}>Телефон: {item.phone}</Text>
-            <Text style={styles.cardDetail}>Район: {item.district}</Text>
+            <Text style={styles.cardDetail}>Район: {item.district}</Text> */}
             <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
-            <Text style={styles.cardDetail}>Адрес: {item.address}</Text>
+            {/* <Text style={styles.cardDetail}>Адрес: {item.address}</Text> */}
           </View>
         );
         break;
@@ -2106,12 +2106,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    height:'500',
   },
   modalContent: {
     width: '90%',
     backgroundColor: COLORS.card,
     borderRadius: 16,
-    maxHeight: '80%',
+    maxHeight: '120%',
     padding: 20,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 4 },
