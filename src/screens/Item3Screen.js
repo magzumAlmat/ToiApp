@@ -25,6 +25,21 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
 import * as ExpoCalendar from 'expo-calendar';
 import * as Contacts from 'expo-contacts';
+import * as Animatable from 'react-native-animatable';
+
+
+
+const COLORS = {
+  primary: '#4A90E2', // Основной синий
+  secondary: '#50C878', // Зеленый для акцентов
+  accent: '#FF6F61', // Коралловый для выделения
+  background: '#F7F9FC', // Светлый фон
+  text: '#2D3748', // Темно-серый для текста
+  muted: '#718096', // Серый для второстепенного текста
+  white: '#FFFFFF',
+  border: '#E2E8F0', // Светло-серая граница
+  error: '#E53E3E', // Красный для ошибок
+};
 
 export default function Item3Screen() {
   const route = useRoute();
@@ -53,6 +68,10 @@ export default function Item3Screen() {
   const [isCustomGift, setIsCustomGift] = useState(false); // Для переключения между списком и формой
   const BASE_URL = process.env.EXPO_PUBLIC_API_baseURL;
 
+
+ 
+
+
   useFocusEffect(
     React.useCallback(() => {
       fetchWeddings();
@@ -62,7 +81,7 @@ export default function Item3Screen() {
   useEffect(() => {
     fetchWeddings();
     fetchGoods();
-    // fetchWeddingItems();
+    fetchWeddingItems();
   }, []);
 
   useEffect(() => {
@@ -159,7 +178,12 @@ export default function Item3Screen() {
     } catch (error) {
       console.error('Ошибка при создании свадьбы:', error);
       Alert.alert('Ошибка', error.response?.data?.error || 'Не удалось создать свадьбу');
-    }
+      const errorMsg = error.response?.data?.error || 'Не удалось создать свадьбу';
+      const errorDetails = error.response?.data?.details
+        ? JSON.stringify(error.response.data.details)
+        : '';
+      Alert.alert('Ошибка', `${errorMsg}${errorDetails ? `\nДетали: ${errorDetails}` : ''}`);
+      }
   };
 
   const handleUpdateWedding = async () => {
@@ -1375,35 +1399,132 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)', // Полупрозрачный темный фон для контраста
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    width: '80%',
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    width: '90%',
+    maxHeight: '80%', // Ограничение высоты для больших экранов
+    backgroundColor: COLORS.white,
+    borderRadius: 20, // Скругленные углы
     padding: 20,
-    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 8, // Тень для Android
   },
-  modalTitle: {
-    fontSize: 20,
+  scrollViewContent: {
+    paddingBottom: 20, // Отступ внизу для прокрутки
+  },
+  title: {
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 15,
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: 20,
   },
-  modalText: {
+  input: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    padding: 12,
     fontSize: 16,
+    color: COLORS.text,
+    backgroundColor: COLORS.background,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  dateButton: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: COLORS.background,
+    alignItems: 'center',
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: COLORS.muted,
+  },
+  subtitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginTop: 20,
     marginBottom: 10,
   },
-  closeButton: {
-    backgroundColor: '#FF3B30',
-    padding: 10,
-    borderRadius: 5,
-    marginTop: 15,
+  itemsContainer: {
+    marginBottom: 15,
   },
-  closeButtonText: {
-    color: '#fff',
+  itemContainer: {
+    backgroundColor: COLORS.background,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  itemText: {
     fontSize: 16,
+    color: COLORS.text,
+    lineHeight: 22,
+  },
+  noItems: {
+    fontSize: 16,
+    color: COLORS.muted,
+    textAlign: 'center',
+    marginVertical: 10,
+  },
+  totalContainer: {
+    padding: 15,
+    backgroundColor: COLORS.secondary + '20', // Прозрачный зеленый фон
+    borderRadius: 12,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  totalText: {
+    fontSize: 18,
     fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  modalButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10, // Расстояние между кнопками
+  },
+  modalButton2: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmButton: {
+    backgroundColor: COLORS.primary,
+  },
+  cancelButton: {
+    backgroundColor: COLORS.muted,
+  },
+  modalButtonText2: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.white,
   },
 });
