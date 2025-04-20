@@ -35,6 +35,19 @@ const COLORS = {
   white: '#FFFFFF',
 };
 
+const typeOrder = {
+  restaurant: 1,
+  clothing: 2,
+  tamada: 3,
+  program: 4,
+  traditionalGift: 5,
+  flowers: 6,
+  transport: 7,
+  cake: 8,
+  alcohol: 9,
+  goods: 10,
+};
+
 const typesMapping = [
   { key: 'clothing', costField: 'cost', type: 'clothing', label: 'Одежда' },
   { key: 'tamada', costField: 'cost', type: 'tamada', label: 'Тамада' },
@@ -56,14 +69,15 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
   const uniqueTypes = useMemo(() => {
     const types = [
       { type: 'all', label: 'Все' },
-      ...filteredItems.map((item) => ({
-        type: item.type,
-        label: typesMapping.find((t) => t.type === item.type)?.label || item.type,
-      })),
+      ...filteredItems
+        .map((item) => ({
+          type: item.type,
+          label: typesMapping.find((t) => t.type === item.type)?.label || item.type,
+        }))
+        .filter((value, index, self) => self.findIndex((t) => t.type === value.type) === index)
+        .sort((a, b) => (typeOrder[a.type] || 11) - (typeOrder[b.type] || 11)),
     ];
-    return Array.from(new Set(types.map((t) => t.type))).map((type) =>
-      types.find((t) => t.type === type)
-    );
+    return types;
   }, [filteredItems]);
 
   const districts = useMemo(() => ['all', ...new Set(filteredItems.map((item) => item.district).filter(Boolean))], [filteredItems]);
@@ -110,7 +124,7 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
         return true;
       });
     }
-    return result;
+    return result.sort((a, b) => (typeOrder[a.type] || 11) - (typeOrder[b.type] || 11));
   }, [filteredItems, searchQuery, selectedTypeFilter, selectedDistrict, costRange]);
 
   const renderAddItem = useCallback(
@@ -540,9 +554,7 @@ export default function HomeScreen({ navigation }) {
       }
     } catch (error) {
       console.error('Ошибка удаления:', error);
-
-
-alert('Ошибка удаления: ' + (error.response?.data?.message || error.message));
+      alert('Ошибка удаления: ' + (error.response?.data?.message || error.message));
     } finally {
       setDeleteModalVisible(false);
       setItemToDelete(null);
@@ -575,32 +587,53 @@ alert('Ошибка удаления: ' + (error.response?.data?.message || erro
   };
 
   const filterDataByBudget = useCallback(() => {
+    // Validate budget
     if (!budget || isNaN(budget) || parseFloat(budget) <= 0) {
       alert('Пожалуйста, введите корректную сумму бюджета');
       return;
     }
+  
+    // Validate guestCount
     if (!guestCount || isNaN(guestCount) || parseFloat(guestCount) <= 0) {
-      alert('Пожалуйста, введите корректное количество гостей');
+      alert('Пожалуйста, введите корректное количество гостей (положительное число)');
       return;
     }
+  
     const budgetValue = parseFloat(budget);
     const guests = parseFloat(guestCount);
+  
+    // Ensure guests is a reasonable number to prevent unrealistic filtering
+    if (guests > 10000) {
+      alert('Количество гостей слишком большое. Пожалуйста, введите значение до 10,000.');
+      return;
+    }
+  
     let remaining = budgetValue;
     const selectedItems = [];
+  
+    // Filter restaurants based on capacity
     const suitableRestaurants = data.restaurants.filter(
       (restaurant) => parseFloat(restaurant.capacity) >= guests
     );
+  
+    // Check if suitableRestaurants is empty
     if (suitableRestaurants.length === 0) {
-      alert('Нет ресторанов с достаточной вместимостью');
+      alert('Нет ресторанов с достаточной вместимостью для указанного количества гостей');
       return;
     }
+  
+    // Filter restaurants by remaining budget and sort by cost
     const sortedRestaurants = suitableRestaurants
       .filter((r) => parseFloat(r.averageCost) <= remaining)
       .sort((a, b) => parseFloat(a.averageCost) - parseFloat(b.averageCost));
+  
+    // Check if any restaurants fit the budget
     if (sortedRestaurants.length === 0) {
       alert('Нет ресторанов, подходящих под ваш бюджет');
       return;
     }
+  
+    // Select a restaurant based on priceFilter
     let selectedRestaurant;
     if (priceFilter === 'min') {
       selectedRestaurant = sortedRestaurants[0];
@@ -609,9 +642,12 @@ alert('Ошибка удаления: ' + (error.response?.data?.message || erro
     } else {
       selectedRestaurant = sortedRestaurants[Math.floor(sortedRestaurants.length / 2)];
     }
+  
     const restaurantCost = parseFloat(selectedRestaurant.averageCost);
     selectedItems.push({ ...selectedRestaurant, type: 'restaurant', totalCost: restaurantCost });
     remaining -= restaurantCost;
+  
+    // Define item types to filter
     const types = [
       { key: 'clothing', costField: 'cost', type: 'clothing' },
       { key: 'tamada', costField: 'cost', type: 'tamada' },
@@ -622,10 +658,12 @@ alert('Ошибка удаления: ' + (error.response?.data?.message || erro
       { key: 'alcohol', costField: 'cost', type: 'alcohol' },
       { key: 'transport', costField: 'cost', type: 'transport' },
     ];
+  
+    // Filter and select items for each type
     for (const { key, costField, type } of types) {
       const items = data[key].filter((item) => parseFloat(item[costField]) <= remaining);
       if (items.length > 0) {
-        const sortedItems = items.sort((a, b) => parseFloat(a[costField]) - parseFloat(b[costField]));
+        const sortedItems = items.sort((a, b) => parseFloat(a[costField]) - parseFloat(b.averageCost));
         let selectedItem;
         if (priceFilter === 'min') {
           selectedItem = sortedItems[0];
@@ -639,11 +677,21 @@ alert('Ошибка удаления: ' + (error.response?.data?.message || erro
         remaining -= cost;
       }
     }
+  
+    // Update state with filtered data
     setFilteredData(selectedItems);
     setRemainingBudget(remaining);
     setQuantities(selectedItems.reduce((acc, item) => ({ ...acc, [`${item.type}-${item.id}`]: '1' }), {}));
     setBudgetModalVisible(false);
   }, [budget, guestCount, priceFilter, data]);
+
+
+
+
+
+
+
+  
 
   useEffect(() => {
     if (budget && guestCount && !isNaN(parseFloat(budget)) && !isNaN(parseFloat(guestCount))) {
@@ -851,18 +899,21 @@ alert('Ошибка удаления: ' + (error.response?.data?.message || erro
 
   const renderSupplierContent = () => {
     const userId = user.id;
-    const combinedData = useMemo(() => [
-      ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
-      ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
-      ...data.tamada.map((item) => ({ ...item, type: 'tamada' })),
-      ...data.programs.map((item) => ({ ...item, type: 'program' })),
-      ...data.traditionalGifts.map((item) => ({ ...item, type: 'traditionalGift' })),
-      ...data.flowers.map((item) => ({ ...item, type: 'flowers' })),
-      ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
-      ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
-      ...data.transport.map((item) => ({ ...item, type: 'transport' })),
-      ...data.goods.map((item) => ({ ...item, type: 'goods' })),
-    ].filter((item) => item.supplier_id === userId), [data, userId]);
+    const combinedData = useMemo(() => {
+      const dataArray = [
+        ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
+        ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
+        ...data.tamada.map((item) => ({ ...item, type: 'tamada' })),
+        ...data.programs.map((item) => ({ ...item, type: 'program' })),
+        ...data.traditionalGifts.map((item) => ({ ...item, type: 'traditionalGift' })),
+        ...data.flowers.map((item) => ({ ...item, type: 'flowers' })),
+        ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
+        ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
+        ...data.transport.map((item) => ({ ...item, type: 'transport' })),
+        ...data.goods.map((item) => ({ ...item, type: 'goods' })),
+      ].filter((item) => item.supplier_id === userId);
+      return dataArray.sort((a, b) => (typeOrder[a.type] || 11) - (typeOrder[b.type] || 11));
+    }, [data, userId]);
 
     return (
       <SafeAreaView style={styles.container}>
@@ -1020,41 +1071,31 @@ alert('Ошибка удаления: ' + (error.response?.data?.message || erro
   };
 
   const renderClientContent = () => {
-    const combinedData = useMemo(() => [
-      ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
-      ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
-      ...data.tamada.map((item) => ({ ...item, type: 'tamada' })),
-      ...data.programs.map((item) => ({ ...item, type: 'program' })),
-      ...data.traditionalGifts.map((item) => ({ ...item, type: 'traditionalGift' })),
-      ...data.flowers.map((item) => ({ ...item, type: 'flowers' })),
-      ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
-      ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
-      ...data.transport.map((item) => ({ ...item, type: 'transport' })),
-      ...data.goods.map((item) => ({ ...item, type: 'goods' })),
-    ].filter((item) => item.type !== 'goods' || item.category !== 'Прочее'), [data]);
-
-    const typeOrder = {
-      restaurant: 1,
-      clothing: 2,
-      tamada: 3,
-      program: 4,
-      traditionalGift: 5,
-      flowers: 6,
-      transport: 7,
-    };
+    const combinedData = useMemo(() => {
+      const dataArray = [
+        ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
+        ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
+        ...data.tamada.map((item) => ({ ...item, type: 'tamada' })),
+        ...data.programs.map((item) => ({ ...item, type: 'program' })),
+        ...data.traditionalGifts.map((item) => ({ ...item, type: 'traditionalGift' })),
+        ...data.flowers.map((item) => ({ ...item, type: 'flowers' })),
+        ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
+        ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
+        ...data.transport.map((item) => ({ ...item, type: 'transport' })),
+        ...data.goods.map((item) => ({ ...item, type: 'goods' })),
+      ].filter((item) => item.type !== 'goods' || item.category !== 'Прочее');
+      return dataArray.sort((a, b) => (typeOrder[a.type] || 11) - (typeOrder[b.type] || 11));
+    }, [data]);
 
     const sortedFilteredData = [...filteredData].sort((a, b) => {
-      return (typeOrder[a.type] || 8) - (typeOrder[b.type] || 8);
-    });
-
-    const sortedCombinedData = [...combinedData].sort((a, b) => {
-      return (typeOrder[a.type] || 8) - (typeOrder[b.type] || 8);
+      return (typeOrder[a.type] || 11) - (typeOrder[b.type] || 11);
     });
 
     return (
       <View style={styles.clientContainer}>
         <View style={styles.budgetContainer}>
-          <Text style={styles.budgetTitle}>Ваш бюджет</Text>
+          <Text style={styles.budgetTitle}>Ваш бюджет | Количество гостей</Text>
+          {/* <Text style={styles.budgetTitle}>Количество гостей</Text> */}
           <View style={styles.inputRow}>
             <TextInput
               style={[styles.budgetInput, styles.inputInline]}
@@ -1064,6 +1105,7 @@ alert('Ошибка удаления: ' + (error.response?.data?.message || erro
               keyboardType="numeric"
               placeholderTextColor={COLORS.textSecondary}
             />
+             
             <TextInput
               style={[styles.budgetInput, styles.inputInline]}
               placeholder="Гостей"
@@ -1128,7 +1170,7 @@ alert('Ошибка удаления: ' + (error.response?.data?.message || erro
               />
             ) : combinedData.length > 0 ? (
               <FlatList
-                data={sortedCombinedData}
+                data={combinedData}
                 renderItem={renderItem}
                 keyExtractor={(item) => `${item.type}-${item.id}`}
                 contentContainerStyle={styles.listContent}
@@ -1224,7 +1266,6 @@ alert('Ошибка удаления: ' + (error.response?.data?.message || erro
                         return (
                           <>
                             <Text style={styles.detailsModalText}>Тип: Программа</Text>
-                         
                             <Text style={styles.detailsModalText}>Команда: {selectedItem.teamName}</Text>
                             <Text style={styles.detailsModalText}>Тип программы: {selectedItem.type}</Text>
                             <Text style={styles.detailsModalText}>Стоимость: {selectedItem.cost} ₸</Text>
@@ -1604,64 +1645,66 @@ alert('Ошибка удаления: ' + (error.response?.data?.message || erro
               <Text style={styles.subtitle}>Выбранные элементы:</Text>
               <View style={styles.itemsContainer}>
                 {filteredData.length > 0 ? (
-                  filteredData.map((item) => (
-                    <View key={`${item.type}-${item.id}`} style={styles.itemContainer}>
-                      <Icon
-                        name={
-                          item.type === 'restaurant'
-                            ? 'restaurant'
-                            : item.type === 'clothing'
-                            ? 'store'
-                            : item.type === 'tamada'
-                            ? 'mic'
-                            : item.type === 'program'
-                            ? 'event'
-                            : item.type === 'traditionalGift'
-                            ? 'card-giftcard'
-                            : item.type === 'flowers'
-                            ? 'local-florist'
-                            : item.type === 'cake'
-                            ? 'cake'
-                            : item.type === 'alcohol'
-                            ? 'local-drink'
-                            : item.type === 'transport'
-                            ? 'directions-car'
-                            : 'shopping-bag'
-                        }
-                        size={18}
-                        color={COLORS.primary}
-                        style={styles.itemIcon}
-                      />
-                      <Text style={styles.itemText}>
-                        {(() => {
-                          switch (item.type) {
-                            case 'restaurant':
-                              return `${item.name} (${item.cuisine}) - ${item.totalCost || item.averageCost} тг`;
-                            case 'clothing':
-                              return `${item.itemName} (${item.storeName}) - ${item.totalCost || item.cost} тг`;
-                            case 'tamada':
-                              return `${item.name} - ${item.totalCost || item.cost} тг`;
-                            case 'program':
-                              return `${item.teamName} - ${item.totalCost || item.cost} тг`;
-                            case 'traditionalGift':
-                              return `${item.itemName} (${item.salonName || 'Не указано'}) - ${item.totalCost || item.cost} тг`;
-                            case 'flowers':
-                              return `${item.flowerName} (${item.flowerType}) - ${item.totalCost || item.cost} тг`;
-                            case 'cake':
-                              return `${item.name} (${item.cakeType}) - ${item.totalCost || item.cost} тг`;
-                            case 'alcohol':
-                              return `${item.alcoholName} (${item.category}) - ${item.totalCost || item.cost} тг`;
-                            case 'transport':
-                              return `${item.carName} (${item.brand}) - ${item.totalCost || item.cost} тг`;
-                            case 'goods':
-                              return `${item.item_name} - ${item.totalCost || item.cost} тг`;
-                            default:
-                              return 'Неизвестный элемент';
+                  [...filteredData]
+                    .sort((a, b) => (typeOrder[a.type] || 11) - (typeOrder[b.type] || 11))
+                    .map((item) => (
+                      <View key={`${item.type}-${item.id}`} style={styles.itemContainer}>
+                        <Icon
+                          name={
+                            item.type === 'restaurant'
+                              ? 'restaurant'
+                              : item.type === 'clothing'
+                              ? 'store'
+                              : item.type === 'tamada'
+                              ? 'mic'
+                              : item.type === 'program'
+                              ? 'event'
+                              : item.type === 'traditionalGift'
+                              ? 'card-giftcard'
+                              : item.type === 'flowers'
+                              ? 'local-florist'
+                              : item.type === 'cake'
+                              ? 'cake'
+                              : item.type === 'alcohol'
+                              ? 'local-drink'
+                              : item.type === 'transport'
+                              ? 'directions-car'
+                              : 'shopping-bag'
                           }
-                        })()}
-                      </Text>
-                    </View>
-                  ))
+                          size={18}
+                          color={COLORS.primary}
+                          style={styles.itemIcon}
+                        />
+                        <Text style={styles.itemText}>
+                          {(() => {
+                            switch (item.type) {
+                              case 'restaurant':
+                                return `${item.name} (${item.cuisine}) - ${item.totalCost || item.averageCost} тг`;
+                              case 'clothing':
+                                return `${item.itemName} (${item.storeName}) - ${item.totalCost || item.cost} тг`;
+                              case 'tamada':
+                                return `${item.name} - ${item.totalCost || item.cost} тг`;
+                              case 'program':
+                                return `${item.teamName} - ${item.totalCost || item.cost} тг`;
+                              case 'traditionalGift':
+                                return `${item.itemName} (${item.salonName || 'Не указано'}) - ${item.totalCost || item.cost} тг`;
+                              case 'flowers':
+                                return `${item.flowerName} (${item.flowerType}) - ${item.totalCost || item.cost} тг`;
+                              case 'cake':
+                                return `${item.name} (${item.cakeType}) - ${item.totalCost || item.cost} тг`;
+                              case 'alcohol':
+                                return `${item.alcoholName} (${item.category}) - ${item.totalCost || item.cost} тг`;
+                              case 'transport':
+                                return `${item.carName} (${item.brand}) - ${item.totalCost || item.cost} тг`;
+                              case 'goods':
+                                return `${item.item_name} - ${item.totalCost || item.cost} тг`;
+                              default:
+                                return 'Неизвестный элемент';
+                            }
+                          })()}
+                        </Text>
+                      </View>
+                    ))
                 ) : (
                   <Text style={styles.noItems}>Выберите элементы для свадьбы</Text>
                 )}
@@ -1739,6 +1782,10 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   budgetTitle: {
+// flexDirection: 'row',
+//     justifyContent: 'flex-end',
+//     marginBottom: 20,
+//     gap: 12,
     fontSize: 18,
     fontWeight: '600',
     color: COLORS.textPrimary,
@@ -1820,6 +1867,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
+   
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
