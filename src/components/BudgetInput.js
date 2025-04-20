@@ -1,102 +1,69 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import * as Animatable from 'react-native-animatable';
+import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { COLORS } from '../constants/colors';
 
-const BudgetInput = ({
-  budget,
-  guestCount,
-  onBudgetChange,
-  onGuestCountChange,
-  onApply,
-}) => {
+const BudgetInput = ({ budget, setBudget, guestCount, setGuestCount, handleBudgetChange, handleGuestCountChange }) => {
   return (
-    <Animatable.View animation="fadeInDown" style={styles.inputContainer}>
+    <View style={styles.budgetContainer}>
+      <Text style={styles.budgetTitle}>Ваш бюджет</Text>
       <View style={styles.inputRow}>
-        <View style={styles.inputWrapper}>
-          <Text style={styles.inputLabel}>Общий бюджет</Text>
-          <View style={styles.inputField}>
-            <Icon name="attach-money" size={24} color="#8B5A2B" style={styles.inputIcon} />
-            <TextInput
-              style={styles.budgetInput}
-              placeholder="Бюджет (₸)"
-              value={budget}
-              onChangeText={onBudgetChange}
-              keyboardType="numeric"
-              placeholderTextColor="#8B5A2B"
-            />
-          </View>
-        </View>
-        <View style={styles.inputWrapper}>
-          <Text style={styles.inputLabel}>Количество гостей</Text>
-          <View style={styles.inputField}>
-            <Icon name="people" size={24} color="#8B5A2B" style={styles.inputIcon} />
-            <TextInput
-              style={styles.budgetInput}
-              placeholder="Гостей"
-              value={guestCount}
-              onChangeText={onGuestCountChange}
-              keyboardType="numeric"
-              placeholderTextColor="#8B5A2B"
-            />
-          </View>
-        </View>
+        <TextInput
+          style={[styles.budgetInput, styles.inputInline]}
+          placeholder="Сумма (₸)"
+          value={budget}
+          onChangeText={handleBudgetChange}
+          keyboardType="numeric"
+          placeholderTextColor={COLORS.textSecondary}
+        />
+        <TextInput
+          style={[styles.budgetInput, styles.inputInline]}
+          placeholder="Гостей"
+          value={guestCount}
+          onChangeText={handleGuestCountChange}
+          keyboardType="numeric"
+          placeholderTextColor={COLORS.textSecondary}
+        />
       </View>
-      <TouchableOpacity style={styles.applyButton} onPress={onApply}>
-        <View style={styles.applyButtonView}>
-          <Text style={styles.applyButtonText}>Поиск</Text>
-        </View>
-      </TouchableOpacity>
-    </Animatable.View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  inputContainer: {
-    marginBottom: 16,
+  budgetContainer: {
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  budgetTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 12,
   },
   inputRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  inputWrapper: {
-    flex: 1,
-    marginHorizontal: 8,
-  },
-  inputLabel: {
-    fontSize: 16,
-    color: '#000000',
-    marginBottom: 4,
-  },
-  inputField: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-  },
-  inputIcon: {
-    marginRight: 8,
+    gap: 10,
   },
   budgetInput: {
     flex: 1,
+    height: 48,
+    borderWidth: 1,
+    borderColor: COLORS.textSecondary,
+    borderRadius: 10,
+    paddingHorizontal: 12,
     fontSize: 16,
-    color: '#000000',
-    paddingVertical: 12,
+    color: COLORS.textPrimary,
+    backgroundColor: '#F7FAFC',
   },
-  applyButton: {
-    alignItems: 'flex-end',
-    marginTop: 8,
-    marginRight: 8,
-  },
-  applyButtonView: {
-    backgroundColor: '#8B5A2B',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  applyButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '400',
+  inputInline: {
+    flex: 1,
   },
 });
 

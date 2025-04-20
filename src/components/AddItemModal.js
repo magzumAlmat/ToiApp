@@ -1,21 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Modal,
-  View,
-  TextInput,
-  FlatList,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet,Modal } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import * as Animatable from 'react-native-animatable';
+import { COLORS } from '../constants/colors';
 
 const AddItemModal = ({
   visible,
-  onClose,
-  data,
+  setVisible,
+  combinedData,
   filteredData,
-  onAddItem,
-  onDetailsPress,
+  handleAddItem,
   searchQuery,
   setSearchQuery,
   selectedTypeFilter,
@@ -24,203 +18,491 @@ const AddItemModal = ({
   setSelectedDistrict,
   costRange,
   setCostRange,
+  openModal, // Add openModal prop
 }) => {
-  const [filteredItems, setFilteredItems] = useState([]);
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false); // For debouncing
 
-  // Функция для фильтрации данных
-  const filterItems = () => {
-    let items = [];
-    // Собираем все элементы из data
-    Object.keys(data).forEach((key) => {
-      items = [...items, ...data[key].map((item) => ({ ...item, type: key }))];
-    });
+  const typesMapping = [
+    { key: 'clothing', costField: 'cost', type: 'clothing', label: 'Одежда' },
+    { key: 'tamada', costField: 'cost', type: 'tamada', label: 'Тамада' },
+    { key: 'programs', costField: 'cost', type: 'program', label: 'Программа' },
+    { key: 'traditionalGifts', costField: 'cost', type: 'traditionalGift', label: 'Традиционные подарки' },
+    { key: 'flowers', costField: 'cost', type: 'flowers', label: 'Цветы' },
+    { key: 'cakes', costField: 'cost', type: 'cake', label: 'Торты' },
+    { key: 'alcohol', costField: 'cost', type: 'alcohol', label: 'Алкоголь' },
+    { key: 'transport', costField: 'cost', type: 'transport', label: 'Транспорт' },
+    { key: 'restaurants', costField: 'averageCost', type: 'restaurant', label: 'Ресторан' },
+  ];
 
-    // Фильтрация по поисковому запросу
-    if (searchQuery) {
-      items = items.filter((item) =>
-        item.name?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
+  const allTypes = [
+    { type: 'all', label: 'Все' },
+    ...combinedData.map((item) => ({
+      type: item.type,
+      label: typesMapping.find((t) => t.type === item.type)?.label || item.type,
+    })),
+  ];
 
-    // Фильтрация по типу
-    if (selectedTypeFilter !== 'all') {
-      items = items.filter((item) => item.type === selectedTypeFilter);
-    }
-
-    // Фильтрация по району
-    if (selectedDistrict !== 'all') {
-      items = items.filter((item) => item.district === selectedDistrict);
-    }
-
-    // Фильтрация по диапазону цен
-    if (costRange !== 'all') {
-      const [min, max] = costRange.split('-').map(Number);
-      items = items.filter((item) => item.cost >= min && item.cost <= max);
-    }
-
-    setFilteredItems(items);
-  };
-
-  // Автоматическая фильтрация при изменении фильтров
-  useEffect(() => {
-    filterItems();
-  }, [searchQuery, selectedTypeFilter, selectedDistrict, costRange, data]);
-
-  // Рендеринг элемента списка
-  const renderItem = ({ item }) => (
-    <View style={styles.itemContainer}>
-      <Text>{item.name}</Text>
-      <Text>Cost: {item.cost}</Text>
-      <TouchableOpacity onPress={() => onAddItem(item)}>
-        <Text style={styles.addButton}>Add</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => onDetailsPress(item)}>
-        <Text style={styles.detailsButton}>Details</Text>
-      </TouchableOpacity>
-    </View>
+  const uniqueTypes = Array.from(new Set(allTypes.map((t) => t.type))).map((type) =>
+    allTypes.find((t) => t.type === type)
   );
 
-  return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalContainer}>
-        <Text style={styles.title}>Add Item</Text>
-        <TextInput
-          style={styles.input}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search items..."
-        />
-        {/* Поля для выбора фильтров */}
-        <View style={styles.filterContainer}>
-          <Text>Type:</Text>
-          <TouchableOpacity
-            onPress={() => setSelectedTypeFilter('all')}
-            style={selectedTypeFilter === 'all' ? styles.selectedFilter : styles.filter}
-          >
-            <Text>All</Text>
-          </TouchableOpacity>
-          {Object.keys(data).map((type) => (
-            <TouchableOpacity
-              key={type}
-              onPress={() => setSelectedTypeFilter(type)}
-              style={selectedTypeFilter === type ? styles.selectedFilter : styles.filter}
-            >
-              <Text>{type}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <View style={styles.filterContainer}>
-          <Text>District:</Text>
-          <TouchableOpacity
-            onPress={() => setSelectedDistrict('all')}
-            style={selectedDistrict === 'all' ? styles.selectedFilter : styles.filter}
-          >
-            <Text>All</Text>
-          </TouchableOpacity>
-          {/* Предполагаемые районы */}
-          {['District1', 'District2'].map((district) => (
-            <TouchableOpacity
-              key={district}
-              onPress={() => setSelectedDistrict(district)}
-              style={selectedDistrict === district ? styles.selectedFilter : styles.filter}
-            >
-              <Text>{district}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <View style={styles.filterContainer}>
-          <Text>Cost Range:</Text>
-          <TouchableOpacity
-            onPress={() => setCostRange('all')}
-            style={costRange === 'all' ? styles.selectedFilter : styles.filter}
-          >
-            <Text>All</Text>
-          </TouchableOpacity>
-          {['0-100', '100-500', '500-1000'].map((range) => (
-            <TouchableOpacity
-              key={range}
-              onPress={() => setCostRange(range)}
-              style={costRange === range ? styles.selectedFilter : styles.filter}
-            >
-              <Text>{range}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <FlatList
-          data={filteredItems}
-          renderItem={renderItem}
-          keyExtractor={(item) => `${item.type}-${item.id}`}
-          ListEmptyComponent={<Text>No items found</Text>}
-        />
-        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-          <Text style={styles.closeButtonText}>Close</Text>
+  const districts = ['all', ...new Set(combinedData.map((item) => item.district).filter(Boolean))];
+
+  const getFilteredData = () => {
+    let result = combinedData;
+
+    if (searchQuery) {
+      result = result.filter((item) => {
+        const fieldsToSearch = [
+          item.name,
+          item.itemName,
+          item.flowerName,
+          item.alcoholName,
+          item.carName,
+          item.teamName,
+          item.salonName,
+          item.storeName,
+          item.address,
+          item.phone,
+          item.cuisine,
+          item.category,
+          item.brand,
+          item.gender,
+          item.portfolio,
+          item.cakeType,
+          item.flowerType,
+        ].filter(Boolean);
+
+        return fieldsToSearch.some((field) =>
+          field.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      });
+    }
+
+    if (selectedTypeFilter !== 'all') {
+      result = result.filter((item) => item.type === selectedTypeFilter);
+    }
+
+    if (selectedDistrict !== 'all') {
+      result = result.filter((item) => item.district === selectedDistrict);
+    }
+
+    if (costRange !== 'all') {
+      result = result.filter((item) => {
+        const cost = item.averageCost || item.cost;
+        if (costRange === '0-10000') return cost <= 10000;
+        if (costRange === '10000-50000') return cost > 10000 && cost <= 50000;
+        if (costRange === '50000+') return cost > 50000;
+        return true;
+      });
+    }
+
+    return result;
+  };
+
+  const filteredItems = getFilteredData();
+
+  // Debounce function to prevent rapid clicks
+  const debounce = (func, delay) => {
+    return (...args) => {
+      if (isButtonDisabled) return;
+      setIsButtonDisabled(true);
+      func(...args);
+      setTimeout(() => setIsButtonDisabled(false), delay);
+    };
+  };
+
+  const renderAddItem = ({ item }) => {
+    const isSelected = filteredData.some(
+      (selectedItem) => `${selectedItem.type}-${selectedItem.id}` === `${item.type}-${item.id}`
+    );
+
+    if (isSelected || (item.type === 'goods' && item.category === 'Прочее')) return null;
+
+    const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
+    let title;
+    switch (item.type) {
+      case 'restaurant':
+        title = `Ресторан: ${item.name} (${cost} ₸)`;
+        break;
+      case 'clothing':
+        title = `Одежда: ${item.storeName} - ${item.itemName} (${cost} ₸)`;
+        break;
+      case 'flowers':
+        title = `Цветы: ${item.salonName} - ${item.flowerName} (${cost} ₸)`;
+        break;
+      case 'cake':
+        title = `Торты: ${item.name} (${cost} ₸)`;
+        break;
+      case 'alcohol':
+        title = `Алкоголь: ${item.salonName} - ${item.alcoholName} (${cost} ₸)`;
+        break;
+      case 'program':
+        title = `Программа: ${item.teamName} (${cost} ₸)`;
+        break;
+      case 'tamada':
+        title = `Тамада: ${item.name} (${cost} ₸)`;
+        break;
+      case 'traditionalGift':
+        title = `Традиц. подарки: ${item.salonName} - ${item.itemName} (${cost} ₸)`;
+        break;
+      case 'transport':
+        title = `Транспорт: ${item.salonName} - ${item.carName} (${cost} ₸)`;
+        break;
+      case 'goods':
+        title = `Товар: ${item.item_name} (${cost} ₸)`;
+        break;
+      default:
+        title = 'Неизвестный элемент';
+    }
+
+    return (
+      <View style={styles.addModalItemCard}>
+        <TouchableOpacity
+          style={styles.addModalItemContent}
+          onPress={debounce(() => handleAddItem(item), 300)}
+        >
+          <Text style={styles.addModalItemText}>{title}</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.addModalDetailsButton}
+          onPress={debounce(() => openModal('details', { item }), 300)}
+        >
+          <Text style={styles.addModalDetailsButtonText}>Подробнее</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide">
+
+      <View style={styles.modalOverlay}>
+        <Animatable.View style={styles.addModalContainer} animation="zoomIn" duration={300}>
+          <View style={styles.addModalHeader}>
+            <Text style={styles.addModalTitle}>Добавить элемент</Text>
+            <TouchableOpacity
+              style={styles.addModalCloseIcon}
+              onPress={() => {
+                setVisible(false);
+                setSearchQuery('');
+                setSelectedTypeFilter('all');
+                setSelectedDistrict('all');
+                setCostRange('all');
+              }}
+            >
+              <Icon name="close" size={24} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.addModalSearchContainer}>
+            <Icon name="search" size={20} color={COLORS.textSecondary} style={styles.addModalSearchIcon} />
+            <TextInput
+              style={styles.addModalSearchInput}
+              placeholder="Поиск по названию..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                style={styles.addModalClearIcon}
+                onPress={() => setSearchQuery('')}
+              >
+                <Icon name="clear" size={20} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <View style={styles.addModalFilterContainer}>
+            <View style={styles.addModalTypeFilterContainer}>
+              <Text style={styles.addModalFilterLabel}>Тип</Text>
+              <View style={styles.addModalTypeButtons}>
+                {uniqueTypes.map((typeObj) => (
+                  <TouchableOpacity
+                    key={typeObj.type}
+                    style={[
+                      styles.addModalTypeButton,
+                      selectedTypeFilter === typeObj.type && styles.addModalTypeButtonActive,
+                    ]}
+                    onPress={() => setSelectedTypeFilter(typeObj.type)}
+                  >
+                    <Text
+                      style={[
+                        styles.addModalTypeButtonText,
+                        selectedTypeFilter === typeObj.type && styles.addModalTypeButtonTextActive,
+                      ]}
+                    >
+                      {typeObj.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.addModalDistrictFilterContainer}>
+              <Text style={styles.addModalFilterLabel}>Район</Text>
+              <View style={styles.addModalDistrictButtons}>
+                {districts.map((district) => (
+                  <TouchableOpacity
+                    key={district}
+                    style={[
+                      styles.addModalDistrictButton,
+                      selectedDistrict === district && styles.addModalDistrictButtonActive,
+                    ]}
+                    onPress={() => setSelectedDistrict(district)}
+                  >
+                    <Text
+                      style={[
+                        styles.addModalDistrictButtonText,
+                        selectedDistrict === district && styles.addModalDistrictButtonTextActive,
+                      ]}
+                    >
+                      {district === 'all' ? 'Все' : district}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.addModalPriceFilterContainer}>
+              <Text style={styles.addModalFilterLabel}>Цена</Text>
+              <View style={styles.addModalPriceButtons}>
+                {[
+                  { label: 'Все', value: 'all' },
+                  { label: '0-10k', value: '0-10000' },
+                  { label: '10k-50k', value: '10000-50000' },
+                  { label: '50k+', value: '50000+' },
+                ].map((option) => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.addModalPriceButton,
+                      costRange === option.value && styles.addModalPriceButtonActive,
+                    ]}
+                    onPress={() => setCostRange(option.value)}
+                  >
+                    <Text
+                      style={[
+                        styles.addModalPriceButtonText,
+                        costRange === option.value && styles.addModalPriceButtonTextActive,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
+
+          <FlatList
+            data={filteredItems}
+            renderItem={renderAddItem}
+            keyExtractor={(item) => `${item.type}-${item.id}`}
+            contentContainerStyle={styles.addModalItemList}
+            ListEmptyComponent={<Text style={styles.addModalEmptyText}>Ничего не найдено</Text>}
+          />
+        </Animatable.View>
       </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalContainer: {
+  modalOverlay: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  addModalContainer: {
+    width: '92%',
+    maxHeight: '80%',
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
     padding: 16,
-    backgroundColor: '#F5F5DC',
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  title: {
+  addModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  addModalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    flex: 1,
+    textAlign: 'center',
   },
-  input: {
+  addModalCloseIcon: {
+    padding: 6,
+    borderRadius: 20,
+    backgroundColor: '#F7FAFC',
+  },
+  addModalSearchContainer: {
+    position: 'relative',
+    marginBottom: 12,
+  },
+  addModalSearchInput: {
+    height: 40,
     borderWidth: 1,
-    borderColor: '#8B5A2B',
-    padding: 8,
-    marginBottom: 16,
-    borderRadius: 4,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingHorizontal: 36,
+    fontSize: 14,
+    color: COLORS.textPrimary,
+    backgroundColor: '#F7FAFC',
   },
-  filterContainer: {
+  addModalSearchIcon: {
+    position: 'absolute',
+    left: 10,
+    top: 10,
+    zIndex: 1,
+  },
+  addModalClearIcon: {
+    position: 'absolute',
+    right: 10,
+    top: 10,
+    zIndex: 1,
+  },
+  addModalFilterContainer: {
+    marginBottom: 12,
+  },
+  addModalTypeFilterContainer: {
+    marginBottom: 10,
+  },
+  addModalTypeButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  addModalTypeButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F7FAFC',
+  },
+  addModalTypeButtonActive: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  addModalTypeButtonText: {
+    fontSize: 12,
+    color: COLORS.textPrimary,
+    fontWeight: '500',
+  },
+  addModalTypeButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  addModalDistrictFilterContainer: {
+    marginBottom: 10,
+  },
+  addModalDistrictButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  addModalDistrictButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F7FAFC',
+  },
+  addModalDistrictButtonActive: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  addModalDistrictButtonText: {
+    fontSize: 12,
+    color: COLORS.textPrimary,
+    fontWeight: '500',
+  },
+  addModalDistrictButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  addModalPriceFilterContainer: {
+    marginBottom: 12,
+  },
+  addModalPriceButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  addModalPriceButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F7FAFC',
+  },
+  addModalPriceButtonActive: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  addModalPriceButtonText: {
+    fontSize: 12,
+    color: COLORS.textPrimary,
+    fontWeight: '500',
+  },
+  addModalPriceButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  addModalItemList: {
+    flexGrow: 1,
+    paddingBottom: 12,
+  },
+  addModalItemCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  filter: {
-    padding: 8,
-    marginLeft: 8,
+    justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#8B5A2B',
-    borderRadius: 4,
+    borderColor: '#EDF2F7',
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  selectedFilter: {
-    padding: 8,
-    marginLeft: 8,
-    borderWidth: 1,
-    borderColor: '#8B5A2B',
-    borderRadius: 4,
-    backgroundColor: '#8B5A2B',
+  addModalItemContent: {
+    flex: 1,
+    marginRight: 10,
   },
-  itemContainer: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#8B5A2B',
+  addModalItemText: {
+    fontSize: 14,
+    color: COLORS.textPrimary,
+    fontWeight: '500',
   },
-  addButton: {
-    color: '#8B5A2B',
-    fontWeight: 'bold',
+  addModalDetailsButton: {
+    backgroundColor: COLORS.secondary,
+    borderRadius: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
   },
-  detailsButton: {
-    color: '#8B5A2B',
-    fontWeight: 'bold',
-  },
-  closeButton: {
-    backgroundColor: '#8B5A2B',
-    padding: 12,
-    alignItems: 'center',
-    marginTop: 16,
-    borderRadius: 4,
-  },
-  closeButtonText: {
+  addModalDetailsButtonText: {
+    fontSize: 12,
     color: '#FFFFFF',
-    fontSize: 16,
+    fontWeight: '500',
+  },
+  addModalEmptyText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    paddingVertical: 16,
   },
 });
 

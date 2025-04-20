@@ -1,79 +1,137 @@
+
+// import React from 'react';
+// import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
+// import * as Animatable from 'react-native-animatable';
+// import { COLORS } from '../constants/colors';
+
+// const WarningModal = ({ visible, setVisible, message }) => {
+//   return (
+//     <Modal visible={visible} transparent animationType="fade">
+//       <View style={styles.modalOverlay}>
+//         <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Предупреждение</Text>
+//             <TouchableOpacity
+//               style={styles.closeButton}
+//               onPress={() => setVisible(false)}
+//             >
+//               <Icon name="close" size={24} color={COLORS.textSecondary} />
+//             </TouchableOpacity>
+//           </View>
+//           <Text style={styles.modalText}>{message}</Text>
+//           <TouchableOpacity
+//             style={styles.confirmButton}
+//             onPress={() => setVisible(false)}
+//           >
+//             <Text style={styles.confirmButtonText}>ОК</Text>
+//           </TouchableOpacity>
+//         </Animatable.View>
+//       </View>
+//     </Modal>
+//   );
+// };
+
+// const styles = StyleSheet.create({
+//   modalOverlay: {
+//     flex: 1,
+//     justifyContent: 'center',
+//     alignItems: 'center',
+//     backgroundColor: 'rgba(0, 0, 0, 0.6)',
+//   },
+//   modalContent: {
+//     width: '85%',
+//     backgroundColor: COLORS.card,
+//     borderRadius: 16,
+//     padding: 20,
+//     shadowColor: COLORS.shadow,
+//     shadowOffset: { width: 0, height: 4 },
+//     shadowOpacity: 0.3,
+//     shadowRadius: 8,
+//     elevation: 5,
+//   },
+//   modalHeader: {
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     alignItems: 'center',
+//     marginBottom: 16,
+//   },
+//   modalTitle: {
+//     fontSize: 18,
+//     fontWeight: '700',
+//     color: COLORS.textPrimary,
+//   },
+//   closeButton: {
+//     padding: 6,
+//   },
+//   modalText: {
+//     fontSize: 16,
+//     color: COLORS.textPrimary,
+//     marginBottom: 20,
+//     textAlign: 'center',
+//   },
+//   confirmButton: {
+//     backgroundColor: COLORS.primary,
+//     borderRadius: 12,
+//     paddingVertical: 12,
+//     alignItems: 'center',
+//   },
+//   confirmButtonText: {
+//     fontSize: 16,
+//     fontWeight: '600',
+//     color: COLORS.white,
+//   },
+// });
+
+// export default WarningModal;
+
+
+
 import React from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
-import * as Animatable from 'react-native-animatable';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { Modal, View, Text, Button, StyleSheet } from 'react-native';
 import { COLORS } from '../constants/colors';
 
-const WarningModal = ({ visible, onClose, message }) => {
+const WarningModal = ({ visible, setVisible, message }) => {
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.modalOverlay}>
-        <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
-          <View style={styles.modalHeader}>
-            <Icon name="warning" size={24} color={COLORS.accent} style={styles.warningIcon} />
-            <Text style={styles.modalTitle}>Предупреждение</Text>
-          </View>
-          <Text style={styles.modalText}>{message || 'Произошла ошибка. Пожалуйста, попробуйте снова.'}</Text>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={onClose}
-          >
-            <Text style={styles.closeButtonText}>Закрыть</Text>
-          </TouchableOpacity>
-        </Animatable.View>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={() => setVisible(false)}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Предупреждение</Text>
+          <Text>{message}</Text>
+          <Button
+            title="ОК"
+            onPress={() => setVisible(false)}
+            color={COLORS.primary}
+          />
+        </View>
       </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
+  modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContent: {
-    width: '90%',
-    backgroundColor: COLORS.card,
-    borderRadius: 20,
+    backgroundColor: COLORS.background,
     padding: 20,
-    maxHeight: '80%',
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  warningIcon: {
-    marginRight: 10,
+    borderRadius: 10,
+    width: '80%',
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
     color: COLORS.textPrimary,
-  },
-  modalText: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  closeButton: {
-    backgroundColor: COLORS.secondary,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.white,
   },
 });
 

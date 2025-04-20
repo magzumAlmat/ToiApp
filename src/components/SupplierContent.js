@@ -1,120 +1,227 @@
-import React from 'react';
-import { SafeAreaView, View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import ItemList from './ItemList';
-import DeleteModal from './DeleteModal';
-import NewGoodModal from './NewGoodModal';
+import React, { useState } from 'react';
+import {
+  FlatList,
+  View,
+  Text,
+  StyleSheet,
+  Button,
+  Modal,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
 import { COLORS } from '../constants/colors';
 
 const SupplierContent = ({
-  data,
   user,
+  data,
   loading,
-  onEditItem,
-  onDeleteItem,
-  newGoodModalVisible,
-  setNewGoodModalVisible,
+  handleDeleteItem,
   newGoodName,
   setNewGoodName,
   newGoodCost,
   setNewGoodCost,
-  onCreateGood,
-  deleteModalVisible,
-  setDeleteModalVisible,
-  itemToDelete,
-  onConfirmDelete,
+  handleCreateGood,
+  confirmDeleteItem,
+  openModal,
+  ...props
 }) => {
-  const combinedData = [
-    ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
-    ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
-    ...data.tamada.map((item) => ({ ...item, type: 'tamada' })),
-    ...data.programs.map((item) => ({ ...item, type: 'program' })),
-    ...data.traditionalGifts.map((item) => ({ ...item, type: 'traditionalGift' })),
-    ...data.flowers.map((item) => ({ ...item, type: 'flowers' })),
-    ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
-    ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
-    ...data.transport.map((item) => ({ ...item, type: 'transport' })),
-    ...data.goods.map((item) => ({ ...item, type: 'goods' })),
-  ].filter((item) => item.supplier_id === user.id);
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false); // For debouncing
+
+  // Debounce function to prevent rapid clicks
+  const debounce = (func, delay) => {
+    return (...args) => {
+      if (isButtonDisabled) return;
+      setIsButtonDisabled(true);
+      func(...args);
+      setTimeout(() => setIsButtonDisabled(false), delay);
+    };
+  };
+
+  const keyExtractor = (item, index) => {
+    if (!item.id || !item.type) {
+      console.warn('Item missing id or type:', item);
+      return `${item.type || 'unknown'}-${item.id || index}`;
+    }
+    return `${item.type}-${item.id}`;
+  };
+
+  const renderItem = ({ item }) => (
+    <View style={styles.itemContainer}>
+      <Text style={styles.itemName}>{item.name || item.item_name || 'Без названия'}</Text>
+      <Text style={styles.itemCost}>
+        Стоимость: {item.averageCost || item.cost || 0} ₽
+      </Text>
+      <Button
+        title="Удалить"
+        onPress={debounce(() => confirmDeleteItem(item.id, item.type), 300)}
+        color={COLORS.danger}
+      />
+    </View>
+  );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.supplierContainer}>
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
-            <Text style={styles.loadingText}>Загрузка данных...</Text>
-          </View>
-        ) : combinedData.length > 0 ? (
-          <ItemList
-            data={combinedData}
-            quantities={{}}
-            onQuantityChange={() => {}}
-            onRemoveItem={() => {}}
-            onEditItem={onEditItem}
-            onDeleteItem={onDeleteItem}
-            onDetailsPress={() => {}}
-            userRoleId={user.roleId}
+    <View style={styles.container}>
+      {loading ? (
+        <ActivityIndicator size="large" color={COLORS.primary} style={styles.loading} />
+      ) : (
+        <>
+          <Button
+            title="Создать товар"
+            onPress={debounce(() => openModal('newGood'), 300)}
+            color={COLORS.primary}
           />
-        ) : (
-          <View style={styles.emptyContainer}>
-            <Icon name="business" size={48} color={COLORS.textSecondary} />
-            <Text style={styles.emptyText}>У вас пока нет объектов</Text>
+          <FlatList
+            data={data.goods}
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
+            ListEmptyComponent={
+              <Text style={styles.emptyText}>Нет товаров для отображения</Text>
+            }
+            initialNumToRender={10}
+            windowSize={5}
+          />
+        </>
+      )}
+      {/* Модальное окно для удаления */}
+      <Modal
+        visible={props.deleteModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => openModal(null)} // Close modal using openModal
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Подтверждение удаления</Text>
+            <Text>Вы уверены, что хотите удалить этот элемент?</Text>
+            {props.itemToDelete && (
+              <Text>
+                {props.itemToDelete.name || props.itemToDelete.item_name || 'Элемент'}
+              </Text>
+            )}
+            <View style={styles.modalButtons}>
+              <Button
+                title="Удалить"
+                onPress={debounce(handleDeleteItem, 300)}
+                color={COLORS.danger}
+              />
+              <Button
+                title="Отмена"
+                onPress={debounce(() => openModal(null), 300)}
+                color={COLORS.secondary}
+              />
+            </View>
           </View>
-        )}
-        <DeleteModal
-          visible={deleteModalVisible}
-          onClose={() => {
-            setDeleteModalVisible(false);
-            itemToDelete(null);
-          }}
-          onConfirm={onConfirmDelete}
-        />
-        <NewGoodModal
-          visible={newGoodModalVisible}
-          onClose={() => setNewGoodModalVisible(false)}
-          newGoodName={newGoodName}
-          setNewGoodName={setNewGoodName}
-          newGoodCost={newGoodCost}
-          setNewGoodCost={setNewGoodCost}
-          onCreate={onCreateGood}
-        />
-      </View>
-    </SafeAreaView>
+        </View>
+      </Modal>
+      {/* Модальное окно для создания товара */}
+      <Modal
+        visible={props.newGoodModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => openModal(null)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Создать новый товар</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Название товара"
+              value={newGoodName}
+              onChangeText={setNewGoodName}
+              placeholderTextColor={COLORS.textSecondary}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Стоимость"
+              value={newGoodCost}
+              onChangeText={setNewGoodCost}
+              keyboardType="numeric"
+              placeholderTextColor={COLORS.textSecondary}
+            />
+            <View style={styles.modalButtons}>
+              <Button
+                title="Создать"
+                onPress={debounce(handleCreateGood, 300)}
+                color={COLORS.primary}
+              />
+              <Button
+                title="Отмена"
+                onPress={debounce(() => openModal(null), 300)}
+                color={COLORS.secondary}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    padding: 10,
   },
-  supplierContainer: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    padding: 20,
-    paddingTop: 40,
-  },
-  loadingContainer: {
+  loading: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
+  itemContainer: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  itemName: {
     fontSize: 16,
-    color: COLORS.textSecondary,
-    marginTop: 10,
+    color: COLORS.textPrimary,
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  itemCost: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
   },
   emptyText: {
     fontSize: 16,
     color: COLORS.textSecondary,
-    marginTop: 10,
     textAlign: 'center',
+    marginTop: 20,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    backgroundColor: COLORS.card, // Changed to COLORS.card for consistency
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: COLORS.textPrimary,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 10,
+    marginVertical: 10,
+    borderRadius: 5,
+    color: COLORS.textPrimary,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
   },
 });
 
