@@ -117,16 +117,25 @@ const CreateEventScreen = ({ navigation }) => {
     'Тимбилдинги',
     'Концерты и творческие вечера',
     'Предложение руки и сердца',
-    'Свадьбе',
+    'Свадьба',
     'Вечеринка перед свадьбой',
     'Выпускной',
-    'Начало праздники',
+    'Начало праздника',
   ];
 
   const renderCategory = ({ item }) => (
-    <TouchableOpacity style={styles.categoryButton}>
-      <Text style={styles.categoryText}>{item}</Text>
-    </TouchableOpacity>
+    <TouchableOpacity
+    style={styles.categoryButton}
+    onPress={() => {
+      // Если выбрана категория "Свадьба", перенаправляем на HomeScreen
+      if (item === 'Свадьба') {
+        navigation.navigate('Authenticated');
+      }
+      // Здесь можно добавить логику для других категорий, если нужно
+    }}
+  >
+    <Text style={styles.categoryText}>{item}</Text>
+  </TouchableOpacity>
   );
 
   return (
@@ -136,20 +145,7 @@ const CreateEventScreen = ({ navigation }) => {
     end={{ x: 0, y: 0 }} // Конец справа (0deg)
     style={styles.splashContainer}
   >
-      {/* Верхняя панель с бюджетом и количеством гостей */}
-      {/* <View style={styles.topBar}>
-        <View style={styles.budgetContainer}>
-          <Text style={styles.budgetText}>10 000 000 ₸</Text>
-          <Text style={styles.budgetLabel}>Общий бюджет</Text>
-        </View>
-        <View style={styles.guestsContainer}>
-          <Text style={styles.guestsText}>100</Text>
-          <Text style={styles.guestsLabel}>Количество гостей</Text>
-        </View>
-        <TouchableOpacity style={styles.searchButton}>
-          <Text style={styles.searchButtonText}>Поиск</Text>
-        </TouchableOpacity>
-      </View> */}
+     
 
       {/* Лого (кастрюля) */}
       <View style={styles.logoContainer}>
@@ -176,16 +172,6 @@ const CreateEventScreen = ({ navigation }) => {
       {/* Кнопка "Далее" */}
       <View style={styles.bottomContainer}>
 
-      {/* <TouchableOpacity
-            style={styles.imageButton}
-            onPress={() => navigation.navigate('CreateEvent')} // Переход на CreateEvent
-          >
-            <Image
-              source={require('../../assets/create.png')}
-              style={styles.buttonImage}
-              resizeMode="contain"
-            />
-          </TouchableOpacity> */}
         <TouchableOpacity  onPress={() => navigation.navigate('NewScreen')} // Переход на CreateEvent
         style={styles.imageButton}>
          
