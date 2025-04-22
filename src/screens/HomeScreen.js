@@ -6,10 +6,11 @@ import {
   TouchableOpacity,
   Text,
   Dimensions,
-  ScrollView,
+  FlatList,
   Modal,
   TextInput,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -29,11 +30,11 @@ const COLORS = {
   textPrimary: '#2D3748',
   textSecondary: '#718096',
   accent: '#FBBF24',
-  shadow: 'rgba(0, 0, 0, 0.3)', // Увеличим тень для 3D-эффекта
+  shadow: 'rgba(0, 0, 0, 0.3)',
   error: '#FF0000',
   white: '#FFFFFF',
-  buttonGradientStart: '#D3C5B7', // Цвет градиента для кнопок (светло-коричневый)
-  buttonGradientEnd: '#A68A6E',   // Цвет градиента для кнопок (темно-коричневый)
+  buttonGradientStart: '#D3C5B7',
+  buttonGradientEnd: '#A68A6E',
 };
 
 const typeOrder = {
@@ -61,7 +62,6 @@ const typesMapping = [
   { key: 'restaurants', costField: 'averageCost', type: 'restaurant', label: 'Ресторан' },
 ];
 
-// Маппинг категорий на типы данных
 const categoryToTypeMap = {
   'Ведущие': 'tamada',
   'Кейтеринг': 'restaurant',
@@ -220,12 +220,15 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
     <Modal visible={visible} transparent animationType="slide" onRequestClose={closeModal}>
       <View style={styles.modalOverlay}>
         <View style={styles.addModalContainer}>
+          {/* Заголовок */}
           <View style={styles.addModalHeader}>
             <Text style={styles.addModalTitle}>Добавить элемент</Text>
             <TouchableOpacity style={styles.addModalCloseIcon} onPress={closeModal}>
               <Icon name="close" size={24} color={COLORS.textSecondary} />
             </TouchableOpacity>
           </View>
+
+          {/* Поиск */}
           <View style={styles.addModalSearchContainer}>
             <Icon name="search" size={20} color={COLORS.textSecondary} style={styles.addModalSearchIcon} />
             <TextInput
@@ -240,7 +243,13 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
               </TouchableOpacity>
             )}
           </View>
-          <View style={styles.addModalFilterContainer}>
+
+          {/* Фильтры в прокручиваемом контейнере */}
+          <ScrollView
+            style={styles.addModalFilterScroll}
+            contentContainerStyle={styles.addModalFilterContainer}
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.addModalTypeFilterContainer}>
               <Text style={styles.addModalFilterLabel}>Тип</Text>
               <View style={styles.addModalTypeButtons}>
@@ -318,17 +327,20 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
                 ))}
               </View>
             </View>
-          </View>
-          <ScrollView contentContainerStyle={styles.addModalItemList}>
-            {filteredDataMemo.slice(0, 50).map((item) => (
-              <View key={`${item.type}-${item.id}`}>
-                {renderAddItem({ item })}
-              </View>
-            ))}
-            {filteredDataMemo.length === 0 && (
-              <Text style={styles.addModalEmptyText}>Ничего не найдено</Text>
-            )}
           </ScrollView>
+
+          {/* Список элементов */}
+          <FlatList
+            data={filteredDataMemo}
+            renderItem={renderAddItem}
+            keyExtractor={(item) => `${item.type}-${item.id}`}
+            showsVerticalScrollIndicator={true}
+            style={styles.addModalScrollView}
+            contentContainerStyle={styles.addModalItemList}
+            ListEmptyComponent={
+              <Text style={styles.addModalEmptyText}>Ничего не найдено</Text>
+            }
+          />
         </View>
       </View>
     </Modal>
@@ -1341,33 +1353,33 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   categoryItem: {
-    width: '33.33%', // Для сетки из 3 элементов
-    padding: 5, // Уменьшенный отступ для более плотного размещения
+    width: '33.33%',
+    padding: 5,
     alignItems: 'center',
     justifyContent: 'center',
   },
   categoryButton: {
-    width: '100%', // Занимает всю ширину categoryItem
-    aspectRatio: 1, // Делаем кнопку квадратной, чтобы круг был правильной формы
-    borderRadius: 100, // Большое значение для создания круга
-    overflow: 'hidden', // Обрезаем содержимое, если выходит за границы
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 100,
+    overflow: 'hidden',
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.5,
     shadowRadius: 8,
-    elevation: 5, // Тень для Android
+    elevation: 5,
   },
   categoryButtonGradient: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2, // Добавляем темную обводку, как на изображении
-    borderColor: '#5A4032', // Темно-коричневый цвет обводки
-    borderRadius: 100, // Убедимся, что градиент тоже круглый
+    borderWidth: 2,
+    borderColor: '#5A4032',
+    borderRadius: 100,
   },
   categoryText: {
     fontSize: 16,
-    color: COLORS.white, // Белый текст, как на изображении
+    color: COLORS.white,
     fontWeight: '600',
     textAlign: 'center',
     paddingHorizontal: 10,
@@ -1546,6 +1558,173 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 5,
+    flex: 1, // Контейнер растягивается
+  },
+  addModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  addModalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  addModalCloseIcon: {
+    padding: 5,
+  },
+  addModalSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F7F7F7',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    marginBottom: 15,
+  },
+  addModalSearchIcon: {
+    marginRight: 10,
+  },
+  addModalSearchInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
+  addModalClearIcon: {
+    padding: 5,
+  },
+  addModalFilterScroll: {
+    maxHeight: SCREEN_HEIGHT * 0.2, // Ограничиваем высоту фильтров
+    marginBottom: 15,
+  },
+  addModalFilterContainer: {
+    paddingBottom: 10,
+  },
+  addModalFilterLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 10,
+  },
+  addModalTypeFilterContainer: {
+    marginBottom: 15,
+  },
+  addModalTypeButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  addModalTypeButton: {
+    backgroundColor: '#F7F7F7',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    marginRight: 10,
+    marginBottom: 10,
+  },
+  addModalTypeButtonActive: {
+    backgroundColor: COLORS.primary,
+  },
+  addModalTypeButtonText: {
+    fontSize: 14,
+    color: COLORS.textPrimary,
+  },
+  addModalTypeButtonTextActive: {
+    color: COLORS.white,
+  },
+  addModalDistrictFilterContainer: {
+    marginBottom: 15,
+  },
+  addModalDistrictButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  addModalDistrictButton: {
+    backgroundColor: '#F7F7F7',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    marginRight: 10,
+    marginBottom: 10,
+  },
+  addModalDistrictButtonActive: {
+    backgroundColor: COLORS.primary,
+  },
+  addModalDistrictButtonText: {
+    fontSize: 14,
+    color: COLORS.textPrimary,
+  },
+  addModalDistrictButtonTextActive: {
+    color: COLORS.white,
+  },
+  addModalPriceFilterContainer: {
+    marginBottom: 15,
+  },
+  addModalPriceButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  addModalPriceButton: {
+    backgroundColor: '#F7F7F7',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    marginRight: 10,
+    marginBottom: 10,
+  },
+  addModalPriceButtonActive: {
+    backgroundColor: COLORS.primary,
+  },
+  addModalPriceButtonText: {
+    fontSize: 14,
+    color: COLORS.textPrimary,
+  },
+  addModalPriceButtonTextActive: {
+    color: COLORS.white,
+  },
+  addModalScrollView: {
+    flex: 1, // FlatList занимает оставшееся пространство
+    minHeight: 100, // Минимальная высота для прокрутки
+  },
+  addModalItemList: {
+    paddingBottom: 20,
+    flexGrow: 1, // Содержимое растягивается для прокрутки
+  },
+  addModalItemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F7F7F7',
+    borderRadius: 10,
+    marginBottom: 10,
+    padding: 10,
+  },
+  addModalItemContent: {
+    flex: 1,
+  },
+  addModalItemText: {
+    fontSize: 14,
+    color: COLORS.textPrimary,
+  },
+  addModalItemCount: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 4,
+  },
+  addModalDetailsButton: {
+    backgroundColor: COLORS.secondary,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  addModalDetailsButtonText: {
+    fontSize: 12,
+    color: COLORS.white,
+  },
+  addModalEmptyText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: 20,
   },
   addModalHeader: {
     flexDirection: 'row',
@@ -1665,8 +1844,13 @@ const styles = StyleSheet.create({
   addModalPriceButtonTextActive: {
     color: COLORS.white,
   },
+  addModalScrollView: {
+    flex: 1, // FlatList занимает все доступное пространство
+    marginBottom: 10,
+  },
   addModalItemList: {
     paddingBottom: 20,
+    flexGrow: 1, // Содержимое растягивается для прокрутки
   },
   addModalItemCard: {
     flexDirection: 'row',
