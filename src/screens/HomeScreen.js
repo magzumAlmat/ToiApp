@@ -74,7 +74,7 @@ const categoryToTypeMap = {
 };
 
 // Модальное окно для добавления элементов
-const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAddItem, setDetailsModalVisible, setSelectedItem }) => {
+const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAddItem, setDetailsModalVisible, setSelectedItem, quantities }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState('all');
   const [selectedDistrict, setSelectedDistrict] = useState('all');
@@ -194,7 +194,6 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
           <TouchableOpacity
             style={styles.addModalDetailsButton}
             onPress={() => {
-              console.log("Кнопка Подробнее нажата в AddItemModal, item:", item);
               setSelectedItem(item);
               setDetailsModalVisible(true);
               onClose();
@@ -220,7 +219,6 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
     <Modal visible={visible} transparent animationType="slide" onRequestClose={closeModal}>
       <View style={styles.modalOverlay}>
         <View style={styles.addModalContainer}>
-          {/* Заголовок */}
           <View style={styles.addModalHeader}>
             <Text style={styles.addModalTitle}>Добавить элемент</Text>
             <TouchableOpacity style={styles.addModalCloseIcon} onPress={closeModal}>
@@ -228,7 +226,6 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
             </TouchableOpacity>
           </View>
 
-          {/* Поиск */}
           <View style={styles.addModalSearchContainer}>
             <Icon name="search" size={20} color={COLORS.textSecondary} style={styles.addModalSearchIcon} />
             <TextInput
@@ -244,7 +241,6 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
             )}
           </View>
 
-          {/* Фильтры в прокручиваемом контейнере */}
           <ScrollView
             style={styles.addModalFilterScroll}
             contentContainerStyle={styles.addModalFilterContainer}
@@ -329,7 +325,6 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
             </View>
           </ScrollView>
 
-          {/* Список элементов */}
           <FlatList
             data={filteredDataMemo}
             renderItem={renderAddItem}
@@ -346,13 +341,15 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
     </Modal>
   );
 };
-
 // Модальное окно для отображения элементов категории
-const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, categoryType, filteredData, handleAddItem, handleRemoveItem, setDetailsModalVisible, setSelectedItem }) => {
+const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, categoryType, filteredData, handleAddItem, handleRemoveItem, setDetailsModalVisible, setSelectedItem, quantities, setQuantities, budget, setFilteredData, setRemainingBudget }) => {
   const selectedItems = filteredData.filter(item => item.type === categoryType);
 
   const renderCategoryItem = useCallback(
     ({ item }) => {
+      const isSelected = selectedItems.some(
+        (selected) => `${selected.type}-${selected.id}` === `${item.type}-${item.id}`
+      );
       const count = selectedItems.filter(
         (selected) => `${selected.type}-${selected.id}` === `${item.type}-${item.id}`
       ).length;
@@ -394,7 +391,14 @@ const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, ca
       }
       return (
         <View style={styles.addModalItemCard}>
-          <TouchableOpacity style={styles.addModalItemContent} onPress={() => handleAddItem(item)}>
+          <TouchableOpacity
+            style={[
+              styles.addModalItemContent,
+              isSelected && styles.disabledItemContent, // Apply disabled style if selected
+            ]}
+            onPress={() => !isSelected && handleAddItem(item)} // Disable onPress if selected
+            disabled={isSelected} // Disable the button if item is selected
+          >
             <Text style={styles.addModalItemText}>{title}</Text>
             {count > 0 && (
               <Text style={styles.addModalItemCount}>Добавлено: {count}</Text>
@@ -403,7 +407,6 @@ const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, ca
           <TouchableOpacity
             style={styles.addModalDetailsButton}
             onPress={() => {
-              console.log("Кнопка Подробнее нажата в CategoryItemsModal (renderCategoryItem), item:", item);
               setSelectedItem(item);
               setDetailsModalVisible(true);
               onClose();
@@ -419,7 +422,32 @@ const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, ca
 
   const renderSelectedItem = useCallback(
     (item) => {
+      const itemKey = `${item.type}-${item.id}`;
+      const quantity = quantities[itemKey] || '1';
       const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
+      const totalCost = cost * (parseInt(quantity) || 1);
+
+      const handleQuantityChange = (value) => {
+        const filteredValue = value.replace(/[^0-9]/g, '');
+        if (filteredValue === '' || parseFloat(filteredValue) >= 0) {
+          setQuantities((prev) => ({ ...prev, [itemKey]: filteredValue }));
+          const newQuantity = filteredValue === '' ? 0 : parseFloat(filteredValue);
+          const updatedFilteredData = filteredData.map((dataItem) => {
+            if (`${dataItem.type}-${dataItem.id}` === itemKey) {
+              return { ...dataItem, totalCost: cost * newQuantity };
+            }
+            return dataItem;
+          });
+          setFilteredData(updatedFilteredData);
+          const totalSpent = updatedFilteredData.reduce((sum, item) => {
+            const quantity = parseInt(quantities[`${item.type}-${item.id}`] || '1');
+            const itemCost = item.type === 'restaurant' ? item.averageCost : item.cost;
+            return sum + (itemCost * quantity);
+          }, 0);
+          setRemainingBudget(parseFloat(budget) - totalSpent);
+        }
+      };
+
       let title;
       switch (item.type) {
         case 'restaurant':
@@ -459,6 +487,17 @@ const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, ca
         <View style={[styles.addModalItemCard, styles.selectedItemCard]}>
           <View style={styles.addModalItemContent}>
             <Text style={styles.addModalItemText}>Выбрано: {title}</Text>
+            <View style={styles.quantityContainer}>
+              <Text style={styles.quantityLabel}>Количество:</Text>
+              <TextInput
+                style={styles.quantityInput}
+                value={quantity}
+                onChangeText={handleQuantityChange}
+                keyboardType="numeric"
+                placeholder="1"
+              />
+              <Text style={styles.totalCostText}>Итого: {totalCost} ₸</Text>
+            </View>
           </View>
           <TouchableOpacity
             style={styles.removeButton}
@@ -469,7 +508,6 @@ const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, ca
           <TouchableOpacity
             style={styles.addModalDetailsButton}
             onPress={() => {
-              console.log("Кнопка Подробнее нажата в CategoryItemsModal (renderSelectedItem), item:", item);
               setSelectedItem(item);
               setDetailsModalVisible(true);
               onClose();
@@ -480,7 +518,18 @@ const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, ca
         </View>
       );
     },
-    [handleRemoveItem, setDetailsModalVisible, setSelectedItem, onClose]
+    [
+      handleRemoveItem,
+      setDetailsModalVisible,
+      setSelectedItem,
+      onClose,
+      filteredData,
+      quantities,
+      setQuantities,
+      budget,
+      setFilteredData,
+      setRemainingBudget,
+    ]
   );
 
   const handleClose = () => {
@@ -488,7 +537,12 @@ const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, ca
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={handleClose}
+    >
       <View style={styles.modalOverlay}>
         <View style={styles.addModalContainer}>
           <View style={styles.addModalHeader}>
@@ -500,7 +554,9 @@ const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, ca
           <ScrollView contentContainerStyle={styles.addModalItemList}>
             {selectedItems.length > 0 && (
               <View style={styles.selectedItemContainer}>
-                <Text style={styles.categoryHeader}>Выбранные элементы ({selectedItems.length}):</Text>
+                <Text style={styles.categoryHeader}>
+                  Выбранные элементы ({selectedItems.length}):
+                </Text>
                 {selectedItems.map((item) => (
                   <View key={`${item.type}-${item.id}`}>
                     {renderSelectedItem(item)}
@@ -527,9 +583,7 @@ const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, ca
 const CreateEventScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const { token, user } = useSelector((state) => state.auth);
-  useEffect(() => {
-    console.log("detailsModalVisible изменился:", detailsModalVisible);
-  }, [detailsModalVisible]);
+  
   const categories = [
     'Ведущие',
     'Кейтеринг',
@@ -737,29 +791,39 @@ const CreateEventScreen = ({ navigation }) => {
   }, [budget, guestCount, filterDataByBudget]);
 
   const handleAddItem = useCallback((item) => {
-    const newItem = { ...item, totalCost: item.type === 'restaurant' ? item.averageCost : item.cost };
+    const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
+    const newItem = { ...item, totalCost: cost };
     setFilteredData((prev) => [...prev, newItem]);
     setQuantities((prev) => ({ ...prev, [`${item.type}-${item.id}`]: '1' }));
-    const totalSpent = [...filteredData, newItem].reduce((sum, item) => sum + (item.totalCost || 0), 0);
+    const totalSpent = [...filteredData, newItem].reduce((sum, item) => {
+      const quantity = parseInt(quantities[`${item.type}-${item.id}`] || '1');
+      const itemCost = item.type === 'restaurant' ? item.averageCost : item.cost;
+      return sum + (itemCost * quantity);
+    }, 0);
     setRemainingBudget(parseFloat(budget) - totalSpent);
     setCategoryModalVisible(false);
-  }, [filteredData, budget]);
+  }, [filteredData, budget, quantities]);
 
   const handleRemoveItem = useCallback((item) => {
+    const itemKey = `${item.type}-${item.id}`;
     setFilteredData((prev) => {
-      const updatedData = prev.filter(i => `${i.type}-${i.id}` !== `${item.type}-${item.id}`);
+      const updatedData = prev.filter(i => `${i.type}-${i.id}` !== itemKey);
       return updatedData;
     });
     setQuantities((prev) => {
       const updatedQuantities = { ...prev };
-      delete updatedQuantities[`${item.type}-${item.id}`];
+      delete updatedQuantities[itemKey];
       return updatedQuantities;
     });
     const totalSpent = filteredData
-      .filter(i => `${i.type}-${i.id}` !== `${item.type}-${item.id}`)
-      .reduce((sum, item) => sum + (item.totalCost || 0), 0);
+      .filter(i => `${i.type}-${i.id}` !== itemKey)
+      .reduce((sum, item) => {
+        const quantity = parseInt(quantities[`${item.type}-${item.id}`] || '1');
+        const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
+        return sum + (cost * quantity);
+      }, 0);
     setRemainingBudget(parseFloat(budget) - totalSpent);
-  }, [filteredData, budget]);
+  }, [filteredData, budget, quantities]);
 
   const handleSubmit = async () => {
     if (!weddingName) {
@@ -779,7 +843,8 @@ const CreateEventScreen = ({ navigation }) => {
       items: filteredData.map((item) => ({
         id: item.id,
         type: item.type,
-        totalCost: parseFloat(item.totalCost || item.cost),
+        quantity: parseInt(quantities[`${item.type}-${item.id}`] || '1'),
+        totalCost: parseFloat(item.totalCost || (item.type === 'restaurant' ? item.averageCost : item.cost)) * (parseInt(quantities[`${item.type}-${item.id}`] || '1')),
       })),
     };
     try {
@@ -831,6 +896,14 @@ const CreateEventScreen = ({ navigation }) => {
     setSelectedCategoryItems([]);
     setSelectedCategoryLabel('');
     setSelectedCategoryType('');
+  };
+
+  const calculateTotalCost = () => {
+    return filteredData.reduce((sum, item) => {
+      const quantity = parseInt(quantities[`${item.type}-${item.id}`] || '1');
+      const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
+      return sum + (cost * quantity);
+    }, 0);
   };
 
   const renderCategory = (item) => {
@@ -945,6 +1018,7 @@ const CreateEventScreen = ({ navigation }) => {
         handleAddItem={handleAddItem}
         setDetailsModalVisible={setDetailsModalVisible}
         setSelectedItem={setSelectedItem}
+        quantities={quantities}
       />
 
       <CategoryItemsModal
@@ -958,6 +1032,11 @@ const CreateEventScreen = ({ navigation }) => {
         handleRemoveItem={handleRemoveItem}
         setDetailsModalVisible={setDetailsModalVisible}
         setSelectedItem={setSelectedItem}
+        quantities={quantities}
+        setQuantities={setQuantities}
+        budget={budget}
+        setFilteredData={setFilteredData}
+        setRemainingBudget={setRemainingBudget}
       />
 
       <Modal 
@@ -1184,64 +1263,69 @@ const CreateEventScreen = ({ navigation }) => {
                         <Text style={styles.categoryHeader}>
                           {typesMapping.find(t => t.type === type)?.label || type} ({items.length})
                         </Text>
-                        {items.map((item) => (
-                          <View key={`${item.type}-${item.id}`} style={styles.itemContainer}>
-                            <Icon
-                              name={
-                                item.type === 'restaurant'
-                                  ? 'restaurant'
-                                  : item.type === 'clothing'
-                                  ? 'store'
-                                  : item.type === 'tamada'
-                                  ? 'mic'
-                                  : item.type === 'program'
-                                  ? 'event'
-                                  : item.type === 'traditionalGift'
-                                  ? 'card-giftcard'
-                                  : item.type === 'flowers'
-                                  ? 'local-florist'
-                                  : item.type === 'cake'
-                                  ? 'cake'
-                                  : item.type === 'alcohol'
-                                  ? 'local-drink'
-                                  : item.type === 'transport'
-                                  ? 'directions-car'
-                                  : 'shopping-bag'
-                              }
-                              size={18}
-                              color={COLORS.primary}
-                              style={styles.itemIcon}
-                            />
-                            <Text style={styles.itemText}>
-                              {(() => {
-                                switch (item.type) {
-                                  case 'restaurant':
-                                    return `${item.name} (${item.cuisine}) - ${item.totalCost || item.averageCost} тг`;
-                                  case 'clothing':
-                                    return `${item.itemName} (${item.storeName}) - ${item.totalCost || item.cost} тг`;
-                                  case 'tamada':
-                                    return `${item.name} - ${item.totalCost || item.cost} тг`;
-                                  case 'program':
-                                    return `${item.teamName} - ${item.totalCost || item.cost} тг`;
-                                  case 'traditionalGift':
-                                    return `${item.itemName} (${item.salonName || 'Не указано'}) - ${item.totalCost || item.cost} тг`;
-                                  case 'flowers':
-                                    return `${item.flowerName} (${item.flowerType}) - ${item.totalCost || item.cost} тг`;
-                                  case 'cake':
-                                    return `${item.name} (${item.cakeType}) - ${item.totalCost || item.cost} тг`;
-                                  case 'alcohol':
-                                    return `${item.alcoholName} (${item.category}) - ${item.totalCost || item.cost} тг`;
-                                  case 'transport':
-                                    return `${item.carName} (${item.brand}) - ${item.totalCost || item.cost} тг`;
-                                  case 'goods':
-                                    return `${item.item_name} - ${item.totalCost || item.cost} тг`;
-                                  default:
-                                    return 'Неизвестный элемент';
+                        {items.map((item) => {
+                          const quantity = parseInt(quantities[`${item.type}-${item.id}`] || '1');
+                          const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
+                          const totalItemCost = cost * quantity;
+                          return (
+                            <View key={`${item.type}-${item.id}`} style={styles.itemContainer}>
+                              <Icon
+                                name={
+                                  item.type === 'restaurant'
+                                    ? 'restaurant'
+                                    : item.type === 'clothing'
+                                    ? 'store'
+                                    : item.type === 'tamada'
+                                    ? 'mic'
+                                    : item.type === 'program'
+                                    ? 'event'
+                                    : item.type === 'traditionalGift'
+                                    ? 'card-giftcard'
+                                    : item.type === 'flowers'
+                                    ? 'local-florist'
+                                    : item.type === 'cake'
+                                    ? 'cake'
+                                    : item.type === 'alcohol'
+                                    ? 'local-drink'
+                                    : item.type === 'transport'
+                                    ? 'directions-car'
+                                    : 'shopping-bag'
                                 }
-                              })()}
-                            </Text>
-                          </View>
-                        ))}
+                                size={18}
+                                color={COLORS.primary}
+                                style={styles.itemIcon}
+                              />
+                              <Text style={styles.itemText}>
+                                {(() => {
+                                  switch (item.type) {
+                                    case 'restaurant':
+                                      return `${item.name} (${item.cuisine}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                    case 'clothing':
+                                      return `${item.itemName} (${item.storeName}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                    case 'tamada':
+                                      return `${item.name} - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                    case 'program':
+                                      return `${item.teamName} - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                    case 'traditionalGift':
+                                      return `${item.itemName} (${item.salonName || 'Не указано'}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                    case 'flowers':
+                                      return `${item.flowerName} (${item.flowerType}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                    case 'cake':
+                                      return `${item.name} (${item.cakeType}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                    case 'alcohol':
+                                      return `${item.alcoholName} (${item.category}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                    case 'transport':
+                                      return `${item.carName} (${item.brand}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                    case 'goods':
+                                      return `${item.item_name} - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                    default:
+                                      return 'Неизвестный элемент';
+                                  }
+                                })()}
+                              </Text>
+                            </View>
+                          );
+                        })}
                       </View>
                     ))
                 ) : (
@@ -1251,8 +1335,7 @@ const CreateEventScreen = ({ navigation }) => {
               <View style={styles.totalContainer}>
                 <Icon name="attach-money" size={20} color={COLORS.accent} style={styles.totalIcon} />
                 <Text style={styles.totalText}>
-                  Общая стоимость:{' '}
-                  {filteredData.reduce((sum, item) => sum + (item.totalCost || item.cost || 0), 0)} тг
+                  Общая стоимость: {calculateTotalCost()} тг
                 </Text>
               </View>
               <View style={styles.modalButtonContainer}>
@@ -1558,7 +1641,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 5,
-    flex: 1, // Контейнер растягивается
+    flex: 1,
   },
   addModalHeader: {
     flexDirection: 'row',
@@ -1595,7 +1678,7 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   addModalFilterScroll: {
-    maxHeight: SCREEN_HEIGHT * 0.2, // Ограничиваем высоту фильтров
+    maxHeight: SCREEN_HEIGHT * 0.2,
     marginBottom: 15,
   },
   addModalFilterContainer: {
@@ -1683,174 +1766,12 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   addModalScrollView: {
-    flex: 1, // FlatList занимает оставшееся пространство
-    minHeight: 100, // Минимальная высота для прокрутки
+    flex: 1,
+    minHeight: 100,
   },
   addModalItemList: {
     paddingBottom: 20,
-    flexGrow: 1, // Содержимое растягивается для прокрутки
-  },
-  addModalItemCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F7F7F7',
-    borderRadius: 10,
-    marginBottom: 10,
-    padding: 10,
-  },
-  addModalItemContent: {
-    flex: 1,
-  },
-  addModalItemText: {
-    fontSize: 14,
-    color: COLORS.textPrimary,
-  },
-  addModalItemCount: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginTop: 4,
-  },
-  addModalDetailsButton: {
-    backgroundColor: COLORS.secondary,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  addModalDetailsButtonText: {
-    fontSize: 12,
-    color: COLORS.white,
-  },
-  addModalEmptyText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  addModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  addModalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  addModalCloseIcon: {
-    padding: 5,
-  },
-  addModalSearchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F7F7F7',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-  },
-  addModalSearchIcon: {
-    marginRight: 10,
-  },
-  addModalSearchInput: {
-    flex: 1,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-  },
-  addModalClearIcon: {
-    padding: 5,
-  },
-  addModalFilterContainer: {
-    marginBottom: 15,
-  },
-  addModalFilterLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: 10,
-  },
-  addModalTypeFilterContainer: {
-    marginBottom: 15,
-  },
-  addModalTypeButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  addModalTypeButton: {
-    backgroundColor: '#F7F7F7',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    marginRight: 10,
-    marginBottom: 10,
-  },
-  addModalTypeButtonActive: {
-    backgroundColor: COLORS.primary,
-  },
-  addModalTypeButtonText: {
-    fontSize: 14,
-    color: COLORS.textPrimary,
-  },
-  addModalTypeButtonTextActive: {
-    color: COLORS.white,
-  },
-  addModalDistrictFilterContainer: {
-    marginBottom: 15,
-  },
-  addModalDistrictButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  addModalDistrictButton: {
-    backgroundColor: '#F7F7F7',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    marginRight: 10,
-    marginBottom: 10,
-  },
-  addModalDistrictButtonActive: {
-    backgroundColor: COLORS.primary,
-  },
-  addModalDistrictButtonText: {
-    fontSize: 14,
-    color: COLORS.textPrimary,
-  },
-  addModalDistrictButtonTextActive: {
-    color: COLORS.white,
-  },
-  addModalPriceFilterContainer: {
-    marginBottom: 15,
-  },
-  addModalPriceButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  addModalPriceButton: {
-    backgroundColor: '#F7F7F7',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    marginRight: 10,
-    marginBottom: 10,
-  },
-  addModalPriceButtonActive: {
-    backgroundColor: COLORS.primary,
-  },
-  addModalPriceButtonText: {
-    fontSize: 14,
-    color: COLORS.textPrimary,
-  },
-  addModalPriceButtonTextActive: {
-    color: COLORS.white,
-  },
-  addModalScrollView: {
-    flex: 1, // FlatList занимает все доступное пространство
-    marginBottom: 10,
-  },
-  addModalItemList: {
-    paddingBottom: 20,
-    flexGrow: 1, // Содержимое растягивается для прокрутки
+    flexGrow: 1,
   },
   addModalItemCard: {
     flexDirection: 'row',
@@ -1937,6 +1858,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textPrimary,
     marginBottom: 10,
+  },
+  quantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  quantityLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginRight: 5,
+  },
+  quantityInput: {
+    width: 50,
+    padding: 5,
+    borderWidth: 1,
+    borderColor: COLORS.textSecondary,
+    borderRadius: 5,
+    fontSize: 12,
+    color: COLORS.textPrimary,
+    marginRight: 10,
+  },
+  totalCostText: {
+    fontSize: 12,
+    color: COLORS.primary,
+    fontWeight: '600',
   },
 });
 
