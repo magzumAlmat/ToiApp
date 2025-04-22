@@ -18,7 +18,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import api from '../api/api';
 import * as Animatable from 'react-native-animatable';
 import { Calendar } from 'react-native-calendars';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -341,9 +340,26 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
     </Modal>
   );
 };
+
 // Модальное окно для отображения элементов категории
-const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, categoryType, filteredData, handleAddItem, handleRemoveItem, setDetailsModalVisible, setSelectedItem, quantities, setQuantities, budget, setFilteredData, setRemainingBudget }) => {
-  const selectedItems = filteredData.filter(item => item.type === categoryType);
+const CategoryItemsModal = ({
+  visible,
+  onClose,
+  categoryItems,
+  categoryLabel,
+  categoryType,
+  filteredData,
+  handleAddItem,
+  handleRemoveItem,
+  setDetailsModalVisible,
+  setSelectedItem,
+  quantities,
+  setQuantities,
+  budget,
+  setFilteredData,
+  setRemainingBudget,
+}) => {
+  const selectedItems = filteredData.filter((item) => item.type === categoryType);
 
   const renderCategoryItem = useCallback(
     ({ item }) => {
@@ -392,17 +408,12 @@ const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, ca
       return (
         <View style={styles.addModalItemCard}>
           <TouchableOpacity
-            style={[
-              styles.addModalItemContent,
-              isSelected && styles.disabledItemContent, // Apply disabled style if selected
-            ]}
-            onPress={() => !isSelected && handleAddItem(item)} // Disable onPress if selected
-            disabled={isSelected} // Disable the button if item is selected
+            style={[styles.addModalItemContent, isSelected && styles.disabledItemContent]}
+            onPress={() => !isSelected && handleAddItem(item)}
+            disabled={isSelected}
           >
             <Text style={styles.addModalItemText}>{title}</Text>
-            {count > 0 && (
-              <Text style={styles.addModalItemCount}>Добавлено: {count}</Text>
-            )}
+            {count > 0 && <Text style={styles.addModalItemCount}>Добавлено: {count}</Text>}
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.addModalDetailsButton}
@@ -425,24 +436,50 @@ const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, ca
       const itemKey = `${item.type}-${item.id}`;
       const quantity = quantities[itemKey] || '1';
       const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
-      const totalCost = cost * (parseInt(quantity) || 1);
+      const parsedQuantityForCalc = quantity === '' ? 1 : parseInt(quantity) || 1;
+      const totalCost = cost * parsedQuantityForCalc;
 
       const handleQuantityChange = (value) => {
         const filteredValue = value.replace(/[^0-9]/g, '');
-        if (filteredValue === '' || parseFloat(filteredValue) >= 0) {
-          setQuantities((prev) => ({ ...prev, [itemKey]: filteredValue }));
-          const newQuantity = filteredValue === '' ? 0 : parseFloat(filteredValue);
+        const updatedQuantities = { ...quantities, [itemKey]: filteredValue };
+        setQuantities(updatedQuantities);
+
+        const quantityForCalc = filteredValue === '' ? 1 : parseInt(filteredValue) || 1;
+        const updatedFilteredData = filteredData.map((dataItem) => {
+          if (`${dataItem.type}-${dataItem.id}` === itemKey) {
+            return { ...dataItem, totalCost: cost * quantityForCalc };
+          }
+          return dataItem;
+        });
+        setFilteredData(updatedFilteredData);
+
+        const totalSpent = updatedFilteredData.reduce((sum, dataItem) => {
+          const key = `${dataItem.type}-${dataItem.id}`;
+          const itemQuantity = updatedQuantities[key] === '' ? 1 : parseInt(updatedQuantities[key] || '1');
+          const itemCost = dataItem.type === 'restaurant' ? dataItem.averageCost : dataItem.cost;
+          return sum + itemCost * itemQuantity;
+        }, 0);
+        setRemainingBudget(parseFloat(budget) - totalSpent);
+      };
+
+      const handleBlur = () => {
+        if (quantities[itemKey] === '') {
+          const updatedQuantities = { ...quantities, [itemKey]: '1' };
+          setQuantities(updatedQuantities);
+
           const updatedFilteredData = filteredData.map((dataItem) => {
             if (`${dataItem.type}-${dataItem.id}` === itemKey) {
-              return { ...dataItem, totalCost: cost * newQuantity };
+              return { ...dataItem, totalCost: cost * 1 };
             }
             return dataItem;
           });
           setFilteredData(updatedFilteredData);
-          const totalSpent = updatedFilteredData.reduce((sum, item) => {
-            const quantity = parseInt(quantities[`${item.type}-${item.id}`] || '1');
-            const itemCost = item.type === 'restaurant' ? item.averageCost : item.cost;
-            return sum + (itemCost * quantity);
+
+          const totalSpent = updatedFilteredData.reduce((sum, dataItem) => {
+            const key = `${dataItem.type}-${dataItem.id}`;
+            const itemQuantity = updatedQuantities[key] === '' ? 1 : parseInt(updatedQuantities[key] || '1');
+            const itemCost = dataItem.type === 'restaurant' ? dataItem.averageCost : dataItem.cost;
+            return sum + itemCost * itemQuantity;
           }, 0);
           setRemainingBudget(parseFloat(budget) - totalSpent);
         }
@@ -483,6 +520,7 @@ const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, ca
         default:
           title = 'Неизвестный элемент';
       }
+
       return (
         <View style={[styles.addModalItemCard, styles.selectedItemCard]}>
           <View style={styles.addModalItemContent}>
@@ -493,16 +531,14 @@ const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, ca
                 style={styles.quantityInput}
                 value={quantity}
                 onChangeText={handleQuantityChange}
+                onBlur={handleBlur}
                 keyboardType="numeric"
                 placeholder="1"
               />
               <Text style={styles.totalCostText}>Итого: {totalCost} ₸</Text>
             </View>
           </View>
-          <TouchableOpacity
-            style={styles.removeButton}
-            onPress={() => handleRemoveItem(item)}
-          >
+          <TouchableOpacity style={styles.removeButton} onPress={() => handleRemoveItem(item)}>
             <Text style={styles.removeButtonText}>Убрать</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -519,14 +555,14 @@ const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, ca
       );
     },
     [
+      quantities,
+      filteredData,
+      budget,
       handleRemoveItem,
       setDetailsModalVisible,
       setSelectedItem,
       onClose,
-      filteredData,
-      quantities,
       setQuantities,
-      budget,
       setFilteredData,
       setRemainingBudget,
     ]
@@ -537,12 +573,7 @@ const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, ca
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.addModalContainer}>
           <View style={styles.addModalHeader}>
@@ -554,21 +585,15 @@ const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, ca
           <ScrollView contentContainerStyle={styles.addModalItemList}>
             {selectedItems.length > 0 && (
               <View style={styles.selectedItemContainer}>
-                <Text style={styles.categoryHeader}>
-                  Выбранные элементы ({selectedItems.length}):
-                </Text>
+                <Text style={styles.categoryHeader}>Выбранные элементы ({selectedItems.length}):</Text>
                 {selectedItems.map((item) => (
-                  <View key={`${item.type}-${item.id}`}>
-                    {renderSelectedItem(item)}
-                  </View>
+                  <View key={`${item.type}-${item.id}`}>{renderSelectedItem(item)}</View>
                 ))}
               </View>
             )}
             {categoryItems.length > 0 ? (
               categoryItems.map((item) => (
-                <View key={`${item.type}-${item.id}`}>
-                  {renderCategoryItem({ item })}
-                </View>
+                <View key={`${item.type}-${item.id}`}>{renderCategoryItem({ item })}</View>
               ))
             ) : (
               <Text style={styles.addModalEmptyText}>Элементы не найдены</Text>
@@ -583,7 +608,7 @@ const CategoryItemsModal = ({ visible, onClose, categoryItems, categoryLabel, ca
 const CreateEventScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const { token, user } = useSelector((state) => state.auth);
-  
+
   const categories = [
     'Ведущие',
     'Кейтеринг',
@@ -608,7 +633,6 @@ const CreateEventScreen = ({ navigation }) => {
     transport: [],
     goods: [],
   });
-
   const [filteredData, setFilteredData] = useState([]);
   const [quantities, setQuantities] = useState({});
   const [budget, setBudget] = useState('');
@@ -626,27 +650,9 @@ const CreateEventScreen = ({ navigation }) => {
   const [weddingName, setWeddingName] = useState('');
   const [weddingDate, setWeddingDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-
-  const [scrollPosition, setScrollPosition] = useState(0);
-  const [contentHeight, setContentHeight] = useState(0);
-  const [containerHeight, setContainerHeight] = useState(0);
+  const [shouldFilter, setShouldFilter] = useState(false);
 
   const scrollViewRef = useRef(null);
-
-  const handleScroll = (event) => {
-    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
-    setScrollPosition(contentOffset.y);
-    setContentHeight(contentSize.height);
-    setContainerHeight(layoutMeasurement.height);
-  };
-
-  const thumbHeight = 50;
-  const scrollableHeight = containerHeight - thumbHeight;
-  const scrollRatio =
-    containerHeight < contentHeight
-      ? scrollPosition / (contentHeight - containerHeight)
-      : 0;
-  const thumbPosition = scrollRatio * scrollableHeight;
 
   const fetchData = async () => {
     if (!token || !user?.id) return;
@@ -682,6 +688,7 @@ const CreateEventScreen = ({ navigation }) => {
       setData(newData);
     } catch (error) {
       console.error('Ошибка загрузки данных:', error);
+      alert('Ошибка загрузки данных. Попробуйте снова.');
     } finally {
       setLoading(false);
     }
@@ -701,6 +708,7 @@ const CreateEventScreen = ({ navigation }) => {
     const filteredValue = value.replace(/[^0-9]/g, '');
     if (filteredValue === '' || parseFloat(filteredValue) >= 0) {
       setBudget(filteredValue);
+      setShouldFilter(true);
     }
   };
 
@@ -708,6 +716,7 @@ const CreateEventScreen = ({ navigation }) => {
     const filteredValue = value.replace(/[^0-9]/g, '');
     if (filteredValue === '' || parseFloat(filteredValue) >= 0) {
       setGuestCount(filteredValue);
+      setShouldFilter(true);
     }
   };
 
@@ -781,72 +790,123 @@ const CreateEventScreen = ({ navigation }) => {
 
     setFilteredData(selectedItems);
     setRemainingBudget(remaining);
-    setQuantities(selectedItems.reduce((acc, item) => ({ ...acc, [`${item.type}-${item.id}`]: '1' }), {}));
+    setQuantities(
+      selectedItems.reduce((acc, item) => {
+        const itemKey = `${item.type}-${item.id}`;
+        return { ...acc, [itemKey]: '1' };
+      }, {})
+    );
   }, [budget, guestCount, data]);
 
   useEffect(() => {
-    if (budget && guestCount && !isNaN(parseFloat(budget)) && !isNaN(parseFloat(guestCount))) {
+    if (shouldFilter && budget && guestCount && !isNaN(parseFloat(budget)) && !isNaN(parseFloat(guestCount))) {
       filterDataByBudget();
+      setShouldFilter(false);
     }
-  }, [budget, guestCount, filterDataByBudget]);
+  }, [budget, guestCount, filterDataByBudget, shouldFilter]);
 
-  const handleAddItem = useCallback((item) => {
-    const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
-    const newItem = { ...item, totalCost: cost };
-    setFilteredData((prev) => [...prev, newItem]);
-    setQuantities((prev) => ({ ...prev, [`${item.type}-${item.id}`]: '1' }));
-    const totalSpent = [...filteredData, newItem].reduce((sum, item) => {
-      const quantity = parseInt(quantities[`${item.type}-${item.id}`] || '1');
-      const itemCost = item.type === 'restaurant' ? item.averageCost : item.cost;
-      return sum + (itemCost * quantity);
-    }, 0);
-    setRemainingBudget(parseFloat(budget) - totalSpent);
-    setCategoryModalVisible(false);
-  }, [filteredData, budget, quantities]);
+  const handleAddItem = useCallback(
+    (item) => {
+      const itemKey = `${item.type}-${item.id}`;
+      const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
+  
+      setFilteredData((prev) => {
+        const existingItemIndex = prev.findIndex((i) => `${i.type}-${i.id}` === itemKey);
+        let updatedData;
+        let newQuantity;
+  
+        if (existingItemIndex !== -1) {
+          const currentQuantity = quantities[itemKey] === '' ? '1' : quantities[itemKey] || '1';
+          newQuantity = (parseInt(currentQuantity) + 1).toString();
+          updatedData = [...prev];
+          updatedData[existingItemIndex] = {
+            ...updatedData[existingItemIndex],
+            totalCost: cost * parseInt(newQuantity),
+          };
+        } else {
+          newQuantity = '1';
+          const newItem = { ...item, totalCost: cost };
+          updatedData = [...prev, newItem];
+        }
+  
+        setQuantities((prevQuantities) => ({
+          ...prevQuantities,
+          [itemKey]: newQuantity,
+        }));
+  
+        const totalSpent = updatedData.reduce((sum, dataItem) => {
+          const key = `${dataItem.type}-${dataItem.id}`;
+          const itemQuantity = quantities[key] === '' ? 1 : parseInt(quantities[key] || '1');
+          const itemCost = dataItem.type === 'restaurant' ? dataItem.averageCost : dataItem.cost;
+          return sum + itemCost * itemQuantity;
+        }, 0);
+  
+        setRemainingBudget(parseFloat(budget) - totalSpent);
+        return updatedData;
+      });
+  
+      setCategoryModalVisible(false);
+    },
+    [quantities, budget, setCategoryModalVisible]
+  );
 
-  const handleRemoveItem = useCallback((item) => {
-    const itemKey = `${item.type}-${item.id}`;
-    setFilteredData((prev) => {
-      const updatedData = prev.filter(i => `${i.type}-${i.id}` !== itemKey);
-      return updatedData;
-    });
-    setQuantities((prev) => {
-      const updatedQuantities = { ...prev };
-      delete updatedQuantities[itemKey];
-      return updatedQuantities;
-    });
-    const totalSpent = filteredData
-      .filter(i => `${i.type}-${i.id}` !== itemKey)
-      .reduce((sum, item) => {
-        const quantity = parseInt(quantities[`${item.type}-${item.id}`] || '1');
-        const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
-        return sum + (cost * quantity);
-      }, 0);
-    setRemainingBudget(parseFloat(budget) - totalSpent);
-  }, [filteredData, budget, quantities]);
+  const handleRemoveItem = useCallback(
+    (item) => {
+      const itemKey = `${item.type}-${item.id}`;
+
+      setFilteredData((prev) => {
+        const updatedData = prev.filter((i) => `${i.type}-${i.id}` !== itemKey);
+
+        setQuantities((prevQuantities) => {
+          const updatedQuantities = { ...prevQuantities };
+          delete updatedQuantities[itemKey];
+          return updatedQuantities;
+        });
+
+        const totalSpent = updatedData.reduce((sum, dataItem) => {
+          const key = `${dataItem.type}-${dataItem.id}`;
+          const itemQuantity = parseInt(quantities[key] || '1');
+          const itemCost = dataItem.type === 'restaurant' ? dataItem.averageCost : dataItem.cost;
+          return sum + itemCost * itemQuantity;
+        }, 0);
+
+        setRemainingBudget(parseFloat(budget) - totalSpent);
+        return updatedData;
+      });
+    },
+    [quantities, budget]
+  );
 
   const handleSubmit = async () => {
-    if (!weddingName) {
-      alert('Пожалуйста, заполните имя свадьбы');
+    if (!weddingName.trim()) {
+      alert('Пожалуйста, укажите название свадьбы');
       return;
     }
-    const dateString = weddingDate.toISOString().split('T')[0];
+    if (!filteredData.length) {
+      alert('Пожалуйста, выберите хотя бы один элемент для свадьбы');
+      return;
+    }
     if (!user?.id || !token) {
       alert('Ошибка авторизации. Пожалуйста, войдите в систему.');
       navigation.navigate('Login');
       return;
     }
+
+    const dateString = weddingDate.toISOString().split('T')[0];
     const weddingData = {
-      name: weddingName,
+      name: weddingName.trim(),
       date: dateString,
       host_id: user.id,
       items: filteredData.map((item) => ({
         id: item.id,
         type: item.type,
         quantity: parseInt(quantities[`${item.type}-${item.id}`] || '1'),
-        totalCost: parseFloat(item.totalCost || (item.type === 'restaurant' ? item.averageCost : item.cost)) * (parseInt(quantities[`${item.type}-${item.id}`] || '1')),
+        totalCost:
+          parseFloat(item.totalCost || (item.type === 'restaurant' ? item.averageCost : item.cost)) *
+          parseInt(quantities[`${item.type}-${item.id}`] || '1'),
       })),
     };
+
     try {
       await api.createWedding(weddingData, token);
       alert('Свадьба успешно создана!');
@@ -854,6 +914,11 @@ const CreateEventScreen = ({ navigation }) => {
       setWeddingName('');
       setWeddingDate(new Date());
       setShowDatePicker(false);
+      setFilteredData([]);
+      setQuantities({});
+      setBudget('');
+      setGuestCount('');
+      setRemainingBudget(0);
     } catch (error) {
       console.error('Ошибка при создании свадьбы:', error);
       alert('Ошибка: ' + (error.response?.data?.error || error.message));
@@ -902,17 +967,14 @@ const CreateEventScreen = ({ navigation }) => {
     return filteredData.reduce((sum, item) => {
       const quantity = parseInt(quantities[`${item.type}-${item.id}`] || '1');
       const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
-      return sum + (cost * quantity);
+      return sum + cost * quantity;
     }, 0);
   };
 
   const renderCategory = (item) => {
     if (item === 'Добавить') {
       return (
-        <TouchableOpacity
-          style={styles.categoryButton}
-          onPress={() => setAddItemModalVisible(true)}
-        >
+        <TouchableOpacity style={styles.categoryButton} onPress={() => setAddItemModalVisible(true)}>
           <LinearGradient
             colors={[COLORS.buttonGradientStart, COLORS.buttonGradientEnd]}
             style={styles.categoryButtonGradient}
@@ -924,10 +986,7 @@ const CreateEventScreen = ({ navigation }) => {
       );
     }
     return (
-      <TouchableOpacity
-        style={styles.categoryButton}
-        onPress={() => handleCategoryPress(item)}
-      >
+      <TouchableOpacity style={styles.categoryButton} onPress={() => handleCategoryPress(item)}>
         <LinearGradient
           colors={[COLORS.buttonGradientStart, COLORS.buttonGradientEnd]}
           style={styles.categoryButtonGradient}
@@ -985,8 +1044,6 @@ const CreateEventScreen = ({ navigation }) => {
           <ScrollView
             ref={scrollViewRef}
             style={styles.scrollView}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.categoryGrid}>
@@ -1002,10 +1059,7 @@ const CreateEventScreen = ({ navigation }) => {
       </View>
 
       <View style={styles.bottomContainer}>
-        <TouchableOpacity
-          onPress={() => setModalVisible(true)}
-          style={styles.nextButton}
-        >
+        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.nextButton}>
           <Text style={styles.nextButtonText}>Далее</Text>
         </TouchableOpacity>
       </View>
@@ -1039,9 +1093,9 @@ const CreateEventScreen = ({ navigation }) => {
         setRemainingBudget={setRemainingBudget}
       />
 
-      <Modal 
-        visible={detailsModalVisible} 
-        transparent 
+      <Modal
+        visible={detailsModalVisible}
+        transparent
         animationType="fade"
         onRequestClose={() => {
           setDetailsModalVisible(false);
@@ -1221,10 +1275,7 @@ const CreateEventScreen = ({ navigation }) => {
                   placeholderTextColor={COLORS.textSecondary}
                 />
               </View>
-              <TouchableOpacity
-                style={styles.dateButton}
-                onPress={() => setShowDatePicker(true)}
-              >
+              <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
                 <Icon name="calendar-today" size={20} color={COLORS.secondary} style={styles.buttonIcon} />
                 <Text style={styles.dateButtonText}>
                   {weddingDate.toLocaleDateString('ru-RU') || 'Выберите дату свадьбы'}
@@ -1261,7 +1312,7 @@ const CreateEventScreen = ({ navigation }) => {
                     .map(([type, items]) => (
                       <View key={type}>
                         <Text style={styles.categoryHeader}>
-                          {typesMapping.find(t => t.type === type)?.label || type} ({items.length})
+                          {typesMapping.find((t) => t.type === type)?.label || type} ({items.length})
                         </Text>
                         {items.map((item) => {
                           const quantity = parseInt(quantities[`${item.type}-${item.id}`] || '1');
@@ -1334,15 +1385,10 @@ const CreateEventScreen = ({ navigation }) => {
               </View>
               <View style={styles.totalContainer}>
                 <Icon name="attach-money" size={20} color={COLORS.accent} style={styles.totalIcon} />
-                <Text style={styles.totalText}>
-                  Общая стоимость: {calculateTotalCost()} тг
-                </Text>
+                <Text style={styles.totalText}>Общая стоимость: {calculateTotalCost()} тг</Text>
               </View>
               <View style={styles.modalButtonContainer}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.confirmButton]}
-                  onPress={handleSubmit}
-                >
+                <TouchableOpacity style={[styles.modalButton, styles.confirmButton]} onPress={handleSubmit}>
                   <Icon name="check" size={20} color={COLORS.white} style={styles.buttonIcon} />
                   <Text style={styles.modalButtonText}>Создать свадьбу</Text>
                 </TouchableOpacity>
@@ -1368,9 +1414,7 @@ const CreateEventScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  splashContainer: {
-    flex: 1,
-  },
+  splashContainer: { flex: 1 },
   headerContainer: {
     paddingTop: 40,
     paddingHorizontal: 20,
@@ -1387,15 +1431,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  headerText: {
-    fontSize: 18,
-    color: '#FFF',
-    fontWeight: '600',
-  },
-  budgetContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  headerText: { fontSize: 18, color: '#FFF', fontWeight: '600' },
+  budgetContainer: { flexDirection: 'row', alignItems: 'center' },
   budgetInput: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     color: '#FFF',
@@ -1415,32 +1452,12 @@ const styles = StyleSheet.create({
     width: 80,
     fontSize: 16,
   },
-  logoContainer: {
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  potIcon: {
-    width: 150,
-    height: 150,
-  },
-  listContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  categoryItem: {
-    width: '33.33%',
-    padding: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  logoContainer: { alignItems: 'center', marginVertical: 20 },
+  potIcon: { width: 150, height: 150 },
+  listContainer: { flex: 1, paddingHorizontal: 20 },
+  scrollView: { flex: 1 },
+  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  categoryItem: { width: '33.33%', padding: 5, alignItems: 'center', justifyContent: 'center' },
   categoryButton: {
     width: '100%',
     aspectRatio: 1,
@@ -1467,169 +1484,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 10,
   },
-  bottomPadding: {
-    height: 80,
-  },
-  bottomContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    backgroundColor: 'transparent',
-  },
+  bottomPadding: { height: 80 },
+  bottomContainer: { paddingHorizontal: 20, paddingBottom: 20, backgroundColor: 'transparent' },
   nextButton: {
     backgroundColor: COLORS.primary,
     paddingVertical: 15,
     borderRadius: 25,
     alignItems: 'center',
   },
-  nextButtonText: {
-    fontSize: 18,
-    color: COLORS.white,
-    fontWeight: '600',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: COLORS.card,
-    borderRadius: 20,
-    width: '90%',
-    maxHeight: SCREEN_HEIGHT * 0.8,
-    padding: 20,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  scrollViewContent: {
-    paddingBottom: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F7F7F7',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-  },
-  inputIcon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-  },
-  dateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F7F7F7',
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-  },
-  buttonIcon: {
-    marginRight: 10,
-  },
-  dateButtonText: {
-    fontSize: 16,
-    color: COLORS.textPrimary,
-  },
-  calendar: {
-    marginBottom: 15,
-    borderRadius: 10,
-    elevation: 2,
-  },
-  subtitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: 10,
-  },
-  itemsContainer: {
-    marginBottom: 20,
-  },
-  categoryHeader: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginVertical: 10,
-  },
-  itemContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F7F7F7',
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 8,
-  },
-  itemIcon: {
-    marginRight: 10,
-  },
-  itemText: {
-    fontSize: 14,
-    color: COLORS.textPrimary,
-    flex: 1,
-  },
-  noItems: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-  },
-  totalContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  totalIcon: {
-    marginRight: 10,
-  },
-  totalText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  modalButtonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  confirmButton: {
-    backgroundColor: COLORS.primary,
-    marginRight: 10,
-  },
-  cancelButton: {
-    backgroundColor: COLORS.textSecondary,
-  },
-  modalButtonText: {
-    fontSize: 16,
-    color: COLORS.white,
-    fontWeight: '600',
-    marginLeft: 5,
-  },
+  nextButtonText: { fontSize: 18, color: COLORS.white, fontWeight: '600' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center' },
   addModalContainer: {
     backgroundColor: COLORS.card,
     borderRadius: 20,
@@ -1649,14 +1513,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 15,
   },
-  addModalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  addModalCloseIcon: {
-    padding: 5,
-  },
+  addModalTitle: { fontSize: 20, fontWeight: '600', color: COLORS.textPrimary },
+  addModalCloseIcon: { padding: 5 },
   addModalSearchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1665,38 +1523,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     marginBottom: 15,
   },
-  addModalSearchIcon: {
-    marginRight: 10,
-  },
-  addModalSearchInput: {
-    flex: 1,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-  },
-  addModalClearIcon: {
-    padding: 5,
-  },
-  addModalFilterScroll: {
-    maxHeight: SCREEN_HEIGHT * 0.2,
-    marginBottom: 15,
-  },
-  addModalFilterContainer: {
-    paddingBottom: 10,
-  },
-  addModalFilterLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: 10,
-  },
-  addModalTypeFilterContainer: {
-    marginBottom: 15,
-  },
-  addModalTypeButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
+  addModalSearchIcon: { marginRight: 10 },
+  addModalSearchInput: { flex: 1, paddingVertical: 10, fontSize: 16, color: COLORS.textPrimary },
+  addModalClearIcon: { padding: 5 },
+  addModalFilterScroll: { maxHeight: SCREEN_HEIGHT * 0.2, marginBottom: 15 },
+  addModalFilterContainer: { paddingBottom: 10 },
+  addModalFilterLabel: { fontSize: 16, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 10 },
+  addModalTypeFilterContainer: { marginBottom: 15 },
+  addModalTypeButtons: { flexDirection: 'row', flexWrap: 'wrap' },
   addModalTypeButton: {
     backgroundColor: '#F7F7F7',
     paddingVertical: 8,
@@ -1705,23 +1539,11 @@ const styles = StyleSheet.create({
     marginRight: 10,
     marginBottom: 10,
   },
-  addModalTypeButtonActive: {
-    backgroundColor: COLORS.primary,
-  },
-  addModalTypeButtonText: {
-    fontSize: 14,
-    color: COLORS.textPrimary,
-  },
-  addModalTypeButtonTextActive: {
-    color: COLORS.white,
-  },
-  addModalDistrictFilterContainer: {
-    marginBottom: 15,
-  },
-  addModalDistrictButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
+  addModalTypeButtonActive: { backgroundColor: COLORS.primary },
+  addModalTypeButtonText: { fontSize: 14, color: COLORS.textPrimary },
+  addModalTypeButtonTextActive: { color: COLORS.white },
+  addModalDistrictFilterContainer: { marginBottom: 15 },
+  addModalDistrictButtons: { flexDirection: 'row', flexWrap: 'wrap' },
   addModalDistrictButton: {
     backgroundColor: '#F7F7F7',
     paddingVertical: 8,
@@ -1730,23 +1552,11 @@ const styles = StyleSheet.create({
     marginRight: 10,
     marginBottom: 10,
   },
-  addModalDistrictButtonActive: {
-    backgroundColor: COLORS.primary,
-  },
-  addModalDistrictButtonText: {
-    fontSize: 14,
-    color: COLORS.textPrimary,
-  },
-  addModalDistrictButtonTextActive: {
-    color: COLORS.white,
-  },
-  addModalPriceFilterContainer: {
-    marginBottom: 15,
-  },
-  addModalPriceButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
+  addModalDistrictButtonActive: { backgroundColor: COLORS.primary },
+  addModalDistrictButtonText: { fontSize: 14, color: COLORS.textPrimary },
+  addModalDistrictButtonTextActive: { color: COLORS.white },
+  addModalPriceFilterContainer: { marginBottom: 15 },
+  addModalPriceButtons: { flexDirection: 'row', flexWrap: 'wrap' },
   addModalPriceButton: {
     backgroundColor: '#F7F7F7',
     paddingVertical: 8,
@@ -1755,24 +1565,11 @@ const styles = StyleSheet.create({
     marginRight: 10,
     marginBottom: 10,
   },
-  addModalPriceButtonActive: {
-    backgroundColor: COLORS.primary,
-  },
-  addModalPriceButtonText: {
-    fontSize: 14,
-    color: COLORS.textPrimary,
-  },
-  addModalPriceButtonTextActive: {
-    color: COLORS.white,
-  },
-  addModalScrollView: {
-    flex: 1,
-    minHeight: 100,
-  },
-  addModalItemList: {
-    paddingBottom: 20,
-    flexGrow: 1,
-  },
+  addModalPriceButtonActive: { backgroundColor: COLORS.primary },
+  addModalPriceButtonText: { fontSize: 14, color: COLORS.textPrimary },
+  addModalPriceButtonTextActive: { color: COLORS.white },
+  addModalScrollView: { flex: 1, minHeight: 100 },
+  addModalItemList: { paddingBottom: 20, flexGrow: 1 },
   addModalItemCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1781,40 +1578,33 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     padding: 10,
   },
-  addModalItemContent: {
-    flex: 1,
-  },
-  addModalItemText: {
-    fontSize: 14,
-    color: COLORS.textPrimary,
-  },
-  addModalItemCount: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginTop: 4,
-  },
+  selectedItemCard: { backgroundColor: '#E6F0FA' },
+  addModalItemContent: { flex: 1 },
+  disabledItemContent: { opacity: 0.5 },
+  addModalItemText: { fontSize: 14, color: COLORS.textPrimary },
+  addModalItemCount: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4 },
   addModalDetailsButton: {
     backgroundColor: COLORS.secondary,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 8,
   },
-  addModalDetailsButtonText: {
+  addModalDetailsButtonText: { fontSize: 12, color: COLORS.white },
+  addModalEmptyText: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', marginTop: 20 },
+  selectedItemContainer: { marginBottom: 20 },
+  quantityContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 5 },
+  quantityLabel: { fontSize: 12, color: COLORS.textSecondary, marginRight: 5 },
+  quantityInput: {
+    width: 50,
+    padding: 5,
+    borderWidth: 1,
+    borderColor: COLORS.textSecondary,
+    borderRadius: 5,
     fontSize: 12,
-    color: COLORS.white,
+    color: COLORS.textPrimary,
+    marginRight: 10,
   },
-  addModalEmptyText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  selectedItemContainer: {
-    marginBottom: 20,
-  },
-  selectedItemCard: {
-    backgroundColor: '#E6F0FA',
-  },
+  totalCostText: { fontSize: 12, color: COLORS.primary, fontWeight: '600' },
   removeButton: {
     backgroundColor: COLORS.error,
     paddingVertical: 6,
@@ -1822,10 +1612,64 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginRight: 10,
   },
-  removeButtonText: {
-    fontSize: 12,
-    color: COLORS.white,
+  removeButtonText: { fontSize: 12, color: COLORS.white },
+  modalContent: {
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    width: '90%',
+    maxHeight: SCREEN_HEIGHT * 0.8,
+    padding: 20,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
   },
+  scrollViewContent: { paddingBottom: 20 },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: { fontSize: 20, fontWeight: '600', color: COLORS.textPrimary },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F7F7F7',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    marginBottom: 15,
+  },
+  inputIcon: { marginRight: 10 },
+  input: { flex: 1, paddingVertical: 10, fontSize: 16, color: COLORS.textPrimary },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F7F7F7',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  buttonIcon: { marginRight: 10 },
+  dateButtonText: { fontSize: 16, color: COLORS.textPrimary },
+  calendar: { marginBottom: 15, borderRadius: 10, elevation: 2 },
+  subtitle: { fontSize: 18, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 10 },
+  itemsContainer: { marginBottom: 20 },
+  categoryHeader: { fontSize: 16, fontWeight: '500', color: COLORS.textPrimary, marginVertical: 10 },
+  itemContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  itemIcon: { marginRight: 10 },
+  itemText: { fontSize: 14, color: COLORS.textPrimary, flex: 1 },
+  noItems: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center' },
+  totalContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  totalIcon: { marginRight: 10 },
+  totalText: { fontSize: 16, fontWeight: '600', color: COLORS.textPrimary },
+  modalButtonContainer: { flexDirection: 'row', justifyContent: 'space-between' },
+  modalButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10 },
+  confirmButton: { backgroundColor: COLORS.primary },
+  cancelButton: { backgroundColor: COLORS.error },
+  modalButtonText: { fontSize: 16, color: COLORS.white, fontWeight: '600' },
   detailsModalContainer: {
     backgroundColor: COLORS.card,
     borderRadius: 20,
@@ -1841,49 +1685,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 15,
   },
-  detailsModalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  detailsModalCloseIcon: {
-    padding: 5,
-  },
-  detailsModalContent: {
-    marginBottom: 20,
-  },
-  detailsModalText: {
-    fontSize: 16,
-    color: COLORS.textPrimary,
-    marginBottom: 10,
-  },
-  quantityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 5,
-  },
-  quantityLabel: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginRight: 5,
-  },
-  quantityInput: {
-    width: 50,
-    padding: 5,
-    borderWidth: 1,
-    borderColor: COLORS.textSecondary,
-    borderRadius: 5,
-    fontSize: 12,
-    color: COLORS.textPrimary,
-    marginRight: 10,
-  },
-  totalCostText: {
-    fontSize: 12,
-    color: COLORS.primary,
-    fontWeight: '600',
-  },
+  detailsModalTitle: { fontSize: 20, fontWeight: '600', color: COLORS.textPrimary },
+  detailsModalCloseIcon: { padding: 5 },
+  detailsModalContent: { marginBottom: 20 },
+  detailsModalText: { fontSize: 16, color: COLORS.textPrimary, marginBottom: 8 },
 });
 
 export default CreateEventScreen;
