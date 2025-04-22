@@ -21,6 +21,7 @@ import { Calendar } from 'react-native-calendars';
 import * as ExpoCalendar from 'expo-calendar';
 import SwitchSelector from 'react-native-switch-selector';
 import { Picker } from '@react-native-picker/picker';
+// import GEOLOGICAFONT from '../font'
 
 const COLORS = {
   primary: '#FF6F61',
@@ -362,6 +363,7 @@ export default function HomeScreen({ navigation }) {
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
 
+  
   const restaurantColors = {
     1: '#FF6B6B',
     2: '#4ECDC4',
@@ -1769,6 +1771,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   budgetContainer: {
     backgroundColor: COLORS.card,
