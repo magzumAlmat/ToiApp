@@ -484,6 +484,39 @@ export default {
       throw new Error(`Ошибка обновления алкоголя: ${error.response?.data?.message || error.message}`);
     }),
 
+
+ // Ювелирные изделия
+ createJewelry: (data) =>
+  api.post('/api/jewelry', data).catch((error) => {
+    throw new Error(`Ошибка создания подарка: ${error.response?.data?.message || error.message}`);
+  }),
+
+getTJewelry: () =>
+  api.get('/api/jewelry').catch((error) => {
+    throw new Error(`Ошибка получения списка подарков: ${error.response?.data?.message || error.message}`);
+  }),
+
+deleteJewelry: (id) =>
+  api.delete(`/api/jewelry/${id}`).catch((error) => {
+    throw new Error(`Ошибка удаления подарка: ${error.response?.data?.message || error.message}`);
+  }),
+
+getJewelryById: (id) =>
+  api.get(`/api/jewelry/${id}`).catch((error) => {
+    throw new Error(`Ошибка получения подарка: ${error.response?.data?.message || error.message}`);
+  }),
+
+updateJewelry: (id, data) =>
+  api.put(`/api/jewelry/${id}`, data).catch((error) => {
+    throw new Error(`Ошибка обновления подарка: ${error.response?.data?.message || error.message}`);
+  }),
+
+
+
+
+
+
+
   // Товары
   createGood: (data) =>
     api.post('/api/goods', data).catch((error) => {
@@ -594,4 +627,9 @@ export default {
     api.get(endpoint).catch((error) => {
       throw new Error(`Ошибка получения данных по эндпоинту ${endpoint}: ${error.response?.data?.message || error.message}`);
     }),
+
+
+
+
+
 };

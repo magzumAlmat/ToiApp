@@ -815,12 +815,12 @@
 //     (item) => {
 //       const itemKey = `${item.type}-${item.id}`;
 //       const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
-  
+
 //       setFilteredData((prev) => {
 //         const existingItemIndex = prev.findIndex((i) => `${i.type}-${i.id}` === itemKey);
 //         let updatedData;
 //         let newQuantity;
-  
+
 //         if (existingItemIndex !== -1) {
 //           const currentQuantity = quantities[itemKey] === '' ? '1' : quantities[itemKey] || '1';
 //           newQuantity = (parseInt(currentQuantity) + 1).toString();
@@ -834,23 +834,23 @@
 //           const newItem = { ...item, totalCost: cost };
 //           updatedData = [...prev, newItem];
 //         }
-  
+
 //         setQuantities((prevQuantities) => ({
 //           ...prevQuantities,
 //           [itemKey]: newQuantity,
 //         }));
-  
+
 //         const totalSpent = updatedData.reduce((sum, dataItem) => {
 //           const key = `${dataItem.type}-${dataItem.id}`;
 //           const itemQuantity = quantities[key] === '' ? 1 : parseInt(quantities[key] || '1');
 //           const itemCost = dataItem.type === 'restaurant' ? dataItem.averageCost : dataItem.cost;
 //           return sum + itemCost * itemQuantity;
 //         }, 0);
-  
+
 //         setRemainingBudget(parseFloat(budget) - totalSpent);
 //         return updatedData;
 //       });
-  
+
 //       setCategoryModalVisible(false);
 //     },
 //     [quantities, budget, setCategoryModalVisible]
@@ -1073,8 +1073,6 @@
 //           )}
 //         </View>
 
-
-
 //         <View style={styles.bottomContainer}>
 //           <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.nextButton}>
 //             <Text style={styles.nextButtonText}>Далее</Text>
@@ -1086,9 +1084,6 @@
 //             <Text style={styles.nextButtonText}>Назад</Text>
 //           </TouchableOpacity>
 //         </View>
-
-
-
 
 //         <AddItemModal
 //           visible={addItemModalVisible}
@@ -1722,7 +1717,13 @@
 
 // export default CreateEventScreen;
 
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   View,
   Image,
@@ -1736,29 +1737,29 @@ import {
   ActivityIndicator,
   ScrollView,
   SafeAreaView,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useDispatch, useSelector } from 'react-redux';
-import api from '../api/api';
-import * as Animatable from 'react-native-animatable';
-import { Calendar } from 'react-native-calendars';
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import Icon from "react-native-vector-icons/MaterialIcons";
+import { useDispatch, useSelector } from "react-redux";
+import api from "../api/api";
+import * as Animatable from "react-native-animatable";
+import { Calendar } from "react-native-calendars";
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const COLORS = {
-  primary: '#FF6F61',
-  secondary: '#4A90E2',
-  background: '#FDFDFD',
-  card: '#FFFFFF',
-  textPrimary: '#2D3748',
-  textSecondary: '#718096',
-  accent: '#FBBF24',
-  shadow: 'rgba(0, 0, 0, 0.3)',
-  error: '#FF0000',
-  white: '#FFFFFF',
-  buttonGradientStart: '#D3C5B7',
-  buttonGradientEnd: '#A68A6E',
+  primary: "#FF6F61",
+  secondary: "#4A90E2",
+  background: "#FDFDFD",
+  card: "#FFFFFF",
+  textPrimary: "#2D3748",
+  textSecondary: "#718096",
+  accent: "#FBBF24",
+  shadow: "rgba(0, 0, 0, 0.3)",
+  error: "#FF0000",
+  white: "#FFFFFF",
+  buttonGradientStart: "#D3C5B7",
+  buttonGradientEnd: "#A68A6E",
 };
 
 const typeOrder = {
@@ -1775,45 +1776,53 @@ const typeOrder = {
 };
 
 const typesMapping = [
-  { key: 'clothing', costField: 'cost', type: 'clothing', label: 'Одежда' },
-  { key: 'tamada', costField: 'cost', type: 'tamada', label: 'Тамада' },
-  { key: 'programs', costField: 'cost', type: 'program', label: 'Программа' },
-  { key: 'traditionalGifts', costField: 'cost', type: 'traditionalGift', label: 'Традиционные подарки' },
-  { key: 'flowers', costField: 'cost', type: 'flowers', label: 'Цветы' },
-  { key: 'cakes', costField: 'cost', type: 'cake', label: 'Торты' },
-  { key: 'alcohol', costField: 'cost', type: 'alcohol', label: 'Алкоголь' },
-  { key: 'transport', costField: 'cost', type: 'transport', label: 'Транспорт' },
-  { key: 'restaurants', costField: 'averageCost', type: 'restaurant', label: 'Ресторан' },
-  { key: 'jewelry', costField: 'cost', type: 'jewelry', label: 'Ювелирные изделия' },
+  { key: "clothing", costField: "cost", type: "clothing", label: "Одежда" },
+  { key: "tamada", costField: "cost", type: "tamada", label: "Тамада" },
+  { key: "programs", costField: "cost", type: "program", label: "Программа" },
+  {
+    key: "traditionalGifts",
+    costField: "cost",
+    type: "traditionalGift",
+    label: "Традиционные подарки",
+  },
+  { key: "flowers", costField: "cost", type: "flowers", label: "Цветы" },
+  { key: "cakes", costField: "cost", type: "cake", label: "Торты" },
+  { key: "alcohol", costField: "cost", type: "alcohol", label: "Алкоголь" },
+  {
+    key: "transport",
+    costField: "cost",
+    type: "transport",
+    label: "Транспорт",
+  },
+  {
+    key: "restaurants",
+    costField: "averageCost",
+    type: "restaurant",
+    label: "Ресторан",
+  },
+  {
+    key: "jewelry",
+    costField: "cost",
+    type: "jewelry",
+    label: "Ювелирные изделия",
+  },
 ];
 
 const categoryToTypeMap = {
-  'Ведущий': 'tamada',
-  'Ресторан': 'restaurant',
-  'Алкоголь': 'alcohol',
-  'Шоу программа': 'program',
-  'Ювелирные изделия': 'jewelry',
-  'Традиционные подарки': 'traditionalGift',
-  'Свадебный салон': 'clothing',
-  'Прокат авто': 'transport',
-  'Торты':'cakes',
-  'Алкоголь':'alcohol',
+  Ведущий: "tamada",
+  Ресторан: "restaurant",
+  Алкоголь: "alcohol",
+  "Шоу программа": "program",
+  "Ювелирные изделия": "jewelry",
+  "Традиционные подарки": "traditionalGift",
+  "Свадебный салон": "clothing",
+  "Прокат авто": "transport",
+  Торты: "cake",
+  Алкоголь: "alcohol",
   // 'Фото видео съемка':''
   // 'Оформление'
   // 'Продукты'
   // 'Прочее'
-
-    
-  
-
-
-   
-   
- 
-   
-    
-
-
 };
 
 // Обратное отображение type в категорию
@@ -1822,27 +1831,172 @@ const typeToCategoryMap = Object.fromEntries(
 );
 
 // Модальное окно для добавления элементов
-const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAddItem, setDetailsModalVisible, setSelectedItem, quantities, updateCategories }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTypeFilter, setSelectedTypeFilter] = useState('all');
-  const [selectedDistrict, setSelectedDistrict] = useState('all');
-  const [costRange, setCostRange] = useState('all');
+const AddItemModal = ({
+  visible,
+  onClose,
+  filteredItems,
+  filteredData,
+  handleAddItem,
+  setDetailsModalVisible,
+  setSelectedItem,
+  quantities,
+  updateCategories,
+}) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState("all");
+  const [selectedDistrict, setSelectedDistrict] = useState("all");
+  const [costRange, setCostRange] = useState("all");
 
   const uniqueTypes = useMemo(() => {
     const types = [
-      { type: 'all', label: 'Все' },
+      { type: "all", label: "Все" },
       ...filteredItems
         .map((item) => ({
           type: item.type,
-          label: typesMapping.find((t) => t.type === item.type)?.label || item.type,
+          label:
+            typesMapping.find((t) => t.type === item.type)?.label || item.type,
         }))
-        .filter((value, index, self) => self.findIndex((t) => t.type === value.type) === index)
+        .filter(
+          (value, index, self) =>
+            self.findIndex((t) => t.type === value.type) === index
+        )
         .sort((a, b) => (typeOrder[a.type] || 11) - (typeOrder[b.type] || 11)),
     ];
     return types;
   }, [filteredItems]);
 
-  const districts = useMemo(() => ['all', ...new Set(filteredItems.map((item) => String(item.district)).filter(Boolean))], [filteredItems]);
+  const districts = useMemo(
+    () => [
+      "all",
+      ...new Set(
+        filteredItems.map((item) => String(item.district)).filter(Boolean)
+      ),
+    ],
+    [filteredItems]
+  );
+
+  // const filteredDataMemo = useMemo(() => {
+  //   let result = filteredItems;
+  //   if (searchQuery) {
+  //     result = result.filter((item) =>
+  //       [
+  //         item.name,
+  //         item.itemName,
+  //         item.flowerName,
+  //         item.alcoholName,
+  //         item.carName,
+  //         item.teamName,
+  //         item.salonName,
+  //         item.storeName,
+  //         item.address,
+  //         item.phone,
+  //         item.cuisine,
+  //         item.category,
+  //         item.brand,
+  //         item.gender,
+  //         item.portfolio,
+  //         item.cakeType,
+  //         item.flowerType,
+
+  //       ]
+  //         .filter(Boolean)
+  //         .some((field) => field.toLowerCase().includes(searchQuery.toLowerCase()))
+  //     );
+  //   }
+  //   if (selectedTypeFilter !== 'all') {
+  //     result = result.filter((item) => item.type === selectedTypeFilter);
+  //   }
+  //   if (selectedDistrict !== 'all') {
+  //     result = result.filter((item) => String(item.district) === selectedDistrict);
+  //   }
+  //   if (costRange !== 'all') {
+  //     result = result.filter((item) => {
+  //       const cost = item.averageCost || item.cost;
+  //       if (costRange === '0-10000') return cost <= 10000;
+  //       if (costRange === '10000-50000') return cost > 10000 && cost <= 50000;
+  //       if (costRange === '50000+') return cost > 50000;
+  //       return true;
+  //     });
+  //   }
+  //   return result.sort((a, b) => (typeOrder[a.type] || 11) - (typeOrder[b.type] || 11));
+  // }, [filteredItems, searchQuery, selectedTypeFilter, selectedDistrict, costRange]);
+
+  // const renderAddItem = useCallback(
+  //   ({ item }) => {
+  //     console.log('renderAddItem ITEM= ',item)
+  //     const count = filteredData.filter(
+  //       (selectedItem) => `${selectedItem.type}-${selectedItem.id}` === `${item.type}-${item.id}`
+  //     ).length;
+  //     if (item.type === 'goods' && item.category === 'Прочее') return null;
+  //     const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
+  //     let title;
+  //     switch (item.type) {
+  //       case 'restaurant':
+  //         title = `Ресторан: ${item.name} (${cost} ₸)`;
+  //         break;
+  //       case 'clothing':
+  //         title = `Одежда: ${item.storeName} - ${item.itemName} (${cost} ₸)`;
+  //         break;
+  //       case 'flowers':
+  //         title = `Цветы: ${item.salonName} - ${item.flowerName} (${cost} ₸)`;
+  //         break;
+  //       case 'cake':
+  //         title = `Торты: ${item.name} (${cost} ₸)`;
+  //         break;
+  //       case 'alcohol':
+  //         title = `Алкоголь: ${item.salonName} - ${item.alcoholName} (${cost} ₸)`;
+  //         break;
+  //       case 'program':
+  //         title = `Программа: ${item.teamName} (${cost} ₸)`;
+  //         break;
+  //       case 'tamada':
+  //         title = `Тамада: ${item.name} (${cost} ₸)`;
+  //         break;
+  //       case 'traditionalGift':
+  //         title = `Традиц. подарки: ${item.salonName} - ${item.itemName} (${cost} ₸)`;
+  //         break;
+  //       case 'transport':
+  //         title = `Транспорт: ${item.salonName} - ${item.carName} (${cost} ₸)`;
+  //         break;
+  //       case 'goods':
+  //         title = `Товар: ${item.item_name} (${cost} ₸)`;
+  //         break;
+  //       default:
+  //         title = 'Неизвестный элемент';
+  //     }
+  //     return (
+  //       <View style={styles.addModalItemCard}>
+  //         <TouchableOpacity
+  //           style={styles.addModalItemContent}
+  //           onPress={() => {
+  //             handleAddItem(item);
+  //             // Добавляем категорию в список, если её ещё нет
+  //             const category = typeToCategoryMap[item.type];
+  //             if (category) {
+  //               updateCategories(category);
+  //             }
+  //           }}
+  //         >
+  //           <Text style={styles.addModalItemText}>{title}</Text>
+  //           {count > 0 && (
+  //             <Text style={styles.addModalItemCount}>Добавлено: {count}</Text>
+  //           )}
+  //         </TouchableOpacity>
+  //         <TouchableOpacity
+  //           style={styles.addModalDetailsButton}
+  //           onPress={() => {
+  //             setSelectedItem(item);
+  //             setDetailsModalVisible(true);
+  //             onClose();
+  //           }}
+  //         >
+  //           <Text style={styles.addModalDetailsButtonText}>Подробнее</Text>
+  //         </TouchableOpacity>
+  //       </View>
+  //     );
+  //   },
+  //   [filteredData, handleAddItem, setDetailsModalVisible, setSelectedItem, onClose, updateCategories]
+  // );
 
   const filteredDataMemo = useMemo(() => {
     let result = filteredItems;
@@ -1866,74 +2020,90 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
           item.portfolio,
           item.cakeType,
           item.flowerType,
-
+          item.material, // Добавляем для ювелирных изделий
+          item.type, // Добавляем для ювелирных изделий (например, "Кольцо")
         ]
           .filter(Boolean)
-          .some((field) => field.toLowerCase().includes(searchQuery.toLowerCase()))
+          .some((field) =>
+            field.toLowerCase().includes(searchQuery.toLowerCase())
+          )
       );
     }
-    if (selectedTypeFilter !== 'all') {
+    if (selectedTypeFilter !== "all") {
       result = result.filter((item) => item.type === selectedTypeFilter);
     }
-    if (selectedDistrict !== 'all') {
-      result = result.filter((item) => String(item.district) === selectedDistrict);
+    if (selectedDistrict !== "all") {
+      result = result.filter(
+        (item) => String(item.district) === selectedDistrict
+      );
     }
-    if (costRange !== 'all') {
+    if (costRange !== "all") {
       result = result.filter((item) => {
         const cost = item.averageCost || item.cost;
-        if (costRange === '0-10000') return cost <= 10000;
-        if (costRange === '10000-50000') return cost > 10000 && cost <= 50000;
-        if (costRange === '50000+') return cost > 50000;
+        if (costRange === "0-10000") return cost <= 10000;
+        if (costRange === "10000-50000") return cost > 10000 && cost <= 50000;
+        if (costRange === "50000+") return cost > 50000;
         return true;
       });
     }
-    return result.sort((a, b) => (typeOrder[a.type] || 11) - (typeOrder[b.type] || 11));
-  }, [filteredItems, searchQuery, selectedTypeFilter, selectedDistrict, costRange]);
-
-
+    return result.sort(
+      (a, b) => (typeOrder[a.type] || 11) - (typeOrder[b.type] || 11)
+    );
+  }, [
+    filteredItems,
+    searchQuery,
+    selectedTypeFilter,
+    selectedDistrict,
+    costRange,
+  ]);
 
   const renderAddItem = useCallback(
     ({ item }) => {
-      console.log('renderAddItem ITEM= ',item)
+      console.log("renderAddItem ITEM= ", item);
       const count = filteredData.filter(
-        (selectedItem) => `${selectedItem.type}-${selectedItem.id}` === `${item.type}-${item.id}`
+        (selectedItem) =>
+          `${selectedItem.type}-${selectedItem.id}` ===
+          `${item.type}-${item.id}`
       ).length;
-      if (item.type === 'goods' && item.category === 'Прочее') return null;
-      const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
+      if (item.type === "goods" && item.category === "Прочее") return null;
+      const cost = item.type === "restaurant" ? item.averageCost : item.cost;
       let title;
       switch (item.type) {
-        case 'restaurant':
+        case "restaurant":
           title = `Ресторан: ${item.name} (${cost} ₸)`;
           break;
-        case 'clothing':
+        case "clothing":
           title = `Одежда: ${item.storeName} - ${item.itemName} (${cost} ₸)`;
           break;
-        case 'flowers':
+        case "flowers":
           title = `Цветы: ${item.salonName} - ${item.flowerName} (${cost} ₸)`;
           break;
-        case 'cake':
+        case "cake":
           title = `Торты: ${item.name} (${cost} ₸)`;
           break;
-        case 'alcohol':
+        case "alcohol":
           title = `Алкоголь: ${item.salonName} - ${item.alcoholName} (${cost} ₸)`;
           break;
-        case 'program':
+        case "program":
           title = `Программа: ${item.teamName} (${cost} ₸)`;
           break;
-        case 'tamada':
+        case "tamada":
           title = `Тамада: ${item.name} (${cost} ₸)`;
           break;
-        case 'traditionalGift':
+        case "traditionalGift":
           title = `Традиц. подарки: ${item.salonName} - ${item.itemName} (${cost} ₸)`;
           break;
-        case 'transport':
+        case "transport":
           title = `Транспорт: ${item.salonName} - ${item.carName} (${cost} ₸)`;
           break;
-        case 'goods':
+        case "goods":
           title = `Товар: ${item.item_name} (${cost} ₸)`;
           break;
+        case "jewelry":
+          title = `Ювелирные изделия: ${item.storeName} - ${item.itemName} (${cost} ₸)`;
+          break;
         default:
-          title = 'Неизвестный элемент';
+          title = "Неизвестный элемент";
       }
       return (
         <View style={styles.addModalItemCard}>
@@ -1941,7 +2111,6 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
             style={styles.addModalItemContent}
             onPress={() => {
               handleAddItem(item);
-              // Добавляем категорию в список, если её ещё нет
               const category = typeToCategoryMap[item.type];
               if (category) {
                 updateCategories(category);
@@ -1966,30 +2135,49 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
         </View>
       );
     },
-    [filteredData, handleAddItem, setDetailsModalVisible, setSelectedItem, onClose, updateCategories]
+    [
+      filteredData,
+      handleAddItem,
+      setDetailsModalVisible,
+      setSelectedItem,
+      onClose,
+      updateCategories,
+    ]
   );
-
   const closeModal = () => {
-    setSearchQuery('');
-    setSelectedTypeFilter('all');
-    setSelectedDistrict('all');
-    setCostRange('all');
+    setSearchQuery("");
+    setSelectedTypeFilter("all");
+    setSelectedDistrict("all");
+    setCostRange("all");
     onClose();
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={closeModal}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={closeModal}
+    >
       <SafeAreaView style={styles.modalOverlay}>
         <View style={styles.addModalContainer}>
           <View style={styles.addModalHeader}>
             <Text style={styles.addModalTitle}>Добавить элемент</Text>
-            <TouchableOpacity style={styles.addModalCloseIcon} onPress={closeModal}>
+            <TouchableOpacity
+              style={styles.addModalCloseIcon}
+              onPress={closeModal}
+            >
               <Icon name="close" size={24} color={COLORS.textSecondary} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.addModalSearchContainer}>
-            <Icon name="search" size={20} color={COLORS.textSecondary} style={styles.addModalSearchIcon} />
+            <Icon
+              name="search"
+              size={20}
+              color={COLORS.textSecondary}
+              style={styles.addModalSearchIcon}
+            />
             <TextInput
               style={styles.addModalSearchInput}
               placeholder="Поиск по названию..."
@@ -1997,7 +2185,10 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
               onChangeText={setSearchQuery}
             />
             {searchQuery.length > 0 && (
-              <TouchableOpacity style={styles.addModalClearIcon} onPress={() => setSearchQuery('')}>
+              <TouchableOpacity
+                style={styles.addModalClearIcon}
+                onPress={() => setSearchQuery("")}
+              >
                 <Icon name="clear" size={20} color={COLORS.textSecondary} />
               </TouchableOpacity>
             )}
@@ -2016,14 +2207,16 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
                     key={typeObj.type}
                     style={[
                       styles.addModalTypeButton,
-                      selectedTypeFilter === typeObj.type && styles.addModalTypeButtonActive,
+                      selectedTypeFilter === typeObj.type &&
+                        styles.addModalTypeButtonActive,
                     ]}
                     onPress={() => setSelectedTypeFilter(typeObj.type)}
                   >
                     <Text
                       style={[
                         styles.addModalTypeButtonText,
-                        selectedTypeFilter === typeObj.type && styles.addModalTypeButtonTextActive,
+                        selectedTypeFilter === typeObj.type &&
+                          styles.addModalTypeButtonTextActive,
                       ]}
                     >
                       {typeObj.label}
@@ -2040,17 +2233,19 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
                     key={district}
                     style={[
                       styles.addModalDistrictButton,
-                      selectedDistrict === district && styles.addModalDistrictButtonActive,
+                      selectedDistrict === district &&
+                        styles.addModalDistrictButtonActive,
                     ]}
                     onPress={() => setSelectedDistrict(district)}
                   >
                     <Text
                       style={[
                         styles.addModalDistrictButtonText,
-                        selectedDistrict === district && styles.addModalDistrictButtonTextActive,
+                        selectedDistrict === district &&
+                          styles.addModalDistrictButtonTextActive,
                       ]}
                     >
-                      {district === 'all' ? 'Все' : district}
+                      {district === "all" ? "Все" : district}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -2060,23 +2255,25 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
               <Text style={styles.addModalFilterLabel}>Цена</Text>
               <View style={styles.addModalPriceButtons}>
                 {[
-                  { label: 'Все', value: 'all' },
-                  { label: '0-10k', value: '0-10000' },
-                  { label: '10k-50k', value: '10000-50000' },
-                  { label: '50k+', value: '50000+' },
+                  { label: "Все", value: "all" },
+                  { label: "0-10k", value: "0-10000" },
+                  { label: "10k-50k", value: "10000-50000" },
+                  { label: "50k+", value: "50000+" },
                 ].map((option) => (
                   <TouchableOpacity
                     key={option.value}
                     style={[
                       styles.addModalPriceButton,
-                      costRange === option.value && styles.addModalPriceButtonActive,
+                      costRange === option.value &&
+                        styles.addModalPriceButtonActive,
                     ]}
                     onPress={() => setCostRange(option.value)}
                   >
                     <Text
                       style={[
                         styles.addModalPriceButtonText,
-                        costRange === option.value && styles.addModalPriceButtonTextActive,
+                        costRange === option.value &&
+                          styles.addModalPriceButtonTextActive,
                       ]}
                     >
                       {option.label}
@@ -2123,56 +2320,66 @@ const CategoryItemsModal = ({
   setRemainingBudget,
   updateCategories,
 }) => {
-  const selectedItems = filteredData.filter((item) => item.type === categoryType);
+  const selectedItems = filteredData.filter(
+    (item) => item.type === categoryType
+  );
 
   const renderCategoryItem = useCallback(
     ({ item }) => {
       const isSelected = selectedItems.some(
-        (selected) => `${selected.type}-${selected.id}` === `${item.type}-${item.id}`
+        (selected) =>
+          `${selected.type}-${selected.id}` === `${item.type}-${item.id}`
       );
       const count = selectedItems.filter(
-        (selected) => `${selected.type}-${selected.id}` === `${item.type}-${item.id}`
+        (selected) =>
+          `${selected.type}-${selected.id}` === `${item.type}-${item.id}`
       ).length;
-      const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
+      const cost = item.type === "restaurant" ? item.averageCost : item.cost;
       let title;
       switch (item.type) {
-        case 'restaurant':
+        case "restaurant":
           title = `${item.name} (${cost} ₸)`;
           break;
-        case 'clothing':
+        case "clothing":
           title = `${item.storeName} - ${item.itemName} (${cost} ₸)`;
           break;
-        case 'flowers':
+        case "flowers":
           title = `${item.salonName} - ${item.flowerName} (${cost} ₸)`;
           break;
-        case 'cake':
+        case "cake":
           title = `${item.name} (${cost} ₸)`;
           break;
-        case 'alcohol':
+        case "alcohol":
           title = `${item.salonName} - ${item.alcoholName} (${cost} ₸)`;
           break;
-        case 'program':
+        case "program":
           title = `${item.teamName} (${cost} ₸)`;
           break;
-        case 'tamada':
+        case "tamada":
           title = `${item.name} (${cost} ₸)`;
           break;
-        case 'traditionalGift':
+        case "traditionalGift":
           title = `${item.salonName} - ${item.itemName} (${cost} ₸)`;
           break;
-        case 'transport':
+        case "transport":
           title = `${item.salonName} - ${item.carName} (${cost} ₸)`;
           break;
-        case 'goods':
+        case "goods":
           title = `${item.item_name} (${cost} ₸)`;
           break;
+        case "jewelry":
+          title = `${item.storeName} - ${item.itemName} (${cost} ₸)`;
+          break;
         default:
-          title = 'Неизвестный элемент';
+          title = "Неизвестный элемент";
       }
       return (
         <View style={styles.addModalItemCard}>
           <TouchableOpacity
-            style={[styles.addModalItemContent, isSelected && styles.disabledItemContent]}
+            style={[
+              styles.addModalItemContent,
+              isSelected && styles.disabledItemContent,
+            ]}
             onPress={() => {
               if (!isSelected) {
                 handleAddItem(item);
@@ -2185,7 +2392,9 @@ const CategoryItemsModal = ({
             disabled={isSelected}
           >
             <Text style={styles.addModalItemText}>{title}</Text>
-            {count > 0 && <Text style={styles.addModalItemCount}>Добавлено: {count}</Text>}
+            {count > 0 && (
+              <Text style={styles.addModalItemCount}>Добавлено: {count}</Text>
+            )}
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.addModalDetailsButton}
@@ -2200,23 +2409,168 @@ const CategoryItemsModal = ({
         </View>
       );
     },
-    [handleAddItem, setDetailsModalVisible, setSelectedItem, onClose, selectedItems, updateCategories]
+    [
+      handleAddItem,
+      setDetailsModalVisible,
+      setSelectedItem,
+      onClose,
+      selectedItems,
+      updateCategories,
+    ]
   );
 
+  //   const renderSelectedItem = useCallback(
+  //     (item) => {
+  //       const itemKey = `${item.type}-${item.id}`;
+  //       const quantity = quantities[itemKey] || '1';
+  //       const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
+  //       const parsedQuantityForCalc = quantity === '' ? 1 : parseInt(quantity) || 1;
+  //       const totalCost = cost * parsedQuantityForCalc;
+
+  //       const handleQuantityChange = (value) => {
+  //         const filteredValue = value.replace(/[^0-9]/g, '');
+  //         const updatedQuantities = { ...quantities, [itemKey]: filteredValue };
+  //         setQuantities(updatedQuantities);
+
+  //         const quantityForCalc = filteredValue === '' ? 1 : parseInt(filteredValue) || 1;
+  //         const updatedFilteredData = filteredData.map((dataItem) => {
+  //           if (`${dataItem.type}-${dataItem.id}` === itemKey) {
+  //             return { ...dataItem, totalCost: cost * quantityForCalc };
+  //           }
+  //           return dataItem;
+  //         });
+  //         setFilteredData(updatedFilteredData);
+
+  //         const totalSpent = updatedFilteredData.reduce((sum, dataItem) => {
+  //           const key = `${dataItem.type}-${dataItem.id}`;
+  //           const itemQuantity = updatedQuantities[key] === '' ? 1 : parseInt(updatedQuantities[key] || '1');
+  //           const itemCost = dataItem.type === 'restaurant' ? dataItem.averageCost : dataItem.cost;
+  //           return sum + itemCost * itemQuantity;
+  //         }, 0);
+  //         setRemainingBudget(parseFloat(budget) - totalSpent);
+  //       };
+
+  //       const handleBlur = () => {
+  //         if (quantities[itemKey] === '') {
+  //           const updatedQuantities = { ...quantities, [itemKey]: '1' };
+  //           setQuantities(updatedQuantities);
+
+  //           const updatedFilteredData = filteredData.map((dataItem) => {
+  //             if (`${dataItem.type}-${dataItem.id}` === itemKey) {
+  //               return { ...dataItem, totalCost: cost * 1 };
+  //             }
+  //             return dataItem;
+  //           });
+  //         setFilteredData(updatedFilteredData);
+
+  //         const totalSpent = updatedFilteredData.reduce((sum, dataItem) => {
+  //           const key = `${dataItem.type}-${dataItem.id}`;
+  //           const itemQuantity = updatedQuantities[key] === '' ? 1 : parseInt(updatedQuantities[key] || '1');
+  //           const itemCost = dataItem.type === 'restaurant' ? dataItem.averageCost : dataItem.cost;
+  //           return sum + itemCost * itemQuantity;
+  //         }, 0);
+  //         setRemainingBudget(parseFloat(budget) - totalSpent);
+  //       }
+  //     };
+
+  //     let title;
+  //     switch (item.type) {
+  //       case 'restaurant':
+  //         title = `${item.name} (${cost} ₸)`;
+  //         break;
+  //       case 'clothing':
+  //         title = `${item.storeName} - ${item.itemName} (${cost} ₸)`;
+  //         break;
+  //       case 'flowers':
+  //         title = `${item.salonName} - ${item.flowerName} (${cost} ₸)`;
+  //         break;
+  //       case 'cake':
+  //         title = `${item.name} (${cost} ₸)`;
+  //         break;
+  //       case 'alcohol':
+  //         title = `${item.salonName} - ${item.alcoholName} (${cost} ₸)`;
+  //         break;
+  //       case 'program':
+  //         title = `${item.teamName} (${cost} ₸)`;
+  //         break;
+  //       case 'tamada':
+  //         title = `${item.name} (${cost} ₸)`;
+  //         break;
+  //       case 'traditionalGift':
+  //         title = `${item.salonName} - ${item.itemName} (${cost} ₸)`;
+  //         break;
+  //       case 'transport':
+  //         title = `${item.salonName} - ${item.carName} (${cost} ₸)`;
+  //         break;
+  //       case 'goods':
+  //         title = `${item.item_name} (${cost} ₸)`;
+  //         break;
+  //       default:
+  //         title = 'Неизвестный элемент';
+  //     }
+
+  //     return (
+  //       <View style={[styles.addModalItemCard, styles.selectedItemCard]}>
+  //         <View style={styles.addModalItemContent}>
+  //           <Text style={styles.addModalItemText}>Выбрано: {title}</Text>
+  //           <View style={styles.quantityContainer}>
+  //             <Text style={styles.quantityLabel}>Количество:</Text>
+  //             <TextInput
+  //               style={styles.quantityInput}
+  //               value={quantity}
+  //               onChangeText={handleQuantityChange}
+  //               onBlur={handleBlur}
+  //               keyboardType="numeric"
+  //               placeholder="1"
+  //             />
+  //             <Text style={styles.totalCostText}>Итого: {totalCost} ₸</Text>
+  //           </View>
+  //         </View>
+  //         <TouchableOpacity style={styles.removeButton} onPress={() => handleRemoveItem(item)}>
+  //           <Text style={styles.removeButtonText}>Убрать</Text>
+  //         </TouchableOpacity>
+  //         <TouchableOpacity
+  //           style={styles.addModalDetailsButton}
+  //           onPress={() => {
+  //             setSelectedItem(item);
+  //             setDetailsModalVisible(true);
+  //             onClose();
+  //           }}
+  //         >
+  //           <Text style={styles.addModalDetailsButtonText}>Подробнее</Text>
+  //         </TouchableOpacity>
+  //       </View>
+  //     );
+  //   },
+  //   [
+  //     quantities,
+  //     filteredData,
+  //     budget,
+  //     handleRemoveItem,
+  //     setDetailsModalVisible,
+  //     setSelectedItem,
+  //     onClose,
+  //     setQuantities,
+  //     setFilteredData,
+  //     setRemainingBudget,
+  //   ]
+  // );
   const renderSelectedItem = useCallback(
     (item) => {
       const itemKey = `${item.type}-${item.id}`;
-      const quantity = quantities[itemKey] || '1';
-      const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
-      const parsedQuantityForCalc = quantity === '' ? 1 : parseInt(quantity) || 1;
+      const quantity = quantities[itemKey] || "1";
+      const cost = item.type === "restaurant" ? item.averageCost : item.cost;
+      const parsedQuantityForCalc =
+        quantity === "" ? 1 : parseInt(quantity) || 1;
       const totalCost = cost * parsedQuantityForCalc;
 
       const handleQuantityChange = (value) => {
-        const filteredValue = value.replace(/[^0-9]/g, '');
+        const filteredValue = value.replace(/[^0-9]/g, "");
         const updatedQuantities = { ...quantities, [itemKey]: filteredValue };
         setQuantities(updatedQuantities);
 
-        const quantityForCalc = filteredValue === '' ? 1 : parseInt(filteredValue) || 1;
+        const quantityForCalc =
+          filteredValue === "" ? 1 : parseInt(filteredValue) || 1;
         const updatedFilteredData = filteredData.map((dataItem) => {
           if (`${dataItem.type}-${dataItem.id}` === itemKey) {
             return { ...dataItem, totalCost: cost * quantityForCalc };
@@ -2227,16 +2581,22 @@ const CategoryItemsModal = ({
 
         const totalSpent = updatedFilteredData.reduce((sum, dataItem) => {
           const key = `${dataItem.type}-${dataItem.id}`;
-          const itemQuantity = updatedQuantities[key] === '' ? 1 : parseInt(updatedQuantities[key] || '1');
-          const itemCost = dataItem.type === 'restaurant' ? dataItem.averageCost : dataItem.cost;
+          const itemQuantity =
+            updatedQuantities[key] === ""
+              ? 1
+              : parseInt(updatedQuantities[key] || "1");
+          const itemCost =
+            dataItem.type === "restaurant"
+              ? dataItem.averageCost
+              : dataItem.cost;
           return sum + itemCost * itemQuantity;
         }, 0);
         setRemainingBudget(parseFloat(budget) - totalSpent);
       };
 
       const handleBlur = () => {
-        if (quantities[itemKey] === '') {
-          const updatedQuantities = { ...quantities, [itemKey]: '1' };
+        if (quantities[itemKey] === "") {
+          const updatedQuantities = { ...quantities, [itemKey]: "1" };
           setQuantities(updatedQuantities);
 
           const updatedFilteredData = filteredData.map((dataItem) => {
@@ -2245,127 +2605,153 @@ const CategoryItemsModal = ({
             }
             return dataItem;
           });
-        setFilteredData(updatedFilteredData);
+          setFilteredData(updatedFilteredData);
 
-        const totalSpent = updatedFilteredData.reduce((sum, dataItem) => {
-          const key = `${dataItem.type}-${dataItem.id}`;
-          const itemQuantity = updatedQuantities[key] === '' ? 1 : parseInt(updatedQuantities[key] || '1');
-          const itemCost = dataItem.type === 'restaurant' ? dataItem.averageCost : dataItem.cost;
-          return sum + itemCost * itemQuantity;
-        }, 0);
-        setRemainingBudget(parseFloat(budget) - totalSpent);
+          const totalSpent = updatedFilteredData.reduce((sum, dataItem) => {
+            const key = `${dataItem.type}-${dataItem.id}`;
+            const itemQuantity =
+              updatedQuantities[key] === ""
+                ? 1
+                : parseInt(updatedQuantities[key] || "1");
+            const itemCost =
+              dataItem.type === "restaurant"
+                ? dataItem.averageCost
+                : dataItem.cost;
+            return sum + itemCost * itemQuantity;
+          }, 0);
+          setRemainingBudget(parseFloat(budget) - totalSpent);
+        }
+      };
+
+      let title;
+      switch (item.type) {
+        case "restaurant":
+          title = `${item.name} (${cost} ₸)`;
+          break;
+        case "clothing":
+          title = `${item.storeName} - ${item.itemName} (${cost} ₸)`;
+          break;
+        case "flowers":
+          title = `${item.salonName} - ${item.flowerName} (${cost} ₸)`;
+          break;
+        case "cake":
+          title = `${item.name} (${cost} ₸)`;
+          break;
+        case "alcohol":
+          title = `${item.salonName} - ${item.alcoholName} (${cost} ₸)`;
+          break;
+        case "program":
+          title = `${item.teamName} (${cost} ₸)`;
+          break;
+        case "tamada":
+          title = `${item.name} (${cost} ₸)`;
+          break;
+        case "traditionalGift":
+          title = `${item.salonName} - ${item.itemName} (${cost} ₸)`;
+          break;
+        case "transport":
+          title = `${item.salonName} - ${item.carName} (${cost} ₸)`;
+          break;
+        case "goods":
+          title = `${item.item_name} (${cost} ₸)`;
+          break;
+        case "jewelry":
+          title = `${item.storeName} - ${item.itemName} (${cost} ₸)`;
+          break;
+        default:
+          title = "Неизвестный элемент";
       }
-    };
 
-    let title;
-    switch (item.type) {
-      case 'restaurant':
-        title = `${item.name} (${cost} ₸)`;
-        break;
-      case 'clothing':
-        title = `${item.storeName} - ${item.itemName} (${cost} ₸)`;
-        break;
-      case 'flowers':
-        title = `${item.salonName} - ${item.flowerName} (${cost} ₸)`;
-        break;
-      case 'cake':
-        title = `${item.name} (${cost} ₸)`;
-        break;
-      case 'alcohol':
-        title = `${item.salonName} - ${item.alcoholName} (${cost} ₸)`;
-        break;
-      case 'program':
-        title = `${item.teamName} (${cost} ₸)`;
-        break;
-      case 'tamada':
-        title = `${item.name} (${cost} ₸)`;
-        break;
-      case 'traditionalGift':
-        title = `${item.salonName} - ${item.itemName} (${cost} ₸)`;
-        break;
-      case 'transport':
-        title = `${item.salonName} - ${item.carName} (${cost} ₸)`;
-        break;
-      case 'goods':
-        title = `${item.item_name} (${cost} ₸)`;
-        break;
-      default:
-        title = 'Неизвестный элемент';
-    }
-
-    return (
-      <View style={[styles.addModalItemCard, styles.selectedItemCard]}>
-        <View style={styles.addModalItemContent}>
-          <Text style={styles.addModalItemText}>Выбрано: {title}</Text>
-          <View style={styles.quantityContainer}>
-            <Text style={styles.quantityLabel}>Количество:</Text>
-            <TextInput
-              style={styles.quantityInput}
-              value={quantity}
-              onChangeText={handleQuantityChange}
-              onBlur={handleBlur}
-              keyboardType="numeric"
-              placeholder="1"
-            />
-            <Text style={styles.totalCostText}>Итого: {totalCost} ₸</Text>
+      return (
+        <View style={[styles.addModalItemCard, styles.selectedItemCard]}>
+          <View style={styles.addModalItemContent}>
+            <Text style={styles.addModalItemText}>Выбрано: {title}</Text>
+            <View style={styles.quantityContainer}>
+              <Text style={styles.quantityLabel}>Количество:</Text>
+              <TextInput
+                style={styles.quantityInput}
+                value={quantity}
+                onChangeText={handleQuantityChange}
+                onBlur={handleBlur}
+                keyboardType="numeric"
+                placeholder="1"
+              />
+              <Text style={styles.totalCostText}>Итого: {totalCost} ₸</Text>
+            </View>
           </View>
+          <TouchableOpacity
+            style={styles.removeButton}
+            onPress={() => handleRemoveItem(item)}
+          >
+            <Text style={styles.removeButtonText}>Убрать</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.addModalDetailsButton}
+            onPress={() => {
+              setSelectedItem(item);
+              setDetailsModalVisible(true);
+              onClose();
+            }}
+          >
+            <Text style={styles.addModalDetailsButtonText}>Подробнее</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.removeButton} onPress={() => handleRemoveItem(item)}>
-          <Text style={styles.removeButtonText}>Убрать</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.addModalDetailsButton}
-          onPress={() => {
-            setSelectedItem(item);
-            setDetailsModalVisible(true);
-            onClose();
-          }}
-        >
-          <Text style={styles.addModalDetailsButtonText}>Подробнее</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  },
-  [
-    quantities,
-    filteredData,
-    budget,
-    handleRemoveItem,
-    setDetailsModalVisible,
-    setSelectedItem,
-    onClose,
-    setQuantities,
-    setFilteredData,
-    setRemainingBudget,
-  ]
-);
+      );
+    },
+    [
+      quantities,
+      filteredData,
+      budget,
+      handleRemoveItem,
+      setDetailsModalVisible,
+      setSelectedItem,
+      onClose,
+      setQuantities,
+      setFilteredData,
+      setRemainingBudget,
+    ]
+  );
 
   const handleClose = () => {
     onClose();
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={handleClose}
+    >
       <SafeAreaView style={styles.modalOverlay}>
         <View style={styles.addModalContainer}>
           <View style={styles.addModalHeader}>
             <Text style={styles.addModalTitle}>{categoryLabel}</Text>
-            <TouchableOpacity style={styles.addModalCloseIcon} onPress={handleClose}>
+            <TouchableOpacity
+              style={styles.addModalCloseIcon}
+              onPress={handleClose}
+            >
               <Icon name="close" size={24} color={COLORS.textSecondary} />
             </TouchableOpacity>
           </View>
           <ScrollView contentContainerStyle={styles.addModalItemList}>
             {selectedItems.length > 0 && (
               <View style={styles.selectedItemContainer}>
-                <Text style={styles.categoryHeader}>Выбранные элементы ({selectedItems.length}):</Text>
+                <Text style={styles.categoryHeader}>
+                  Выбранные элементы ({selectedItems.length}):
+                </Text>
                 {selectedItems.map((item) => (
-                  <View key={`${item.type}-${item.id}`}>{renderSelectedItem(item)}</View>
+                  <View key={`${item.type}-${item.id}`}>
+                    {renderSelectedItem(item)}
+                  </View>
                 ))}
               </View>
             )}
             {categoryItems.length > 0 ? (
               categoryItems.map((item) => (
-                <View key={`${item.type}-${item.id}`}>{renderCategoryItem({ item })}</View>
+                <View key={`${item.type}-${item.id}`}>
+                  {renderCategoryItem({ item })}
+                </View>
               ))
             ) : (
               <Text style={styles.addModalEmptyText}>Элементы не найдены</Text>
@@ -2396,22 +2782,23 @@ const CreateEventScreen = ({ navigation, route }) => {
     alcohol: [],
     transport: [],
     goods: [],
+    jewelry: [],
   });
   const [filteredData, setFilteredData] = useState([]);
   const [quantities, setQuantities] = useState({});
-  const [budget, setBudget] = useState('');
-  const [guestCount, setGuestCount] = useState('');
+  const [budget, setBudget] = useState("");
+  const [guestCount, setGuestCount] = useState("");
   const [remainingBudget, setRemainingBudget] = useState(0);
   const [loading, setLoading] = useState(false);
   const [addItemModalVisible, setAddItemModalVisible] = useState(false);
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
   const [selectedCategoryItems, setSelectedCategoryItems] = useState([]);
-  const [selectedCategoryLabel, setSelectedCategoryLabel] = useState('');
-  const [selectedCategoryType, setSelectedCategoryType] = useState('');
+  const [selectedCategoryLabel, setSelectedCategoryLabel] = useState("");
+  const [selectedCategoryType, setSelectedCategoryType] = useState("");
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [weddingName, setWeddingName] = useState('');
+  const [weddingName, setWeddingName] = useState("");
   const [weddingDate, setWeddingDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [shouldFilter, setShouldFilter] = useState(false);
@@ -2429,10 +2816,14 @@ const CreateEventScreen = ({ navigation, route }) => {
 
   const handleRemoveCategory = useCallback((category) => {
     setCategories((prevCategories) => {
-      const updatedCategories = prevCategories.filter((cat) => cat !== category);
+      const updatedCategories = prevCategories.filter(
+        (cat) => cat !== category
+      );
       const type = categoryToTypeMap[category];
       if (type) {
-        setFilteredData((prevData) => prevData.filter((item) => item.type !== type));
+        setFilteredData((prevData) =>
+          prevData.filter((item) => item.type !== type)
+        );
       }
       return updatedCategories;
     });
@@ -2453,6 +2844,7 @@ const CreateEventScreen = ({ navigation, route }) => {
         api.getAlcohol(),
         api.getTransport(),
         api.getGoods(token),
+        api.getTJewelry(),
       ]);
 
       const userData = responses.map((response) => response.data);
@@ -2468,37 +2860,42 @@ const CreateEventScreen = ({ navigation, route }) => {
         alcohol: userData[7] || [],
         transport: userData[8] || [],
         goods: userData[9] || [],
+        jewelry: userData[10] || [],
       };
+      console.log(
+        "общая инфа по всем данным которые приходят-  ",
+        newData.jewelry
+      );
       setData(newData);
     } catch (error) {
-      console.error('Ошибка загрузки данных:', error);
-      alert('Ошибка загрузки данных. Попробуйте снова.');
+      console.error("Ошибка загрузки данных:", error);
+      alert("Ошибка загрузки данных. Попробуйте снова.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!token) navigation.navigate('Login');
+    if (!token) navigation.navigate("Login");
     else fetchData();
   }, [token, user, navigation]);
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', fetchData);
+    const unsubscribe = navigation.addListener("focus", fetchData);
     return unsubscribe;
   }, [navigation, token, user]);
 
   const handleBudgetChange = (value) => {
-    const filteredValue = value.replace(/[^0-9]/g, '');
-    if (filteredValue === '' || parseFloat(filteredValue) >= 0) {
+    const filteredValue = value.replace(/[^0-9]/g, "");
+    if (filteredValue === "" || parseFloat(filteredValue) >= 0) {
       setBudget(filteredValue);
       setShouldFilter(true);
     }
   };
 
   const handleGuestCountChange = (value) => {
-    const filteredValue = value.replace(/[^0-9]/g, '');
-    if (filteredValue === '' || parseFloat(filteredValue) >= 0) {
+    const filteredValue = value.replace(/[^0-9]/g, "");
+    if (filteredValue === "" || parseFloat(filteredValue) >= 0) {
       setGuestCount(filteredValue);
       setShouldFilter(true);
     }
@@ -2543,10 +2940,6 @@ const CreateEventScreen = ({ navigation, route }) => {
   //   selectedItems.push({ ...selectedRestaurant, type: 'restaurant', totalCost: restaurantCost });
   //   remaining -= restaurantCost;
 
-  
-
-    
-
   //   const types = [
   //     { key: 'clothing', costField: 'cost', type: 'clothing' },
   //     { key: 'tamada', costField: 'cost', type: 'tamada' },
@@ -2557,8 +2950,6 @@ const CreateEventScreen = ({ navigation, route }) => {
   //     { key: 'alcohol', costField: 'cost', type: 'alcohol' },
   //     { key: 'transport', costField: 'cost', type: 'transport' },
   //   ];
-
-
 
   //   for (const { key, costField, type } of types) {
   //     const items = data[key]
@@ -2588,15 +2979,14 @@ const CreateEventScreen = ({ navigation, route }) => {
   //   );
   // }, [budget, guestCount, data]);
 
-
   const filterDataByBudget = useCallback(() => {
     if (!budget || isNaN(budget) || parseFloat(budget) <= 0) {
-      alert('Пожалуйста, введите корректную сумму бюджета');
+      alert("Пожалуйста, введите корректную сумму бюджета");
       return;
     }
 
     if (!guestCount || isNaN(guestCount) || parseFloat(guestCount) <= 0) {
-      alert('Пожалуйста, введите корректное количество гостей');
+      alert("Пожалуйста, введите корректное количество гостей");
       return;
     }
 
@@ -2606,7 +2996,7 @@ const CreateEventScreen = ({ navigation, route }) => {
     const selectedItems = [];
 
     // Проверяем, есть ли категория "Кейтеринг" (ресторан) в списке категорий
-    const hasRestaurantCategory = categories.includes('Ресторан');
+    const hasRestaurantCategory = categories.includes("Ресторан");
 
     // Если категория "Кейтеринг" выбрана, фильтруем рестораны
     if (hasRestaurantCategory) {
@@ -2615,7 +3005,9 @@ const CreateEventScreen = ({ navigation, route }) => {
       );
 
       if (suitableRestaurants.length === 0) {
-        alert('Нет ресторанов с достаточной вместимостью для указанного количества гостей');
+        alert(
+          "Нет ресторанов с достаточной вместимостью для указанного количества гостей"
+        );
         return;
       }
 
@@ -2624,30 +3016,36 @@ const CreateEventScreen = ({ navigation, route }) => {
         .sort((a, b) => parseFloat(a.averageCost) - parseFloat(b.averageCost));
 
       if (sortedRestaurants.length === 0) {
-        alert('Нет ресторанов, подходящих под ваш бюджет');
+        alert("Нет ресторанов, подходящих под ваш бюджет");
         return;
       }
 
-      const selectedRestaurant = sortedRestaurants[Math.floor(sortedRestaurants.length / 2)];
+      const selectedRestaurant =
+        sortedRestaurants[Math.floor(sortedRestaurants.length / 2)];
       const restaurantCost = parseFloat(selectedRestaurant.averageCost);
-      selectedItems.push({ ...selectedRestaurant, type: 'restaurant', totalCost: restaurantCost });
+      selectedItems.push({
+        ...selectedRestaurant,
+        type: "restaurant",
+        totalCost: restaurantCost,
+      });
       remaining -= restaurantCost;
     }
 
     // Определяем доступные типы на основе выбранных категорий
     const allowedTypes = categories
       .map((category) => categoryToTypeMap[category])
-      .filter((type) => type && type !== 'restaurant' && type !== 'none'); // Исключаем рестораны (уже обработаны) и неподдерживаемые типы
+      .filter((type) => type && type !== "restaurant" && type !== "none"); // Исключаем рестораны (уже обработаны) и неподдерживаемые типы
 
     const types = [
-      { key: 'clothing', costField: 'cost', type: 'clothing' },
-      { key: 'tamada', costField: 'cost', type: 'tamada' },
-      { key: 'programs', costField: 'cost', type: 'program' },
-      { key: 'traditionalGifts', costField: 'cost', type: 'traditionalGift' },
-      { key: 'flowers', costField: 'cost', type: 'flowers' },
-      { key: 'cakes', costField: 'cost', type: 'cake' },
-      { key: 'alcohol', costField: 'cost', type: 'alcohol' },
-      { key: 'transport', costField: 'cost', type: 'transport' },
+      { key: "clothing", costField: "cost", type: "clothing" },
+      { key: "tamada", costField: "cost", type: "tamada" },
+      { key: "programs", costField: "cost", type: "program" },
+      { key: "traditionalGifts", costField: "cost", type: "traditionalGift" },
+      { key: "flowers", costField: "cost", type: "flowers" },
+      { key: "cakes", costField: "cost", type: "cake" },
+      { key: "alcohol", costField: "cost", type: "alcohol" },
+      { key: "transport", costField: "cost", type: "transport" },
+      { key: "jewelry", costField: "cost", type: "jewelry" },
     ].filter(({ type }) => allowedTypes.includes(type)); // Фильтруем типы по разрешенным категориям
 
     for (const { key, costField, type } of types) {
@@ -2673,17 +3071,19 @@ const CreateEventScreen = ({ navigation, route }) => {
     setQuantities(
       selectedItems.reduce((acc, item) => {
         const itemKey = `${item.type}-${item.id}`;
-        return { ...acc, [itemKey]: '1' };
+        return { ...acc, [itemKey]: "1" };
       }, {})
     );
   }, [budget, guestCount, data, categories]); // Добавляем categories в зависимости
 
-
-
-
-
   useEffect(() => {
-    if (shouldFilter && budget && guestCount && !isNaN(parseFloat(budget)) && !isNaN(parseFloat(guestCount))) {
+    if (
+      shouldFilter &&
+      budget &&
+      guestCount &&
+      !isNaN(parseFloat(budget)) &&
+      !isNaN(parseFloat(guestCount))
+    ) {
       filterDataByBudget();
       setShouldFilter(false);
     }
@@ -2692,15 +3092,18 @@ const CreateEventScreen = ({ navigation, route }) => {
   const handleAddItem = useCallback(
     (item) => {
       const itemKey = `${item.type}-${item.id}`;
-      const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
+      const cost = item.type === "restaurant" ? item.averageCost : item.cost;
 
       setFilteredData((prev) => {
-        const existingItemIndex = prev.findIndex((i) => `${i.type}-${i.id}` === itemKey);
+        const existingItemIndex = prev.findIndex(
+          (i) => `${i.type}-${i.id}` === itemKey
+        );
         let updatedData;
         let newQuantity;
 
         if (existingItemIndex !== -1) {
-          const currentQuantity = quantities[itemKey] === '' ? '1' : quantities[itemKey] || '1';
+          const currentQuantity =
+            quantities[itemKey] === "" ? "1" : quantities[itemKey] || "1";
           newQuantity = (parseInt(currentQuantity) + 1).toString();
           updatedData = [...prev];
           updatedData[existingItemIndex] = {
@@ -2708,7 +3111,7 @@ const CreateEventScreen = ({ navigation, route }) => {
             totalCost: cost * parseInt(newQuantity),
           };
         } else {
-          newQuantity = '1';
+          newQuantity = "1";
           const newItem = { ...item, totalCost: cost };
           updatedData = [...prev, newItem];
         }
@@ -2720,8 +3123,12 @@ const CreateEventScreen = ({ navigation, route }) => {
 
         const totalSpent = updatedData.reduce((sum, dataItem) => {
           const key = `${dataItem.type}-${dataItem.id}`;
-          const itemQuantity = quantities[key] === '' ? 1 : parseInt(quantities[key] || '1');
-          const itemCost = dataItem.type === 'restaurant' ? dataItem.averageCost : dataItem.cost;
+          const itemQuantity =
+            quantities[key] === "" ? 1 : parseInt(quantities[key] || "1");
+          const itemCost =
+            dataItem.type === "restaurant"
+              ? dataItem.averageCost
+              : dataItem.cost;
           return sum + itemCost * itemQuantity;
         }, 0);
 
@@ -2749,8 +3156,11 @@ const CreateEventScreen = ({ navigation, route }) => {
 
         const totalSpent = updatedData.reduce((sum, dataItem) => {
           const key = `${dataItem.type}-${dataItem.id}`;
-          const itemQuantity = parseInt(quantities[key] || '1');
-          const itemCost = dataItem.type === 'restaurant' ? dataItem.averageCost : dataItem.cost;
+          const itemQuantity = parseInt(quantities[key] || "1");
+          const itemCost =
+            dataItem.type === "restaurant"
+              ? dataItem.averageCost
+              : dataItem.cost;
           return sum + itemCost * itemQuantity;
         }, 0);
 
@@ -2763,20 +3173,20 @@ const CreateEventScreen = ({ navigation, route }) => {
 
   const handleSubmit = async () => {
     if (!weddingName.trim()) {
-      alert('Пожалуйста, укажите название свадьбы');
+      alert("Пожалуйста, укажите название свадьбы");
       return;
     }
     if (!filteredData.length) {
-      alert('Пожалуйста, выберите хотя бы один элемент для свадьбы');
+      alert("Пожалуйста, выберите хотя бы один элемент для свадьбы");
       return;
     }
     if (!user?.id || !token) {
-      alert('Ошибка авторизации. Пожалуйста, войдите в систему.');
-      navigation.navigate('Login');
+      alert("Ошибка авторизации. Пожалуйста, войдите в систему.");
+      navigation.navigate("Login");
       return;
     }
 
-    const dateString = weddingDate.toISOString().split('T')[0];
+    const dateString = weddingDate.toISOString().split("T")[0];
     const weddingData = {
       name: weddingName.trim(),
       date: dateString,
@@ -2784,28 +3194,30 @@ const CreateEventScreen = ({ navigation, route }) => {
       items: filteredData.map((item) => ({
         id: item.id,
         type: item.type,
-        quantity: parseInt(quantities[`${item.type}-${item.id}`] || '1'),
+        quantity: parseInt(quantities[`${item.type}-${item.id}`] || "1"),
         totalCost:
-          parseFloat(item.totalCost || (item.type === 'restaurant' ? item.averageCost : item.cost)) *
-          parseInt(quantities[`${item.type}-${item.id}`] || '1'),
+          parseFloat(
+            item.totalCost ||
+              (item.type === "restaurant" ? item.averageCost : item.cost)
+          ) * parseInt(quantities[`${item.type}-${item.id}`] || "1"),
       })),
     };
 
     try {
       await api.createWedding(weddingData, token);
-      alert('Свадьба успешно создана!');
+      alert("Свадьба успешно создана!");
       setModalVisible(false);
-      setWeddingName('');
+      setWeddingName("");
       setWeddingDate(new Date());
       setShowDatePicker(false);
       setFilteredData([]);
       setQuantities({});
-      setBudget('');
-      setGuestCount('');
+      setBudget("");
+      setGuestCount("");
       setRemainingBudget(0);
     } catch (error) {
-      console.error('Ошибка при создании свадьбы:', error);
-      alert('Ошибка: ' + (error.response?.data?.error || error.message));
+      console.error("Ошибка при создании свадьбы:", error);
+      alert("Ошибка: " + (error.response?.data?.error || error.message));
     }
   };
 
@@ -2816,18 +3228,24 @@ const CreateEventScreen = ({ navigation, route }) => {
 
   const combinedData = useMemo(() => {
     const dataArray = [
-      ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
-      ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
-      ...data.tamada.map((item) => ({ ...item, type: 'tamada' })),
-      ...data.programs.map((item) => ({ ...item, type: 'program' })),
-      ...data.traditionalGifts.map((item) => ({ ...item, type: 'traditionalGift' })),
-      ...data.flowers.map((item) => ({ ...item, type: 'flowers' })),
-      ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
-      ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
-      ...data.transport.map((item) => ({ ...item, type: 'transport' })),
-      ...data.goods.map((item) => ({ ...item, type: 'goods' })),
-    ].filter((item) => item.type !== 'goods' || item.category !== 'Прочее');
-    return dataArray.sort((a, b) => (typeOrder[a.type] || 11) - (typeOrder[b.type] || 11));
+      ...data.restaurants.map((item) => ({ ...item, type: "restaurant" })),
+      ...data.clothing.map((item) => ({ ...item, type: "clothing" })),
+      ...data.tamada.map((item) => ({ ...item, type: "tamada" })),
+      ...data.programs.map((item) => ({ ...item, type: "program" })),
+      ...data.traditionalGifts.map((item) => ({
+        ...item,
+        type: "traditionalGift",
+      })),
+      ...data.flowers.map((item) => ({ ...item, type: "flowers" })),
+      ...data.cakes.map((item) => ({ ...item, type: "cake" })),
+      ...data.alcohol.map((item) => ({ ...item, type: "alcohol" })),
+      ...data.transport.map((item) => ({ ...item, type: "transport" })),
+      ...data.goods.map((item) => ({ ...item, type: "goods" })),
+      ...data.jewelry.map((item) => ({ ...item, type: "jewelry" })),
+    ].filter((item) => item.type !== "goods" || item.category !== "Прочее");
+    return dataArray.sort(
+      (a, b) => (typeOrder[a.type] || 11) - (typeOrder[b.type] || 11)
+    );
   }, [data]);
 
   const handleCategoryPress = (category) => {
@@ -2843,29 +3261,37 @@ const CreateEventScreen = ({ navigation, route }) => {
   const handleCloseCategoryModal = () => {
     setCategoryModalVisible(false);
     setSelectedCategoryItems([]);
-    setSelectedCategoryLabel('');
-    setSelectedCategoryType('');
+    setSelectedCategoryLabel("");
+    setSelectedCategoryType("");
   };
 
   const calculateTotalCost = () => {
     return filteredData.reduce((sum, item) => {
-      const quantity = parseInt(quantities[`${item.type}-${item.id}`] || '1');
-      const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
+      const quantity = parseInt(quantities[`${item.type}-${item.id}`] || "1");
+      const cost = item.type === "restaurant" ? item.averageCost : item.cost;
       return sum + cost * quantity;
     }, 0);
   };
 
   const renderCategory = (item) => {
-    if (item === 'Добавить') {
+    if (item === "Добавить") {
       return (
         <View style={styles.categoryRow}>
-          <TouchableOpacity style={styles.categoryButton} onPress={() => setAddItemModalVisible(true)}>
+          <TouchableOpacity
+            style={styles.categoryButton}
+            onPress={() => setAddItemModalVisible(true)}
+          >
             <LinearGradient
               colors={[COLORS.buttonGradientStart, COLORS.buttonGradientEnd]}
               style={styles.categoryButtonGradient}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Icon name="add" size={20} color={COLORS.white} style={{ marginRight: 10 }} />
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Icon
+                  name="add"
+                  size={20}
+                  color={COLORS.white}
+                  style={{ marginRight: 10 }}
+                />
                 <Text style={styles.categoryText}>Добавить</Text>
               </View>
             </LinearGradient>
@@ -2881,23 +3307,34 @@ const CreateEventScreen = ({ navigation, route }) => {
         >
           <Icon name="remove-circle" size={20} color={COLORS.error} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.categoryButton} onPress={() => handleCategoryPress(item)}>
+        <TouchableOpacity
+          style={styles.categoryButton}
+          onPress={() => handleCategoryPress(item)}
+        >
           <LinearGradient
             colors={[COLORS.buttonGradientStart, COLORS.buttonGradientEnd]}
             style={styles.categoryButtonGradient}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Icon
                 name={
-                  item === 'Ресторан' ? 'restaurant' :
-                  item === 'Прокат авто' ? 'directions-car' :
-                  item === 'Фото-видео съёмка' ? 'camera-alt' :
-                  item === 'Ведущие' ? 'mic' :
-                  item === 'Турыбек Кабота' ? 'card-giftcard' :
-                  item === 'Свадебные салоны' ? 'store' :
-                  item === 'Алкоголь' ? 'local-drink' :
-                  item === 'Ювелирные изделия' ? 'diamond' :
-                  'category'
+                  item === "Ресторан"
+                    ? "restaurant"
+                    : item === "Прокат авто"
+                    ? "directions-car"
+                    : item === "Фото-видео съёмка"
+                    ? "camera-alt"
+                    : item === "Ведущие"
+                    ? "mic"
+                    : item === "Турыбек Кабота"
+                    ? "card-giftcard"
+                    : item === "Свадебные салоны"
+                    ? "store"
+                    : item === "Алкоголь"
+                    ? "local-drink"
+                    : item === "Ювелирные изделия"
+                    ? "diamond"
+                    : "category"
                 }
                 size={20}
                 color={COLORS.white}
@@ -2912,7 +3349,7 @@ const CreateEventScreen = ({ navigation, route }) => {
   };
 
   const handleGoBack = () => {
-    navigation.navigate('BeforeHomeScreen', {
+    navigation.navigate("BeforeHomeScreen", {
       selectedCategories: categories,
     });
   };
@@ -2920,7 +3357,7 @@ const CreateEventScreen = ({ navigation, route }) => {
   return (
     <>
       <LinearGradient
-        colors={['#F1EBDD', '#897066']}
+        colors={["#F1EBDD", "#897066"]}
         start={{ x: 0, y: 1 }}
         end={{ x: 0, y: 0 }}
         style={styles.splashContainer}
@@ -2948,7 +3385,7 @@ const CreateEventScreen = ({ navigation, route }) => {
 
         <View style={styles.logoContainer}>
           <Image
-            source={require('../../assets/kazanRevert.png')}
+            source={require("../../assets/kazanRevert.png")}
             style={styles.potIcon}
             resizeMode="contain"
           />
@@ -2976,13 +3413,13 @@ const CreateEventScreen = ({ navigation, route }) => {
         </View>
 
         <View style={styles.bottomContainer}>
-          <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.nextButton}>
+          <TouchableOpacity
+            onPress={() => setModalVisible(true)}
+            style={styles.nextButton}
+          >
             <Text style={styles.nextButtonText}>Далее</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.nextButton}
-            onPress={handleGoBack}
-          >
+          <TouchableOpacity style={styles.nextButton} onPress={handleGoBack}>
             <Text style={styles.nextButtonText}>Назад</Text>
           </TouchableOpacity>
         </View>
@@ -3028,7 +3465,11 @@ const CreateEventScreen = ({ navigation, route }) => {
           }}
         >
           <SafeAreaView style={styles.modalOverlay}>
-            <Animatable.View style={styles.detailsModalContainer} animation="zoomIn" duration={300}>
+            <Animatable.View
+              style={styles.detailsModalContainer}
+              animation="zoomIn"
+              duration={300}
+            >
               <View style={styles.detailsModalHeader}>
                 <Text style={styles.detailsModalTitle}>Подробности</Text>
                 <TouchableOpacity
@@ -3045,125 +3486,244 @@ const CreateEventScreen = ({ navigation, route }) => {
                 <View style={styles.detailsModalContent}>
                   {(() => {
                     switch (selectedItem.type) {
-                      case 'restaurant':
+                      case "restaurant":
                         return (
                           <>
-                            <Text style={styles.detailsModalText}>Тип: Ресторан</Text>
-                            <Text style={styles.detailsModalText}>Название: {selectedItem.name}</Text>
-                            <Text style={styles.detailsModalText}>Вместимость: {selectedItem.capacity}</Text>
-                            <Text style={styles.detailsModalText}>Кухня: {selectedItem.cuisine}</Text>
-                            <Text style={styles.detailsModalText}>Средний чек: {selectedItem.averageCost} ₸</Text>
-                            <Text style={styles.detailsModalText}>Адрес: {selectedItem.address || 'Не указан'}</Text>
+                            <Text style={styles.detailsModalText}>
+                              Тип: Ресторан
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Название: {selectedItem.name}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Вместимость: {selectedItem.capacity}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Кухня: {selectedItem.cuisine}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Средний чек: {selectedItem.averageCost} ₸
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Адрес: {selectedItem.address || "Не указан"}
+                            </Text>
                           </>
                         );
-                      case 'clothing':
+                      case "clothing":
                         return (
                           <>
-                            <Text style={styles.detailsModalText}>Тип: Одежда</Text>
-                            <Text style={styles.detailsModalText}>Магазин: {selectedItem.storeName}</Text>
-                            <Text style={styles.detailsModalText}>Товар: {selectedItem.itemName}</Text>
-                            <Text style={styles.detailsModalText}>Пол: {selectedItem.gender}</Text>
-                            <Text style={styles.detailsModalText}>Стоимость: {selectedItem.cost} ₸</Text>
-                            <Text style={styles.detailsModalText}>Адрес: {selectedItem.address}</Text>
+                            <Text style={styles.detailsModalText}>
+                              Тип: Одежда
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Магазин: {selectedItem.storeName}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Товар: {selectedItem.itemName}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Пол: {selectedItem.gender}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Стоимость: {selectedItem.cost} ₸
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Адрес: {selectedItem.address}
+                            </Text>
                           </>
                         );
-                      case 'flowers':
+                      case "flowers":
                         return (
                           <>
-                            <Text style={styles.detailsModalText}>Тип: Цветы</Text>
-                            <Text style={styles.detailsModalText}>Салон: {selectedItem.salonName}</Text>
-                            <Text style={styles.detailsModalText}>Цветы: {selectedItem.flowerName}</Text>
-                            <Text style={styles.detailsModalText}>Тип цветов: {selectedItem.flowerType}</Text>
-                            <Text style={styles.detailsModalText}>Стоимость: {selectedItem.cost} ₸</Text>
-                            <Text style={styles.detailsModalText}>Адрес: {selectedItem.address}</Text>
+                            <Text style={styles.detailsModalText}>
+                              Тип: Цветы
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Салон: {selectedItem.salonName}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Цветы: {selectedItem.flowerName}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Тип цветов: {selectedItem.flowerType}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Стоимость: {selectedItem.cost} ₸
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Адрес: {selectedItem.address}
+                            </Text>
                           </>
                         );
-                      case 'cake':
+                      case "cake":
                         return (
                           <>
-                            <Text style={styles.detailsModalText}>Тип: Торты</Text>
-                            <Text style={styles.detailsModalText}>Название: {selectedItem.name}</Text>
-                            <Text style={styles.detailsModalText}>Тип торта: {selectedItem.cakeType}</Text>
-                            <Text style={styles.detailsModalText}>Стоимость: {selectedItem.cost} ₸</Text>
-                            <Text style={styles.detailsModalText}>Адрес: {selectedItem.address}</Text>
+                            <Text style={styles.detailsModalText}>
+                              Тип: Торты
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Название: {selectedItem.name}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Тип торта: {selectedItem.cakeType}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Стоимость: {selectedItem.cost} ₸
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Адрес: {selectedItem.address}
+                            </Text>
                           </>
                         );
-                      case 'alcohol':
+                      case "alcohol":
                         return (
                           <>
-                            <Text style={styles.detailsModalText}>Тип: Алкоголь</Text>
-                            <Text style={styles.detailsModalText}>Салон: {selectedItem.salonName}</Text>
-                            <Text style={styles.detailsModalText}>Напиток: {selectedItem.alcoholName}</Text>
-                            <Text style={styles.detailsModalText}>Категория: {selectedItem.category}</Text>
-                            <Text style={styles.detailsModalText}>Стоимость: {selectedItem.cost} ₸</Text>
-                            <Text style={styles.detailsModalText}>Адрес: {selectedItem.address}</Text>
+                            <Text style={styles.detailsModalText}>
+                              Тип: Алкоголь
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Салон: {selectedItem.salonName}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Напиток: {selectedItem.alcoholName}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Категория: {selectedItem.category}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Стоимость: {selectedItem.cost} ₸
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Адрес: {selectedItem.address}
+                            </Text>
                           </>
                         );
-                      case 'program':
+                      case "program":
                         return (
                           <>
-                            <Text style={styles.detailsModalText}>Тип: Программа</Text>
-                            <Text style={styles.detailsModalText}>Команда: {selectedItem.teamName}</Text>
-                            <Text style={styles.detailsModalText}>Тип программы: {selectedItem.type}</Text>
-                            <Text style={styles.detailsModalText}>Стоимость: {selectedItem.cost} ₸</Text>
+                            <Text style={styles.detailsModalText}>
+                              Тип: Программа
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Команда: {selectedItem.teamName}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Тип программы: {selectedItem.type}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Стоимость: {selectedItem.cost} ₸
+                            </Text>
                           </>
                         );
-                      case 'tamada':
+                      case "tamada":
                         return (
                           <>
-                            <Text style={styles.detailsModalText}>Тип: Тамада</Text>
-                            <Text style={styles.detailsModalText}>Имя: {selectedItem.name}</Text>
-                            <Text style={styles.detailsModalText}>Портфолио: {selectedItem.portfolio}</Text>
-                            <Text style={styles.detailsModalText}>Стоимость: {selectedItem.cost} ₸</Text>
+                            <Text style={styles.detailsModalText}>
+                              Тип: Тамада
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Имя: {selectedItem.name}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Портфолио: {selectedItem.portfolio}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Стоимость: {selectedItem.cost} ₸
+                            </Text>
                           </>
                         );
-                      case 'traditionalGift':
+                      case "traditionalGift":
                         return (
                           <>
-                            <Text style={styles.detailsModalText}>Тип: Традиционные подарки</Text>
-                            <Text style={styles.detailsModalText}>Салон: {selectedItem.salonName}</Text>
-                            <Text style={styles.detailsModalText}>Товар: {selectedItem.itemName}</Text>
-                            <Text style={styles.detailsModalText}>Тип: {selectedItem.type}</Text>
-                            <Text style={styles.detailsModalText}>Стоимость: {selectedItem.cost} ₸</Text>
-                            <Text style={styles.detailsModalText}>Адрес: {selectedItem.address}</Text>
+                            <Text style={styles.detailsModalText}>
+                              Тип: Традиционные подарки
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Салон: {selectedItem.salonName}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Товар: {selectedItem.itemName}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Тип: {selectedItem.type}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Стоимость: {selectedItem.cost} ₸
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Адрес: {selectedItem.address}
+                            </Text>
                           </>
                         );
-                      case 'transport':
+                      case "transport":
                         return (
                           <>
-                            <Text style={styles.detailsModalText}>Тип: Транспорт</Text>
-                            <Text style={styles.detailsModalText}>Салон: {selectedItem.salonName}</Text>
-                            <Text style={styles.detailsModalText}>Авто: {selectedItem.carName}</Text>
-                            <Text style={styles.detailsModalText}>Марка: {selectedItem.brand}</Text>
-                            <Text style={styles.detailsModalText}>Цвет: {selectedItem.color}</Text>
-                            <Text style={styles.detailsModalText}>Телефон: {selectedItem.phone}</Text>
-                            <Text style={styles.detailsModalText}>Район: {selectedItem.district}</Text>
-                            <Text style={styles.detailsModalText}>Стоимость: {selectedItem.cost} ₸</Text>
-                            <Text style={styles.detailsModalText}>Адрес: {selectedItem.address}</Text>
+                            <Text style={styles.detailsModalText}>
+                              Тип: Транспорт
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Салон: {selectedItem.salonName}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Авто: {selectedItem.carName}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Марка: {selectedItem.brand}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Цвет: {selectedItem.color}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Телефон: {selectedItem.phone}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Район: {selectedItem.district}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Стоимость: {selectedItem.cost} ₸
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Адрес: {selectedItem.address}
+                            </Text>
                           </>
                         );
-                      case 'goods':
+                      case "goods":
                         return (
                           <>
-                            <Text style={styles.detailsModalText}>Тип: Товар</Text>
-                            <Text style={styles.detailsModalText}>Название: {selectedItem.item_name}</Text>
-                            <Text style={styles.detailsModalText}>Описание: {selectedItem.description || 'Не указано'}</Text>
-                            <Text style={styles.detailsModalText}>Стоимость: {selectedItem.cost} ₸</Text>
+                            <Text style={styles.detailsModalText}>
+                              Тип: Товар
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Название: {selectedItem.item_name}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Описание:{" "}
+                              {selectedItem.description || "Не указано"}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Стоимость: {selectedItem.cost} ₸
+                            </Text>
                           </>
                         );
                       default:
-                        return <Text style={styles.detailsModalText}>Неизвестный тип</Text>;
+                        return (
+                          <Text style={styles.detailsModalText}>
+                            Неизвестный тип
+                          </Text>
+                        );
                     }
                   })()}
                 </View>
               ) : (
-                <Text style={styles.detailsModalText}>Нет данных для отображения</Text>
+                <Text style={styles.detailsModalText}>
+                  Нет данных для отображения
+                </Text>
               )}
             </Animatable.View>
           </SafeAreaView>
         </Modal>
 
-        <Modal
+        {/* <Modal
           animationType="slide"
           transparent={true}
           visible={modalVisible}
@@ -3263,6 +3823,8 @@ const CreateEventScreen = ({ navigation, route }) => {
                                       ? 'cake'
                                       : item.type === 'alcohol'
                                       ? 'local-drink'
+                                      : item.type === 'alcohol'
+                                      ? 'local-drink'
                                       : item.type === 'transport'
                                       ? 'directions-car'
                                       : 'shopping-bag'
@@ -3333,6 +3895,253 @@ const CreateEventScreen = ({ navigation, route }) => {
               </ScrollView>
             </Animatable.View>
           </SafeAreaView>
+        </Modal> */}
+
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => {
+            setModalVisible(false);
+            setWeddingName("");
+            setWeddingDate(new Date());
+            setShowDatePicker(false);
+          }}
+        >
+          <SafeAreaView style={styles.modalOverlay}>
+            <Animatable.View
+              style={styles.modalContent}
+              animation="zoomIn"
+              duration={300}
+            >
+              <ScrollView contentContainerStyle={styles.scrollViewContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>
+                    Создание мероприятия "Свадьба"
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setModalVisible(false);
+                      setWeddingName("");
+                      setWeddingDate(new Date());
+                      setShowDatePicker(false);
+                    }}
+                  >
+                    <Icon name="close" size={24} color={COLORS.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.inputContainer}>
+                  <Icon
+                    name="event-note"
+                    size={20}
+                    color={COLORS.textSecondary}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Имя свадьбы (например, Свадьба Ивана и Марии)"
+                    value={weddingName}
+                    onChangeText={setWeddingName}
+                    placeholderTextColor={COLORS.textSecondary}
+                  />
+                </View>
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Icon
+                    name="calendar-today"
+                    size={20}
+                    color={COLORS.secondary}
+                    style={styles.buttonIcon}
+                  />
+                  <Text style={styles.dateButtonText}>
+                    {weddingDate.toLocaleDateString("ru-RU") ||
+                      "Выберите дату свадьбы"}
+                  </Text>
+                </TouchableOpacity>
+                {showDatePicker && (
+                  <Calendar
+                    style={styles.calendar}
+                    current={weddingDate.toISOString().split("T")[0]}
+                    onDayPress={onDateChange}
+                    minDate={new Date().toISOString().split("T")[0]}
+                    theme={{
+                      selectedDayBackgroundColor: COLORS.primary,
+                      todayTextColor: COLORS.accent,
+                      arrowColor: COLORS.secondary,
+                      textDayFontSize: 16,
+                      textMonthFontSize: 18,
+                      textDayHeaderFontSize: 14,
+                    }}
+                  />
+                )}
+                <Text style={styles.subtitle}>Выбранные элементы:</Text>
+                <View style={styles.itemsContainer}>
+                  {filteredData.length > 0 ? (
+                    Object.entries(
+                      filteredData.reduce((acc, item) => {
+                        const type = item.type;
+                        if (!acc[type]) acc[type] = [];
+                        acc[type].push(item);
+                        return acc;
+                      }, {})
+                    )
+                      .sort(
+                        ([typeA], [typeB]) =>
+                          (typeOrder[typeA] || 11) - (typeOrder[typeB] || 11)
+                      )
+                      .map(([type, items]) => (
+                        <View key={type}>
+                          <Text style={styles.categoryHeader}>
+                            {typesMapping.find((t) => t.type === type)?.label ||
+                              type}{" "}
+                            ({items.length})
+                          </Text>
+                          {items.map((item) => {
+                            const quantity = parseInt(
+                              quantities[`${item.type}-${item.id}`] || "1"
+                            );
+                            const cost =
+                              item.type === "restaurant"
+                                ? item.averageCost
+                                : item.cost;
+                            const totalItemCost = cost * quantity;
+                            return (
+                              <View
+                                key={`${item.type}-${item.id}`}
+                                style={styles.itemContainer}
+                              >
+                                <Icon
+                                  name={
+                                    item.type === "restaurant"
+                                      ? "restaurant"
+                                      : item.type === "clothing"
+                                      ? "store"
+                                      : item.type === "tamada"
+                                      ? "mic"
+                                      : item.type === "program"
+                                      ? "event"
+                                      : item.type === "traditionalGift"
+                                      ? "card-giftcard"
+                                      : item.type === "flowers"
+                                      ? "local-florist"
+                                      : item.type === "cake"
+                                      ? "cake"
+                                      : item.type === "alcohol"
+                                      ? "local-drink"
+                                      : item.type === "transport"
+                                      ? "directions-car"
+                                      : item.type === "jewelry" // Добавляем иконку для ювелирных изделий
+                                      ? "diamond"
+                                      : "shopping-bag"
+                                  }
+                                  size={18}
+                                  color={COLORS.primary}
+                                  style={styles.itemIcon}
+                                />
+                                <Text style={styles.itemText}>
+                                  {(() => {
+                                    switch (item.type) {
+                                      case "restaurant":
+                                        return `${item.name} (${item.cuisine}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                      case "clothing":
+                                        return `${item.itemName} (${item.storeName}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                      case "tamada":
+                                        return `${item.name} - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                      case "program":
+                                        return `${item.teamName} - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                      case "traditionalGift":
+                                        return `${item.itemName} (${
+                                          item.salonName || "Не указано"
+                                        }) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                      case "flowers":
+                                        return `${item.flowerName} (${item.flowerType}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                      case "cake":
+                                        return `${item.name} (${item.cakeType}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                      case "alcohol":
+                                        return `${item.alcoholName} (${item.category}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                      case "transport":
+                                        return `${item.carName} (${item.brand}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                      case "goods":
+                                        return `${item.item_name} - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                      case "jewelry": // Добавляем форматирование для ювелирных изделий
+                                        return `${item.itemName} (${item.storeName}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
+                                      default:
+                                        return "Неизвестный элемент";
+                                    }
+                                  })()}
+                                </Text>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      ))
+                  ) : (
+                    <Text style={styles.noItems}>
+                      Выберите элементы для свадьбы
+                    </Text>
+                  )}
+                </View>
+                <View style={styles.totalContainer}>
+                 
+                <Text 
+                style={styles.totalText}
+                >
+                    Общая стоимость: {calculateTotalCost().toLocaleString('ru-RU')} тг
+                  </Text>
+                  
+                </View>
+
+                <Text style={styles.totalText}>
+                  {filteredData.length > 0
+                    ? `Ваш бюджет (${parseFloat(budget).toLocaleString('ru-RU')} ₸)`
+                    : ' '}
+                </Text>
+
+                {filteredData.length > 0 && (
+                  <Text style={[styles.budgetInfo, remainingBudget < 0 && styles.budgetError]}>
+                    Остаток: {remainingBudget.toLocaleString('ru-RU')} ₸{' '}
+                    {remainingBudget < 0 && '(превышение)'}
+                  </Text>
+                )}
+                <Text></Text>
+                
+
+                <View style={styles.modalButtonContainer}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.confirmButton]}
+                    onPress={handleSubmit}
+                  >
+                    <Icon
+                      name="check"
+                      size={20}
+                      color={COLORS.white}
+                      style={styles.buttonIcon}
+                    />
+                    <Text style={styles.modalButtonText}>Создать свадьбу</Text>
+                  </TouchableOpacity>
+                  {/* <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => {
+                      setModalVisible(false);
+                      setWeddingName("");
+                      setWeddingDate(new Date());
+                      setShowDatePicker(false);
+                    }}
+                  >
+                    <Icon
+                      name="close"
+                      size={20}
+                      color={COLORS.white}
+                      style={styles.buttonIcon}
+                    />
+                    <Text style={styles.modalButtonText}>Закрыть</Text>
+                  </TouchableOpacity> */}
+                </View>
+              </ScrollView>
+            </Animatable.View>
+          </SafeAreaView>
         </Modal>
       </LinearGradient>
     </>
@@ -3343,16 +4152,16 @@ const styles = StyleSheet.create({
   splashContainer: { flex: 1 },
   headerContainer: {
     paddingHorizontal: 20,
-    backgroundColor: 'transparent',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    backgroundColor: "transparent",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: "20%",
   },
-  budgetContainer: { flexDirection: 'row', alignItems: 'center' },
+  budgetContainer: { flexDirection: "row", alignItems: "center" },
   budgetInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    color: '#FFF',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    color: "#FFF",
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 20,
@@ -3361,32 +4170,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   guestInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    color: '#FFF',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    color: "#FFF",
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 20,
     width: 80,
     fontSize: 16,
   },
-  logoContainer: { alignItems: 'center', marginVertical: 20 },
+  logoContainer: { alignItems: "center", marginVertical: 20 },
   potIcon: { width: 150, height: 150 },
   listContainer: { flex: 1, paddingHorizontal: 20 },
   scrollView: { flex: 1 },
   categoryGrid: {
-    flexDirection: 'column',
-    alignItems: 'center',
+    flexDirection: "column",
+    alignItems: "center",
   },
   categoryItem: {
-    width: '100%',
+    width: "100%",
     padding: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   categoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
   },
   removeCategoryButton: {
     padding: 10,
@@ -3396,7 +4205,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 50,
     borderRadius: 10,
-    overflow: 'hidden',
+    overflow: "hidden",
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.5,
@@ -3406,34 +4215,43 @@ const styles = StyleSheet.create({
   },
   categoryButtonGradient: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 2,
-    borderColor: '#5A4032',
+    borderColor: "#5A4032",
     borderRadius: 10,
   },
   categoryText: {
     fontSize: 16,
     color: COLORS.white,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: "600",
+    textAlign: "center",
     paddingHorizontal: 10,
   },
   bottomPadding: { height: 20 },
-  bottomContainer: { paddingHorizontal: 20, paddingBottom: 20, backgroundColor: 'transparent' },
+  bottomContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: "transparent",
+  },
   nextButton: {
     backgroundColor: COLORS.primary,
     paddingVertical: 15,
     borderRadius: 25,
-    alignItems: 'center',
+    alignItems: "center",
     marginVertical: 5,
   },
-  nextButtonText: { fontSize: 18, color: COLORS.white, fontWeight: '600' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center' },
+  nextButtonText: { fontSize: 18, color: COLORS.white, fontWeight: "600" },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   addModalContainer: {
     backgroundColor: COLORS.card,
     borderRadius: 20,
-    width: '90%',
+    width: "90%",
     maxHeight: SCREEN_HEIGHT * 0.8,
     padding: 20,
     shadowColor: COLORS.shadow,
@@ -3444,31 +4262,41 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   addModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 15,
   },
-  addModalTitle: { fontSize: 20, fontWeight: '600', color: COLORS.textPrimary },
+  addModalTitle: { fontSize: 20, fontWeight: "600", color: COLORS.textPrimary },
   addModalCloseIcon: { padding: 5 },
   addModalSearchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7F7F7",
     borderRadius: 10,
     paddingHorizontal: 15,
     marginBottom: 15,
   },
   addModalSearchIcon: { marginRight: 10 },
-  addModalSearchInput: { flex: 1, paddingVertical: 10, fontSize: 16, color: COLORS.textPrimary },
+  addModalSearchInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
   addModalClearIcon: { padding: 5 },
   addModalFilterScroll: { maxHeight: SCREEN_HEIGHT * 0.2, marginBottom: 15 },
   addModalFilterContainer: { paddingBottom: 10 },
-  addModalFilterLabel: { fontSize: 16, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 10 },
+  addModalFilterLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+    marginBottom: 10,
+  },
   addModalTypeFilterContainer: { marginBottom: 15 },
-  addModalTypeButtons: { flexDirection: 'row', flexWrap: 'wrap' },
+  addModalTypeButtons: { flexDirection: "row", flexWrap: "wrap" },
   addModalTypeButton: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: "#F7F7F7",
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 20,
@@ -3479,9 +4307,9 @@ const styles = StyleSheet.create({
   addModalTypeButtonText: { fontSize: 14, color: COLORS.textPrimary },
   addModalTypeButtonTextActive: { color: COLORS.white },
   addModalDistrictFilterContainer: { marginBottom: 15 },
-  addModalDistrictButtons: { flexDirection: 'row', flexWrap: 'wrap' },
+  addModalDistrictButtons: { flexDirection: "row", flexWrap: "wrap" },
   addModalDistrictButton: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: "#F7F7F7",
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 20,
@@ -3492,9 +4320,9 @@ const styles = StyleSheet.create({
   addModalDistrictButtonText: { fontSize: 14, color: COLORS.textPrimary },
   addModalDistrictButtonTextActive: { color: COLORS.white },
   addModalPriceFilterContainer: { marginBottom: 15 },
-  addModalPriceButtons: { flexDirection: 'row', flexWrap: 'wrap' },
+  addModalPriceButtons: { flexDirection: "row", flexWrap: "wrap" },
   addModalPriceButton: {
-    backgroundColor: '#F7F7F7',
+    backgroundColor: "#F7F7F7",
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 20,
@@ -3507,18 +4335,22 @@ const styles = StyleSheet.create({
   addModalScrollView: { flex: 1, minHeight: 100 },
   addModalItemList: { paddingBottom: 20, flexGrow: 1 },
   addModalItemCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7F7F7",
     borderRadius: 10,
     marginBottom: 10,
     padding: 10,
   },
-  selectedItemCard: { backgroundColor: '#E6F0FA' },
+  selectedItemCard: { backgroundColor: "#E6F0FA" },
   addModalItemContent: { flex: 1 },
   disabledItemContent: { opacity: 0.5 },
   addModalItemText: { fontSize: 14, color: COLORS.textPrimary },
-  addModalItemCount: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4 },
+  addModalItemCount: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 4,
+  },
   addModalDetailsButton: {
     backgroundColor: COLORS.secondary,
     paddingVertical: 6,
@@ -3526,9 +4358,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   addModalDetailsButtonText: { fontSize: 12, color: COLORS.white },
-  addModalEmptyText: { fontSize: 14, textAlign: 'center', marginTop: 20 },
+  addModalEmptyText: { fontSize: 14, textAlign: "center", marginTop: 20 },
   selectedItemContainer: { marginBottom: 20 },
-  quantityContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 5 },
+  quantityContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 5,
+  },
   quantityLabel: { fontSize: 12, color: COLORS.textSecondary, marginRight: 5 },
   quantityInput: {
     width: 50,
@@ -3540,7 +4376,7 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     marginRight: 10,
   },
-  totalCostText: { fontSize: 12, color: COLORS.primary, fontWeight: '600' },
+  totalCostText: { fontSize: 12, color: COLORS.primary, fontWeight: "600" },
   removeButton: {
     backgroundColor: COLORS.error,
     paddingVertical: 6,
@@ -3552,7 +4388,7 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: COLORS.card,
     borderRadius: 20,
-    width: '90%',
+    width: "90%",
     maxHeight: SCREEN_HEIGHT * 0.8,
     padding: 20,
     shadowColor: COLORS.shadow,
@@ -3563,26 +4399,31 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: { paddingBottom: 20 },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
   },
-  modalTitle: { fontSize: 20, fontWeight: '600', color: COLORS.textPrimary },
+  modalTitle: { fontSize: 20, fontWeight: "600", color: COLORS.textPrimary },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7F7F7",
     borderRadius: 10,
     paddingHorizontal: 15,
     marginBottom: 15,
   },
   inputIcon: { marginRight: 10 },
-  input: { flex: 1, paddingVertical: 10, fontSize: 16, color: COLORS.textPrimary },
+  input: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
   dateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F7F7F7',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7F7F7",
     paddingVertical: 12,
     paddingHorizontal: 15,
     borderRadius: 10,
@@ -3591,25 +4432,52 @@ const styles = StyleSheet.create({
   buttonIcon: { marginRight: 10 },
   dateButtonText: { fontSize: 16, color: COLORS.textPrimary },
   calendar: { marginBottom: 15, borderRadius: 10, elevation: 2 },
-  subtitle: { fontSize: 18, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 10 },
+  subtitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+    marginBottom: 10,
+  },
   itemsContainer: { marginBottom: 20 },
-  categoryHeader: { fontSize: 16, fontWeight: '500', color: COLORS.textPrimary, marginVertical: 10 },
-  itemContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  categoryHeader: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: COLORS.textPrimary,
+    marginVertical: 10,
+  },
+  itemContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
   itemIcon: { marginRight: 10 },
   itemText: { fontSize: 14, color: COLORS.textPrimary, flex: 1 },
-  noItems: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center' },
-  totalContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  noItems: { fontSize: 14, color: COLORS.textSecondary, textAlign: "center" },
+  totalContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
   totalIcon: { marginRight: 10 },
-  totalText: { fontSize: 16, fontWeight: '600', color: COLORS.textPrimary },
-  modalButtonContainer: { flexDirection: 'row', justifyContent: 'space-between' },
-  modalButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10 },
+  totalText: { fontSize: 16, fontWeight: "600", color: COLORS.textPrimary },
+  modalButtonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  modalButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+  },
   confirmButton: { backgroundColor: COLORS.primary },
   cancelButton: { backgroundColor: COLORS.error },
-  modalButtonText: { fontSize: 16, color: COLORS.white, fontWeight: '600' },
+  modalButtonText: { fontSize: 16, color: COLORS.white, fontWeight: "600" },
   detailsModalContainer: {
     backgroundColor: COLORS.card,
     borderRadius: 20,
-    width: '90%',
+    width: "90%",
     padding: 20,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 5 },
@@ -3618,15 +4486,23 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   detailsModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 15,
   },
-  detailsModalTitle: { fontSize: 20, fontWeight: '600', color: COLORS.textPrimary },
+  detailsModalTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+  },
   detailsModalCloseIcon: { padding: 5 },
   detailsModalContent: { marginBottom: 20 },
-  detailsModalText: { fontSize: 16, color: COLORS.textPrimary, marginBottom: 8 },
+  detailsModalText: {
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    marginBottom: 8,
+  },
 });
 
 export default CreateEventScreen;
