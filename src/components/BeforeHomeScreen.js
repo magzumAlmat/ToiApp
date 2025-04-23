@@ -27,14 +27,29 @@ const BeforeHomeScreen = ({ navigation, route }) => {
 
   // Базовый список категорий
   const defaultCategories = [
-    'Ведущие',
-    'Кейтеринг',
-    'Алкоголь',
-    'Музыка',
+    // 'Ведущие',
+    // 'Ресторан',
+    // 'Алкоголь',
+    // 'Музыка',
+    // 'Ювелирные изделия',
+    // 'Тойбастар',
+    // 'Свадебные салоны',
+    // 'Транспорт',
+
+    'Ресторан',
+    'Ведущий',
+    'Шоу программа',
+    'Свадебный салон',
+    'Прокат авто',
+    'Фото видео съемка',
+    'Оформление',
+    'Традиционные подарки',
     'Ювелирные изделия',
-    'Тойбастар',
-    'Свадебные салоны',
-    'Транспорт',
+    'Продукты',
+    'Торты',
+    'Алкоголь',
+    'Торты',
+    'Прочее',
     // 'Добавить',
   ];
 
@@ -123,7 +138,7 @@ const BeforeHomeScreen = ({ navigation, route }) => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    
       <LinearGradient
         colors={['#F1EBDD', '#897066']}
         start={{ x: 0, y: 1 }}
@@ -136,7 +151,7 @@ const BeforeHomeScreen = ({ navigation, route }) => {
             <Text style={styles.headerText}>Свадьба</Text>
             <Icon name="arrow-drop-down" size={24} color="#FFF" />
           </TouchableOpacity> */}
-          <View style={styles.budgetContainer}>
+          {/* <View style={styles.budgetContainer}>
             <TextInput
               style={styles.budgetInput}
               placeholder="Бюджет (т)"
@@ -153,7 +168,7 @@ const BeforeHomeScreen = ({ navigation, route }) => {
               keyboardType="numeric"
               placeholderTextColor="#FFF"
             />
-          </View>
+          </View> */}
         </View>
 
         <View style={styles.logoContainer}>
@@ -165,6 +180,8 @@ const BeforeHomeScreen = ({ navigation, route }) => {
         </View>
 
         <View style={styles.listContainer}>
+
+          
           <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
             <View style={styles.categoryGrid}>
               {categories.map((item, index) => (
@@ -192,7 +209,7 @@ const BeforeHomeScreen = ({ navigation, route }) => {
           </View>
         )}
       </LinearGradient>
-    </SafeAreaView>
+
   );
 };
 

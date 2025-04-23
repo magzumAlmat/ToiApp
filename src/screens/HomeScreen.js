@@ -1722,8 +1722,6 @@
 
 // export default CreateEventScreen;
 
-
-
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -1786,18 +1784,35 @@ const typesMapping = [
   { key: 'alcohol', costField: 'cost', type: 'alcohol', label: 'Алкоголь' },
   { key: 'transport', costField: 'cost', type: 'transport', label: 'Транспорт' },
   { key: 'restaurants', costField: 'averageCost', type: 'restaurant', label: 'Ресторан' },
+  { key: 'jewelry', costField: 'cost', type: 'jewelry', label: 'Ювелирные изделия' },
 ];
 
 const categoryToTypeMap = {
-  'Ведущие': 'tamada',
-  'Кейтеринг': 'restaurant',
+  'Ведущий': 'tamada',
+  'Ресторан': 'restaurant',
   'Алкоголь': 'alcohol',
-  'Музыка': 'program',
-  'Ювелирные изделия': 'none',
-  'Тойбастар': 'traditionalGift',
-  'Свадебные салоны': 'clothing',
-  'Транспорт': 'transport',
-  // 'Добавить':'функциональная кнопка'
+  'Шоу программа': 'program',
+  'Ювелирные изделия': 'jewelry',
+  'Традиционные подарки': 'traditionalGift',
+  'Свадебный салон': 'clothing',
+  'Прокат авто': 'transport',
+  'Торты':'cakes',
+  'Алкоголь':'alcohol',
+  // 'Фото видео съемка':''
+  // 'Оформление'
+  // 'Продукты'
+  // 'Прочее'
+
+    
+  
+
+
+   
+   
+ 
+   
+    
+
 
 };
 
@@ -1851,6 +1866,7 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
           item.portfolio,
           item.cakeType,
           item.flowerType,
+
         ]
           .filter(Boolean)
           .some((field) => field.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -1874,8 +1890,11 @@ const AddItemModal = ({ visible, onClose, filteredItems, filteredData, handleAdd
     return result.sort((a, b) => (typeOrder[a.type] || 11) - (typeOrder[b.type] || 11));
   }, [filteredItems, searchQuery, selectedTypeFilter, selectedDistrict, costRange]);
 
+
+
   const renderAddItem = useCallback(
     ({ item }) => {
+      console.log('renderAddItem ITEM= ',item)
       const count = filteredData.filter(
         (selectedItem) => `${selectedItem.type}-${selectedItem.id}` === `${item.type}-${item.id}`
       ).length;
@@ -2292,7 +2311,7 @@ const CategoryItemsModal = ({
           </View>
         </View>
         <TouchableOpacity style={styles.removeButton} onPress={() => handleRemoveItem(item)}>
-          <Text style={styles.removeButtonkowymText}>Убрать</Text>
+          <Text style={styles.removeButtonText}>Убрать</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.addModalDetailsButton}
@@ -2360,12 +2379,10 @@ const CategoryItemsModal = ({
 
 const CreateEventScreen = ({ navigation, route }) => {
   const selectedCategories = route?.params?.selectedCategories || [];
-  console.log('Данные с Предыдущего экрана=', selectedCategories);
 
   const dispatch = useDispatch();
   const { token, user } = useSelector((state) => state.auth);
 
-  // Состояние для категорий, которое может обновляться
   const [categories, setCategories] = useState(selectedCategories);
 
   const [data, setData] = useState({
@@ -2401,13 +2418,23 @@ const CreateEventScreen = ({ navigation, route }) => {
 
   const scrollViewRef = useRef(null);
 
-  // Функция для обновления списка категорий
   const updateCategories = useCallback((newCategory) => {
     setCategories((prevCategories) => {
       if (!prevCategories.includes(newCategory)) {
         return [...prevCategories, newCategory];
       }
       return prevCategories;
+    });
+  }, []);
+
+  const handleRemoveCategory = useCallback((category) => {
+    setCategories((prevCategories) => {
+      const updatedCategories = prevCategories.filter((cat) => cat !== category);
+      const type = categoryToTypeMap[category];
+      if (type) {
+        setFilteredData((prevData) => prevData.filter((item) => item.type !== type));
+      }
+      return updatedCategories;
     });
   }, []);
 
@@ -2477,6 +2504,91 @@ const CreateEventScreen = ({ navigation, route }) => {
     }
   };
 
+  // const filterDataByBudget = useCallback(() => {
+  //   if (!budget || isNaN(budget) || parseFloat(budget) <= 0) {
+  //     alert('Пожалуйста, введите корректную сумму бюджета');
+  //     return;
+  //   }
+
+  //   if (!guestCount || isNaN(guestCount) || parseFloat(guestCount) <= 0) {
+  //     alert('Пожалуйста, введите корректное количество гостей');
+  //     return;
+  //   }
+
+  //   const budgetValue = parseFloat(budget);
+  //   const guests = parseFloat(guestCount);
+  //   let remaining = budgetValue;
+  //   const selectedItems = [];
+
+  //   const suitableRestaurants = data.restaurants.filter(
+  //     (restaurant) => parseFloat(restaurant.capacity) >= guests
+  //   );
+
+  //   if (suitableRestaurants.length === 0) {
+  //     alert('Нет ресторанов с достаточной вместимостью для указанного количества гостей');
+  //     return;
+  //   }
+
+  //   const sortedRestaurants = suitableRestaurants
+  //     .filter((r) => parseFloat(r.averageCost) <= remaining)
+  //     .sort((a, b) => parseFloat(a.averageCost) - parseFloat(b.averageCost));
+
+  //   if (sortedRestaurants.length === 0) {
+  //     alert('Нет ресторанов, подходящих под ваш бюджет');
+  //     return;
+  //   }
+
+  //   const selectedRestaurant = sortedRestaurants[Math.floor(sortedRestaurants.length / 2)];
+  //   const restaurantCost = parseFloat(selectedRestaurant.averageCost);
+  //   selectedItems.push({ ...selectedRestaurant, type: 'restaurant', totalCost: restaurantCost });
+  //   remaining -= restaurantCost;
+
+  
+
+    
+
+  //   const types = [
+  //     { key: 'clothing', costField: 'cost', type: 'clothing' },
+  //     { key: 'tamada', costField: 'cost', type: 'tamada' },
+  //     { key: 'programs', costField: 'cost', type: 'program' },
+  //     { key: 'traditionalGifts', costField: 'cost', type: 'traditionalGift' },
+  //     { key: 'flowers', costField: 'cost', type: 'flowers' },
+  //     { key: 'cakes', costField: 'cost', type: 'cake' },
+  //     { key: 'alcohol', costField: 'cost', type: 'alcohol' },
+  //     { key: 'transport', costField: 'cost', type: 'transport' },
+  //   ];
+
+
+
+  //   for (const { key, costField, type } of types) {
+  //     const items = data[key]
+  //       .filter((item) => parseFloat(item[costField]) <= remaining)
+  //       .sort((a, b) => parseFloat(a[costField]) - parseFloat(b[costField]));
+
+  //     if (items.length > 0) {
+  //       const maxItemsToSelect = Math.min(2, items.length);
+  //       for (let i = 0; i < maxItemsToSelect; i++) {
+  //         const selectedItem = items[i];
+  //         const cost = parseFloat(selectedItem[costField]);
+  //         if (cost <= remaining) {
+  //           selectedItems.push({ ...selectedItem, type, totalCost: cost });
+  //           remaining -= cost;
+  //         }
+  //       }
+  //     }
+  //   }
+
+  //   setFilteredData(selectedItems);
+  //   setRemainingBudget(remaining);
+  //   setQuantities(
+  //     selectedItems.reduce((acc, item) => {
+  //       const itemKey = `${item.type}-${item.id}`;
+  //       return { ...acc, [itemKey]: '1' };
+  //     }, {})
+  //   );
+  // }, [budget, guestCount, data]);
+
+
   const filterDataByBudget = useCallback(() => {
     if (!budget || isNaN(budget) || parseFloat(budget) <= 0) {
       alert('Пожалуйста, введите корректную сумму бюджета');
@@ -2493,28 +2605,39 @@ const CreateEventScreen = ({ navigation, route }) => {
     let remaining = budgetValue;
     const selectedItems = [];
 
-    const suitableRestaurants = data.restaurants.filter(
-      (restaurant) => parseFloat(restaurant.capacity) >= guests
-    );
+    // Проверяем, есть ли категория "Кейтеринг" (ресторан) в списке категорий
+    const hasRestaurantCategory = categories.includes('Ресторан');
 
-    if (suitableRestaurants.length === 0) {
-      alert('Нет ресторанов с достаточной вместимостью для указанного количества гостей');
-      return;
+    // Если категория "Кейтеринг" выбрана, фильтруем рестораны
+    if (hasRestaurantCategory) {
+      const suitableRestaurants = data.restaurants.filter(
+        (restaurant) => parseFloat(restaurant.capacity) >= guests
+      );
+
+      if (suitableRestaurants.length === 0) {
+        alert('Нет ресторанов с достаточной вместимостью для указанного количества гостей');
+        return;
+      }
+
+      const sortedRestaurants = suitableRestaurants
+        .filter((r) => parseFloat(r.averageCost) <= remaining)
+        .sort((a, b) => parseFloat(a.averageCost) - parseFloat(b.averageCost));
+
+      if (sortedRestaurants.length === 0) {
+        alert('Нет ресторанов, подходящих под ваш бюджет');
+        return;
+      }
+
+      const selectedRestaurant = sortedRestaurants[Math.floor(sortedRestaurants.length / 2)];
+      const restaurantCost = parseFloat(selectedRestaurant.averageCost);
+      selectedItems.push({ ...selectedRestaurant, type: 'restaurant', totalCost: restaurantCost });
+      remaining -= restaurantCost;
     }
 
-    const sortedRestaurants = suitableRestaurants
-      .filter((r) => parseFloat(r.averageCost) <= remaining)
-      .sort((a, b) => parseFloat(a.averageCost) - parseFloat(b.averageCost));
-
-    if (sortedRestaurants.length === 0) {
-      alert('Нет ресторанов, подходящих под ваш бюджет');
-      return;
-    }
-
-    const selectedRestaurant = sortedRestaurants[Math.floor(sortedRestaurants.length / 2)];
-    const restaurantCost = parseFloat(selectedRestaurant.averageCost);
-    selectedItems.push({ ...selectedRestaurant, type: 'restaurant', totalCost: restaurantCost });
-    remaining -= restaurantCost;
+    // Определяем доступные типы на основе выбранных категорий
+    const allowedTypes = categories
+      .map((category) => categoryToTypeMap[category])
+      .filter((type) => type && type !== 'restaurant' && type !== 'none'); // Исключаем рестораны (уже обработаны) и неподдерживаемые типы
 
     const types = [
       { key: 'clothing', costField: 'cost', type: 'clothing' },
@@ -2525,7 +2648,7 @@ const CreateEventScreen = ({ navigation, route }) => {
       { key: 'cakes', costField: 'cost', type: 'cake' },
       { key: 'alcohol', costField: 'cost', type: 'alcohol' },
       { key: 'transport', costField: 'cost', type: 'transport' },
-    ];
+    ].filter(({ type }) => allowedTypes.includes(type)); // Фильтруем типы по разрешенным категориям
 
     for (const { key, costField, type } of types) {
       const items = data[key]
@@ -2553,7 +2676,11 @@ const CreateEventScreen = ({ navigation, route }) => {
         return { ...acc, [itemKey]: '1' };
       }, {})
     );
-  }, [budget, guestCount, data]);
+  }, [budget, guestCount, data, categories]); // Добавляем categories в зависимости
+
+
+
+
 
   useEffect(() => {
     if (shouldFilter && budget && guestCount && !isNaN(parseFloat(budget)) && !isNaN(parseFloat(guestCount))) {
@@ -2728,92 +2855,70 @@ const CreateEventScreen = ({ navigation, route }) => {
     }, 0);
   };
 
-  // const renderCategory = (item) => {
-  //   if (item === 'Добавить') {
-  //     return (
-  //       <TouchableOpacity style={styles.categoryButton} onPress={() => setAddItemModalVisible(true)}>
-  //         <LinearGradient
-  //           colors={[COLORS.buttonGradientStart, COLORS.buttonGradientEnd]}
-  //           style={styles.categoryButtonGradient}
-  //         >
-  //           <Icon name="add" size={24} color={COLORS.white} />
-  //           <Text style={styles.categoryText}>Добавить</Text>
-  //         </LinearGradient>
-  //       </TouchableOpacity>
-  //     );
-  //   }
-  //   return (
-  //     <TouchableOpacity style={styles.categoryButton} onPress={() => handleCategoryPress(item)}>
-  //       <LinearGradient
-  //         colors={[COLORS.buttonGradientStart, COLORS.buttonGradientEnd]}
-  //         style={styles.categoryButtonGradient}
-  //       >
-  //         <Text style={styles.categoryText}>{item}</Text>
-  //       </LinearGradient>
-  //     </TouchableOpacity>
-  //   );
-  // };
-
-  // Функция для возврата на предыдущий экран с передачей данных
-  
   const renderCategory = (item) => {
     if (item === 'Добавить') {
       return (
-        <TouchableOpacity style={styles.categoryButton} onPress={() => setAddItemModalVisible(true)}>
+        <View style={styles.categoryRow}>
+          <TouchableOpacity style={styles.categoryButton} onPress={() => setAddItemModalVisible(true)}>
+            <LinearGradient
+              colors={[COLORS.buttonGradientStart, COLORS.buttonGradientEnd]}
+              style={styles.categoryButtonGradient}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Icon name="add" size={20} color={COLORS.white} style={{ marginRight: 10 }} />
+                <Text style={styles.categoryText}>Добавить</Text>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.categoryRow}>
+        <TouchableOpacity
+          style={styles.removeCategoryButton}
+          onPress={() => handleRemoveCategory(item)}
+        >
+          <Icon name="remove-circle" size={20} color={COLORS.error} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.categoryButton} onPress={() => handleCategoryPress(item)}>
           <LinearGradient
             colors={[COLORS.buttonGradientStart, COLORS.buttonGradientEnd]}
             style={styles.categoryButtonGradient}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Icon name="add" size={20} color={COLORS.white} style={{ marginRight: 10 }} />
-              <Text style={styles.categoryText}>Добавить</Text>
+              <Icon
+                name={
+                  item === 'Ресторан' ? 'restaurant' :
+                  item === 'Прокат авто' ? 'directions-car' :
+                  item === 'Фото-видео съёмка' ? 'camera-alt' :
+                  item === 'Ведущие' ? 'mic' :
+                  item === 'Турыбек Кабота' ? 'card-giftcard' :
+                  item === 'Свадебные салоны' ? 'store' :
+                  item === 'Алкоголь' ? 'local-drink' :
+                  item === 'Ювелирные изделия' ? 'diamond' :
+                  'category'
+                }
+                size={20}
+                color={COLORS.white}
+                style={{ marginRight: 10 }}
+              />
+              <Text style={styles.categoryText}>{item}</Text>
             </View>
           </LinearGradient>
         </TouchableOpacity>
-      );
-    }
-    return (
-      <TouchableOpacity style={styles.categoryButton} onPress={() => handleCategoryPress(item)}>
-        <LinearGradient
-          colors={[COLORS.buttonGradientStart, COLORS.buttonGradientEnd]}
-          style={styles.categoryButtonGradient}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            {/* Add an icon based on the category */}
-            <Icon
-              name={
-                item === 'Ресторан' ? 'restaurant' :
-                item === 'Прокат авто' ? 'directions-car' :
-                item === 'Фото-видео съёмка' ? 'camera-alt' :
-                item === 'Ведущие' ? 'mic' :
-                item === 'Турыбек Кабота' ? 'card-giftcard' :
-                item === 'Свадебные салоны' ? 'store' :
-                item === 'Алкоголь' ? 'local-drink' :
-                item === 'Ювелирные изделия' ? 'diamond' :
-                'category'
-              }
-              size={20}
-              color={COLORS.white}
-              style={{ marginRight: 10 }}
-            />
-            <Text style={styles.categoryText}>{item}</Text>
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
+      </View>
     );
   };
 
-
-
   const handleGoBack = () => {
-    // Передаём обновлённый список категорий обратно
     navigation.navigate('BeforeHomeScreen', {
       selectedCategories: categories,
     });
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <>
       <LinearGradient
         colors={['#F1EBDD', '#897066']}
         start={{ x: 0, y: 1 }}
@@ -2821,10 +2926,6 @@ const CreateEventScreen = ({ navigation, route }) => {
         style={styles.splashContainer}
       >
         <View style={styles.headerContainer}>
-          {/* <TouchableOpacity style={styles.headerButton}>
-            <Text style={styles.headerText}>Свадьба</Text>
-            <Icon name="arrow-drop-down" size={24} color="#FFF" />
-          </TouchableOpacity> */}
           <View style={styles.budgetContainer}>
             <TextInput
               style={styles.budgetInput}
@@ -2857,20 +2958,20 @@ const CreateEventScreen = ({ navigation, route }) => {
           {loading ? (
             <ActivityIndicator size="large" color={COLORS.primary} />
           ) : (
-           <ScrollView
-                ref={scrollViewRef}
-                style={styles.scrollView}
-                showsVerticalScrollIndicator={false}
-              >
-                <View style={styles.categoryGrid}>
-                  {categories.map((item, index) => (
-                    <View key={index} style={styles.categoryItem}>
-                      {renderCategory(item)}
-                    </View>
-                  ))}
-                </View>
-                <View style={styles.bottomPadding} />
-              </ScrollView>
+            <ScrollView
+              ref={scrollViewRef}
+              style={styles.scrollView}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.categoryGrid}>
+                {categories.map((item, index) => (
+                  <View key={index} style={styles.categoryItem}>
+                    {renderCategory(item)}
+                  </View>
+                ))}
+              </View>
+              <View style={styles.bottomPadding} />
+            </ScrollView>
           )}
         </View>
 
@@ -3234,7 +3335,7 @@ const CreateEventScreen = ({ navigation, route }) => {
           </SafeAreaView>
         </Modal>
       </LinearGradient>
-    </SafeAreaView>
+    </>
   );
 };
 
@@ -3246,17 +3347,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: "20%",
   },
-  headerButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerText: { fontSize: 18, color: '#FFF', fontWeight: '600' },
   budgetContainer: { flexDirection: 'row', alignItems: 'center' },
   budgetInput: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -3282,43 +3374,44 @@ const styles = StyleSheet.create({
   listContainer: { flex: 1, paddingHorizontal: 20 },
   scrollView: { flex: 1 },
   categoryGrid: {
-    flexDirection: 'column', // Stack items vertically
-    alignItems: 'center', // Center items horizontally
+    flexDirection: 'column',
+    alignItems: 'center',
   },
-
-  // Update categoryItem to take full width
   categoryItem: {
-    width: '100%', // Full width for each item
+    width: '100%',
     padding: 5,
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  // Update categoryButton to be rectangular and full-width
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+  },
+  removeCategoryButton: {
+    padding: 10,
+    marginRight: 10,
+  },
   categoryButton: {
-    width: '100%', // Full width
-    height: 50, // Fixed height for list items
-    borderRadius: 10, // Smaller border radius for a rectangular look
+    flex: 1,
+    height: 50,
+    borderRadius: 10,
     overflow: 'hidden',
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.5,
     shadowRadius: 8,
     elevation: 5,
-    marginVertical: 5, // Add some vertical spacing between buttons
+    marginVertical: 5,
   },
-
-  // Update categoryButtonGradient to match the new shape
   categoryButtonGradient: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#5A4032',
-    borderRadius: 10, // Match the border radius
+    borderRadius: 10,
   },
-
-  // Update categoryText to fit the new layout
   categoryText: {
     fontSize: 16,
     color: COLORS.white,
@@ -3326,7 +3419,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 10,
   },
-
   bottomPadding: { height: 20 },
   bottomContainer: { paddingHorizontal: 20, paddingBottom: 20, backgroundColor: 'transparent' },
   nextButton: {
@@ -3334,7 +3426,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 25,
     alignItems: 'center',
-    marginVertical: 5, // Добавляем небольшой отступ между кнопками
+    marginVertical: 5,
   },
   nextButtonText: { fontSize: 18, color: COLORS.white, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center' },
