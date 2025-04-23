@@ -9,6 +9,8 @@ export default function App() {
        <PaperProvider>
 
       <Navigation />
+    
+    
       </PaperProvider>
     </Provider>
   );
