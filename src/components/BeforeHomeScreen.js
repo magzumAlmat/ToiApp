@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-
+import AntDesign from '@expo/vector-icons/AntDesign';
 const COLORS = {
   primary: '#FF6F61',
   white: '#FFFFFF',
@@ -145,7 +145,14 @@ const BeforeHomeScreen = ({ navigation, route }) => {
         end={{ x: 0, y: 0 }}
         style={styles.splashContainer}
       >
-        <Text>Before Home Screen</Text>
+      <TouchableOpacity
+      style={{marginTop:'15%',marginLeft:'2%'}}
+      onPress={() => navigation.goBack()}
+    >
+      {/* <Icon name="chevron-back-outline" size={24} color={COLORS.white} /> */}
+      <AntDesign name="left" size={24} color="black" />
+    </TouchableOpacity>
+
         <View style={styles.headerContainer}>
           {/* <TouchableOpacity style={styles.headerButton}>
             <Text style={styles.headerText}>Свадьба</Text>
@@ -196,18 +203,22 @@ const BeforeHomeScreen = ({ navigation, route }) => {
 
         <View style={styles.bottomContainer}>
           <TouchableOpacity style={styles.nextButton} onPress={handleProceed}>
-            <Text style={styles.nextButtonText}>Далее</Text>
+              <Image
+                        source={require("../../assets/next.png")}
+                        style={styles.potIcon3}
+                        resizeMode="contain"
+                      />
           </TouchableOpacity>
         </View>
 
-        {selectedCategoriesList.length > 0 && (
+        {/* {selectedCategoriesList.length > 0 && (
           <View style={styles.selectedCategoriesContainer}>
             <Text style={styles.selectedCategoriesTitle}>Выбранные категории:</Text>
             <Text style={styles.selectedCategoriesText}>
               {selectedCategoriesList.join(', ')}
             </Text>
           </View>
-        )}
+        )} */}
       </LinearGradient>
 
   );
@@ -221,7 +232,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 10,
+
   },
   headerButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -254,6 +265,7 @@ const styles = StyleSheet.create({
   },
   logoContainer: { alignItems: 'center', marginVertical: 20 },
   potIcon: { width: 150, height: 150 },
+  potIcon3: { width: 70, height: 70 },
   listContainer: { flex: 1, paddingHorizontal: 20 },
   scrollView: { flex: 1 },
   categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
@@ -289,9 +301,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   bottomPadding: { height: 20 },
-  bottomContainer: { paddingHorizontal: 20, paddingBottom: 20, backgroundColor: 'transparent' },
+  bottomContainer: { paddingHorizontal: 20, paddingBottom: 20 },
   nextButton: {
-    backgroundColor: COLORS.primary,
+
     paddingVertical: 15,
     borderRadius: 25,
     alignItems: 'center',
