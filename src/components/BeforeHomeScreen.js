@@ -35,7 +35,7 @@ const BeforeHomeScreen = ({ navigation, route }) => {
     'Тойбастар',
     'Свадебные салоны',
     'Транспорт',
-    'Добавить',
+    // 'Добавить',
   ];
 
   // Инициализируем состояние activeCategories на основе переданных категорий
@@ -132,10 +132,10 @@ const BeforeHomeScreen = ({ navigation, route }) => {
       >
         <Text>Before Home Screen</Text>
         <View style={styles.headerContainer}>
-          <TouchableOpacity style={styles.headerButton}>
+          {/* <TouchableOpacity style={styles.headerButton}>
             <Text style={styles.headerText}>Свадьба</Text>
             <Icon name="arrow-drop-down" size={24} color="#FFF" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <View style={styles.budgetContainer}>
             <TextInput
               style={styles.budgetInput}

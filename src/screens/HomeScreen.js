@@ -1793,10 +1793,12 @@ const categoryToTypeMap = {
   'Кейтеринг': 'restaurant',
   'Алкоголь': 'alcohol',
   'Музыка': 'program',
-  'Ювелирные изделия': 'goods',
+  'Ювелирные изделия': 'none',
   'Тойбастар': 'traditionalGift',
   'Свадебные салоны': 'clothing',
   'Транспорт': 'transport',
+  // 'Добавить':'функциональная кнопка'
+
 };
 
 // Обратное отображение type в категорию
@@ -2726,6 +2728,34 @@ const CreateEventScreen = ({ navigation, route }) => {
     }, 0);
   };
 
+  // const renderCategory = (item) => {
+  //   if (item === 'Добавить') {
+  //     return (
+  //       <TouchableOpacity style={styles.categoryButton} onPress={() => setAddItemModalVisible(true)}>
+  //         <LinearGradient
+  //           colors={[COLORS.buttonGradientStart, COLORS.buttonGradientEnd]}
+  //           style={styles.categoryButtonGradient}
+  //         >
+  //           <Icon name="add" size={24} color={COLORS.white} />
+  //           <Text style={styles.categoryText}>Добавить</Text>
+  //         </LinearGradient>
+  //       </TouchableOpacity>
+  //     );
+  //   }
+  //   return (
+  //     <TouchableOpacity style={styles.categoryButton} onPress={() => handleCategoryPress(item)}>
+  //       <LinearGradient
+  //         colors={[COLORS.buttonGradientStart, COLORS.buttonGradientEnd]}
+  //         style={styles.categoryButtonGradient}
+  //       >
+  //         <Text style={styles.categoryText}>{item}</Text>
+  //       </LinearGradient>
+  //     </TouchableOpacity>
+  //   );
+  // };
+
+  // Функция для возврата на предыдущий экран с передачей данных
+  
   const renderCategory = (item) => {
     if (item === 'Добавить') {
       return (
@@ -2734,8 +2764,10 @@ const CreateEventScreen = ({ navigation, route }) => {
             colors={[COLORS.buttonGradientStart, COLORS.buttonGradientEnd]}
             style={styles.categoryButtonGradient}
           >
-            <Icon name="add" size={24} color={COLORS.white} />
-            <Text style={styles.categoryText}>Добавить</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Icon name="add" size={20} color={COLORS.white} style={{ marginRight: 10 }} />
+              <Text style={styles.categoryText}>Добавить</Text>
+            </View>
           </LinearGradient>
         </TouchableOpacity>
       );
@@ -2746,13 +2778,33 @@ const CreateEventScreen = ({ navigation, route }) => {
           colors={[COLORS.buttonGradientStart, COLORS.buttonGradientEnd]}
           style={styles.categoryButtonGradient}
         >
-          <Text style={styles.categoryText}>{item}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {/* Add an icon based on the category */}
+            <Icon
+              name={
+                item === 'Ресторан' ? 'restaurant' :
+                item === 'Прокат авто' ? 'directions-car' :
+                item === 'Фото-видео съёмка' ? 'camera-alt' :
+                item === 'Ведущие' ? 'mic' :
+                item === 'Турыбек Кабота' ? 'card-giftcard' :
+                item === 'Свадебные салоны' ? 'store' :
+                item === 'Алкоголь' ? 'local-drink' :
+                item === 'Ювелирные изделия' ? 'diamond' :
+                'category'
+              }
+              size={20}
+              color={COLORS.white}
+              style={{ marginRight: 10 }}
+            />
+            <Text style={styles.categoryText}>{item}</Text>
+          </View>
         </LinearGradient>
       </TouchableOpacity>
     );
   };
 
-  // Функция для возврата на предыдущий экран с передачей данных
+
+
   const handleGoBack = () => {
     // Передаём обновлённый список категорий обратно
     navigation.navigate('BeforeHomeScreen', {
@@ -2769,10 +2821,10 @@ const CreateEventScreen = ({ navigation, route }) => {
         style={styles.splashContainer}
       >
         <View style={styles.headerContainer}>
-          <TouchableOpacity style={styles.headerButton}>
+          {/* <TouchableOpacity style={styles.headerButton}>
             <Text style={styles.headerText}>Свадьба</Text>
             <Icon name="arrow-drop-down" size={24} color="#FFF" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <View style={styles.budgetContainer}>
             <TextInput
               style={styles.budgetInput}
@@ -2805,20 +2857,20 @@ const CreateEventScreen = ({ navigation, route }) => {
           {loading ? (
             <ActivityIndicator size="large" color={COLORS.primary} />
           ) : (
-            <ScrollView
-              ref={scrollViewRef}
-              style={styles.scrollView}
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={styles.categoryGrid}>
-                {categories.map((item, index) => (
-                  <View key={index} style={styles.categoryItem}>
-                    {renderCategory(item)}
-                  </View>
-                ))}
-              </View>
-              <View style={styles.bottomPadding} />
-            </ScrollView>
+           <ScrollView
+                ref={scrollViewRef}
+                style={styles.scrollView}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.categoryGrid}>
+                  {categories.map((item, index) => (
+                    <View key={index} style={styles.categoryItem}>
+                      {renderCategory(item)}
+                    </View>
+                  ))}
+                </View>
+                <View style={styles.bottomPadding} />
+              </ScrollView>
           )}
         </View>
 
@@ -3229,27 +3281,44 @@ const styles = StyleSheet.create({
   potIcon: { width: 150, height: 150 },
   listContainer: { flex: 1, paddingHorizontal: 20 },
   scrollView: { flex: 1 },
-  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  categoryItem: { width: '33.33%', padding: 5, alignItems: 'center', justifyContent: 'center' },
+  categoryGrid: {
+    flexDirection: 'column', // Stack items vertically
+    alignItems: 'center', // Center items horizontally
+  },
+
+  // Update categoryItem to take full width
+  categoryItem: {
+    width: '100%', // Full width for each item
+    padding: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Update categoryButton to be rectangular and full-width
   categoryButton: {
-    width: '100%',
-    aspectRatio: 1,
-    borderRadius: 100,
+    width: '100%', // Full width
+    height: 50, // Fixed height for list items
+    borderRadius: 10, // Smaller border radius for a rectangular look
     overflow: 'hidden',
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.5,
     shadowRadius: 8,
     elevation: 5,
+    marginVertical: 5, // Add some vertical spacing between buttons
   },
+
+  // Update categoryButtonGradient to match the new shape
   categoryButtonGradient: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#5A4032',
-    borderRadius: 100,
+    borderRadius: 10, // Match the border radius
   },
+
+  // Update categoryText to fit the new layout
   categoryText: {
     fontSize: 16,
     color: COLORS.white,
@@ -3257,6 +3326,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 10,
   },
+
   bottomPadding: { height: 20 },
   bottomContainer: { paddingHorizontal: 20, paddingBottom: 20, backgroundColor: 'transparent' },
   nextButton: {
