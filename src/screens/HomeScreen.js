@@ -460,6 +460,7 @@ const AddItemModal = ({
 };
 
 // Компонент для отображения выбранного элемента
+
 const SelectedItem = ({
   item,
   quantities,
@@ -472,31 +473,46 @@ const SelectedItem = ({
   setDetailsModalVisible,
   setSelectedItem,
   onClose,
-  guestCount, // Новый проп для проверки
+  guestCount: initialGuestCount,
+  setGuestCount,
 }) => {
   const itemKey = `${item.type}-${item.id}`;
   const [inputQuantity, setInputQuantity] = useState(quantities[itemKey] || "1");
+  const [inputGuestCount, setInputGuestCount] = useState(initialGuestCount?.toString() || "1");
 
   useEffect(() => {
     setInputQuantity(quantities[itemKey] || "1");
   }, [quantities[itemKey]]);
 
-  const cost = item.type === "restaurant" ? item.averageCost : item.cost;
-  const parsedQuantityForCalc = parseInt(inputQuantity, 10) || 1;
-  const totalCost = cost * parsedQuantityForCalc;
+  useEffect(() => {
+    setInputGuestCount(initialGuestCount?.toString() || "1");
+  }, [initialGuestCount]);
 
-  const syncQuantity = (value) => {
+  const cost = item.type === "restaurant" ? item.averageCost : item.cost;
+  const parsedGuestCount = parseInt(inputGuestCount, 10) || 1;
+  const parsedQuantity = parseInt(inputQuantity, 10) || 1;
+
+  // Итоговая стоимость: для ресторанов — на основе гостей, для других — на основе количества
+  const totalCost =
+    item.type === "restaurant" ? cost * parsedGuestCount : cost * parsedQuantity;
+
+  const syncQuantity = (value, guestCountValue = inputGuestCount) => {
     let newQuantity = value === "" ? "1" : value;
     let quantityForCalc = parseInt(newQuantity, 10) || 1;
+    let parsedGuestCount = parseInt(guestCountValue, 10) || 1;
 
-    // Проверка capacity для ресторанов
-    if (item.type === "restaurant" && guestCount) {
-      const totalGuests = quantityForCalc * parseInt(guestCount, 10);
-      if (totalGuests > item.capacity) {
-        quantityForCalc = Math.floor(item.capacity / parseInt(guestCount, 10));
-        newQuantity = quantityForCalc.toString();
+    // Проверка вместимости для ресторанов
+    if (item.type === "restaurant" && parsedGuestCount > 0) {
+      if (parsedGuestCount > item.capacity) {
+        parsedGuestCount = item.capacity;
+        guestCountValue = parsedGuestCount.toString();
+        setInputGuestCount(guestCountValue);
+        if (setGuestCount) {
+          setGuestCount(parsedGuestCount);
+        }
         alert(
-          `Вместимость ресторана (${item.capacity}) превышена. Максимальное количество: ${quantityForCalc}.`
+          "Вместимость превышена",
+          `Максимальная вместимость ресторана: ${item.capacity} гостей.`
         );
       }
     }
@@ -508,7 +524,11 @@ const SelectedItem = ({
 
       const updatedFilteredData = filteredData.map((dataItem) => {
         if (`${dataItem.type}-${dataItem.id}` === itemKey) {
-          return { ...dataItem, totalCost: cost * quantityForCalc };
+          const itemTotalCost =
+            dataItem.type === "restaurant"
+              ? dataItem.averageCost * parsedGuestCount
+              : dataItem.cost * quantityForCalc;
+          return { ...dataItem, totalCost: itemTotalCost };
         }
         return dataItem;
       });
@@ -516,7 +536,10 @@ const SelectedItem = ({
 
       const totalSpent = updatedFilteredData.reduce((sum, dataItem) => {
         const key = `${dataItem.type}-${dataItem.id}`;
-        const itemQuantity = parseInt(updatedQuantities[key], 10) || 1;
+        const itemQuantity =
+          dataItem.type === "restaurant"
+            ? parseInt(guestCountValue, 10) || 1
+            : parseInt(updatedQuantities[key], 10) || 1;
         const itemCost =
           dataItem.type === "restaurant" ? dataItem.averageCost : dataItem.cost;
         return sum + itemCost * itemQuantity;
@@ -529,8 +552,15 @@ const SelectedItem = ({
 
   const handleQuantityChange = (value) => {
     const filteredValue = value.replace(/[^0-9]/g, "");
-    const newQuantity = filteredValue === "" ? "" : filteredValue;
-    setInputQuantity(newQuantity);
+    setInputQuantity(filteredValue);
+  };
+
+  const handleGuestCountChange = (value) => {
+    const filteredValue = value.replace(/[^0-9]/g, "");
+    setInputGuestCount(filteredValue);
+    if (setGuestCount) {
+      setGuestCount(filteredValue === "" ? 1 : parseInt(filteredValue, 10));
+    }
   };
 
   const incrementQuantity = () => {
@@ -547,6 +577,28 @@ const SelectedItem = ({
     }
   };
 
+  const incrementGuestCount = () => {
+    const currentGuestCount = parseInt(inputGuestCount, 10) || 1;
+    const newGuestCount = (currentGuestCount + 1).toString();
+    setInputGuestCount(newGuestCount);
+    if (setGuestCount) {
+      setGuestCount(parseInt(newGuestCount, 10));
+    }
+    syncQuantity(inputQuantity, newGuestCount);
+  };
+
+  const decrementGuestCount = () => {
+    const currentGuestCount = parseInt(inputGuestCount, 10) || 1;
+    if (currentGuestCount > 1) {
+      const newGuestCount = (currentGuestCount - 1).toString();
+      setInputGuestCount(newGuestCount);
+      if (setGuestCount) {
+        setGuestCount(parseInt(newGuestCount, 10));
+      }
+      syncQuantity(inputQuantity, newGuestCount);
+    }
+  };
+
   const handleBlur = () => {
     if (inputQuantity === "" || !inputQuantity) {
       setInputQuantity("1");
@@ -556,10 +608,22 @@ const SelectedItem = ({
     }
   };
 
+  const handleGuestCountBlur = () => {
+    if (inputGuestCount === "" || !inputGuestCount) {
+      setInputGuestCount("1");
+      if (setGuestCount) {
+        setGuestCount(1);
+      }
+      syncQuantity(inputQuantity, "1");
+    } else {
+      syncQuantity(inputQuantity, inputGuestCount);
+    }
+  };
+
   let title;
   switch (item.type) {
     case "restaurant":
-      title = `${item.name} (${cost} ₸)`;
+      title = `${item.name} (${cost} ₸/гость, Вместимость: ${item.capacity})`;
       break;
     case "clothing":
       title = `${item.storeName} - ${item.itemName} (${cost} ₸)`;
@@ -599,28 +663,53 @@ const SelectedItem = ({
     <View style={[styles.addModalItemCard, styles.selectedItemCard]}>
       <View style={styles.addModalItemContent}>
         <Text style={styles.addModalItemText}>Выбрано: {title}</Text>
-        <View style={styles.quantityContainer}>
-          <Text style={styles.quantityLabel}>Количество:</Text>
-          <TouchableOpacity onPress={decrementQuantity}>
-            <Icon name="remove" size={20} color={COLORS.primary} />
-          </TouchableOpacity>
-          <TextInput
-            style={styles.quantityInput}
-            value={inputQuantity}
-            onChangeText={handleQuantityChange}
-            onBlur={handleBlur}
-            keyboardType="numeric"
-            placeholder="1"
-            placeholderTextColor="#666"
-            textAlign="center"
-          />
-          <TouchableOpacity onPress={incrementQuantity}>
-            <Icon name="add" size={20} color={COLORS.primary} />
-          </TouchableOpacity>
-          <Text style={styles.totalCostText}>
-            Итого: {totalCost.toLocaleString()} ₸
-          </Text>
-        </View>
+        {item.type === "restaurant" ? (
+          <View style={styles.quantityContainer}>
+            <Text style={styles.quantityLabel}>Количество гостей:</Text>
+            <TouchableOpacity onPress={decrementGuestCount}>
+              <Icon name="remove" size={20} color={COLORS.primary} />
+            </TouchableOpacity>
+            <TextInput
+              style={styles.quantityInput}
+              value={inputGuestCount}
+              onChangeText={handleGuestCountChange}
+              onBlur={handleGuestCountBlur}
+              keyboardType="numeric"
+              placeholder="1"
+              placeholderTextColor="#666"
+              textAlign="center"
+            />
+            <TouchableOpacity onPress={incrementGuestCount}>
+              <Icon name="add" size={20} color={COLORS.primary} />
+            </TouchableOpacity>
+            <Text style={styles.totalCostText}>
+              Итого: {totalCost.toLocaleString()} ₸
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.quantityContainer}>
+            <Text style={styles.quantityLabel}>Количество:</Text>
+            <TouchableOpacity onPress={decrementQuantity}>
+              <Icon name="remove" size={20} color={COLORS.primary} />
+            </TouchableOpacity>
+            <TextInput
+              style={styles.quantityInput}
+              value={inputQuantity}
+              onChangeText={handleQuantityChange}
+              onBlur={handleBlur}
+              keyboardType="numeric"
+              placeholder="1"
+              placeholderTextColor="#666"
+              textAlign="center"
+            />
+            <TouchableOpacity onPress={incrementQuantity}>
+              <Icon name="add" size={20} color={COLORS.primary} />
+            </TouchableOpacity>
+            <Text style={styles.totalCostText}>
+              Итого: {totalCost.toLocaleString()} ₸
+            </Text>
+          </View>
+        )}
       </View>
       <TouchableOpacity
         style={styles.removeButton}
@@ -840,6 +929,7 @@ const CategoryItemsModal = ({
 };
 
 // Главный экран
+
 const CreateEventScreen = ({ navigation, route }) => {
   const selectedCategories = route?.params?.selectedCategories || [];
 
@@ -891,37 +981,158 @@ const CreateEventScreen = ({ navigation, route }) => {
     });
   }, []);
 
+  // const handleRemoveCategory = useCallback(
+  //   (category) => {
+  //     setDisabledCategories((prev) => {
+  //       if (prev.includes(category)) {
+  //         return prev.filter((cat) => cat !== category);
+  //       } else {
+  //         const type = categoryToTypeMap[category];
+  //         if (type) {
+  //           setFilteredData((prevData) =>
+  //             prevData.filter((item) => item.type !== type)
+  //           );
+  //         }
+  //         return [...prev, category];
+  //       }
+  //     });
+
+  //     setFilteredData((prevData) => {
+  //       const totalSpent = prevData.reduce((sum, dataItem) => {
+  //         const key = `${dataItem.type}-${dataItem.id}`;
+  //         const itemQuantity =
+  //           dataItem.type === "restaurant"
+  //             ? parseInt(guestCount, 10) || 1
+  //             : parseInt(quantities[key] || "1");
+  //         const itemCost =
+  //           dataItem.type === "restaurant" ? dataItem.averageCost : dataItem.cost;
+  //         return sum + itemCost * itemQuantity;
+  //       }, 0);
+  //       setRemainingBudget(parseFloat(budget) - totalSpent);
+  //       return prevData;
+  //     });
+  //   },
+  //   [quantities, budget, guestCount]
+  // );
+
   const handleRemoveCategory = useCallback(
     (category) => {
       setDisabledCategories((prev) => {
         if (prev.includes(category)) {
-          return prev.filter((cat) => cat !== category);
+          // Разблокировка категории
+          const updatedDisabledCategories = prev.filter((cat) => cat !== category);
+          const type = categoryToTypeMap[category];
+          if (type) {
+            // Получаем элементы для разблокированной категории
+            const itemsToAdd = combinedData.filter((item) => item.type === type);
+  
+            // Фильтруем элементы с учётом бюджета и количества гостей
+            let remaining = parseFloat(budget) || 0;
+            const currentTotalSpent = filteredData.reduce((sum, dataItem) => {
+              const key = `${dataItem.type}-${dataItem.id}`;
+              const itemQuantity =
+                dataItem.type === "restaurant"
+                  ? parseInt(guestCount, 10) || 1
+                  : parseInt(quantities[key] || "1");
+              const itemCost =
+                dataItem.type === "restaurant" ? dataItem.averageCost : dataItem.cost;
+              return sum + itemCost * itemQuantity;
+            }, 0);
+            remaining -= currentTotalSpent;
+  
+            const filteredItemsToAdd = itemsToAdd
+              .filter((item) => {
+                const cost = item.type === "restaurant" ? item.averageCost : item.cost;
+                const effectiveQuantity =
+                  item.type === "restaurant" ? parseInt(guestCount, 10) || 1 : 1;
+                const totalCost = cost * effectiveQuantity;
+                return totalCost <= remaining;
+              })
+              .sort((a, b) => {
+                const costA = a.type === "restaurant" ? a.averageCost : a.cost;
+                const costB = b.type === "restaurant" ? b.averageCost : b.cost;
+                return costA - costB;
+              });
+  
+            // Добавляем не более 2 элементов из категории
+            const maxItemsToSelect = Math.min(2, filteredItemsToAdd.length);
+            const selectedItemsToAdd = [];
+            for (let i = 0; i < maxItemsToSelect; i++) {
+              const selectedItem = filteredItemsToAdd[i];
+              if (selectedItem) {
+                const cost =
+                  selectedItem.type === "restaurant" ? selectedItem.averageCost : selectedItem.cost;
+                const effectiveQuantity =
+                  selectedItem.type === "restaurant" ? parseInt(guestCount, 10) || 1 : 1;
+                const totalCost = cost * effectiveQuantity;
+                selectedItemsToAdd.push({ ...selectedItem, totalCost });
+                remaining -= totalCost;
+              }
+            }
+  
+            // Обновляем filteredData, добавляя новые элементы
+            setFilteredData((prevData) => {
+              const updatedData = [...prevData, ...selectedItemsToAdd].sort(
+                (a, b) => (typeOrder[a.type] || 11) - (typeOrder[b.type] || 11)
+              );
+  
+              // Обновляем quantities для новых элементов
+              setQuantities((prevQuantities) => ({
+                ...prevQuantities,
+                ...selectedItemsToAdd.reduce((acc, item) => {
+                  const itemKey = `${item.type}-${item.id}`;
+                  return { ...acc, [itemKey]: "1" };
+                }, {}),
+              }));
+  
+              // Пересчитываем оставшийся бюджет
+              const totalSpent = updatedData.reduce((sum, dataItem) => {
+                const key = `${dataItem.type}-${dataItem.id}`;
+                const itemQuantity =
+                  dataItem.type === "restaurant"
+                    ? parseInt(guestCount, 10) || 1
+                    : parseInt(quantities[key] || "1");
+                const itemCost =
+                  dataItem.type === "restaurant" ? dataItem.averageCost : dataItem.cost;
+                return sum + itemCost * itemQuantity;
+              }, 0);
+              setRemainingBudget(parseFloat(budget) - totalSpent);
+  
+              return updatedData;
+            });
+  
+          }
+          return updatedDisabledCategories;
         } else {
+          // Блокировка категории
           const type = categoryToTypeMap[category];
           if (type) {
             setFilteredData((prevData) =>
               prevData.filter((item) => item.type !== type)
             );
           }
+          setFilteredData((prevData) => {
+            const totalSpent = prevData.reduce((sum, dataItem) => {
+              const key = `${dataItem.type}-${dataItem.id}`;
+              const itemQuantity =
+                dataItem.type === "restaurant"
+                  ? parseInt(guestCount, 10) || 1
+                  : parseInt(quantities[key] || "1");
+              const itemCost =
+                dataItem.type === "restaurant" ? dataItem.averageCost : dataItem.cost;
+              return sum + itemCost * itemQuantity;
+            }, 0);
+            setRemainingBudget(parseFloat(budget) - totalSpent);
+            return prevData;
+          });
           return [...prev, category];
         }
       });
-
-      setFilteredData((prevData) => {
-        const totalSpent = prevData.reduce((sum, dataItem) => {
-          const key = `${dataItem.type}-${dataItem.id}`;
-          const itemQuantity = parseInt(quantities[key] || "1");
-          const itemCost =
-            dataItem.type === "restaurant" ? dataItem.averageCost : dataItem.cost;
-          return sum + itemCost * itemQuantity;
-        }, 0);
-        setRemainingBudget(parseFloat(budget) - totalSpent);
-        return prevData;
-      });
     },
-    [quantities, budget]
+    [quantities, budget, guestCount, combinedData]
   );
 
+  
   const fetchData = async () => {
     if (!token || !user?.id) return;
     setLoading(true);
@@ -1021,8 +1232,9 @@ const CreateEventScreen = ({ navigation, route }) => {
         return;
       }
 
+      // Учитываем стоимость ресторана на основе количества гостей
       const sortedRestaurants = suitableRestaurants
-        .filter((r) => parseFloat(r.averageCost) <= remaining)
+        .filter((r) => parseFloat(r.averageCost) * guests <= remaining)
         .sort((a, b) => parseFloat(a.averageCost) - parseFloat(b.averageCost));
 
       if (sortedRestaurants.length === 0) {
@@ -1032,7 +1244,7 @@ const CreateEventScreen = ({ navigation, route }) => {
 
       const selectedRestaurant =
         sortedRestaurants[Math.floor(sortedRestaurants.length / 2)];
-      const restaurantCost = parseFloat(selectedRestaurant.averageCost);
+      const restaurantCost = parseFloat(selectedRestaurant.averageCost) * guests;
       selectedItems.push({
         ...selectedRestaurant,
         type: "restaurant",
@@ -1108,6 +1320,12 @@ const CreateEventScreen = ({ navigation, route }) => {
       const itemKey = `${item.type}-${item.id}`;
       const cost = item.type === "restaurant" ? item.averageCost : item.cost;
 
+      // Проверка количества гостей перед добавлением ресторана
+      if (item.type === "restaurant" && !guestCount) {
+        alert("Пожалуйста, укажите количество гостей перед добавлением ресторана.");
+        return;
+      }
+
       // Проверка capacity для ресторанов
       if (item.type === "restaurant" && guestCount) {
         const totalGuests = parseInt(guestCount, 10);
@@ -1131,15 +1349,10 @@ const CreateEventScreen = ({ navigation, route }) => {
             quantities[itemKey] === "" ? "1" : quantities[itemKey] || "1";
           newQuantity = (parseInt(currentQuantity) + 1).toString();
 
-          // Дополнительная проверка capacity при увеличении количества
-          if (item.type === "restaurant" && guestCount) {
-            const totalGuests = parseInt(newQuantity, 10) * parseInt(guestCount, 10);
-            if (totalGuests > item.capacity) {
-              alert(
-                `Вместимость ресторана (${item.capacity}) превышена. Максимальное количество: ${Math.floor(item.capacity / parseInt(guestCount, 10))}.`
-              );
-              return prev; // Не добавляем, если превышена вместимость
-            }
+          // Для ресторанов не увеличиваем количество, так как используется guestCount
+          if (item.type === "restaurant") {
+            alert("Вы можете выбрать только один ресторан.");
+            return prev;
           }
 
           updatedData = [...prev];
@@ -1149,7 +1362,10 @@ const CreateEventScreen = ({ navigation, route }) => {
           };
         } else {
           newQuantity = "1";
-          const newItem = { ...item, totalCost: cost };
+          const effectiveQuantity =
+            item.type === "restaurant" ? parseInt(guestCount, 10) || 1 : 1;
+          const totalCost = cost * effectiveQuantity;
+          const newItem = { ...item, totalCost };
           updatedData = [...prev, newItem];
         }
 
@@ -1161,11 +1377,11 @@ const CreateEventScreen = ({ navigation, route }) => {
         const totalSpent = updatedData.reduce((sum, dataItem) => {
           const key = `${dataItem.type}-${dataItem.id}`;
           const itemQuantity =
-            quantities[key] === "" ? 1 : parseInt(quantities[key] || "1");
-          const itemCost =
             dataItem.type === "restaurant"
-              ? dataItem.averageCost
-              : dataItem.cost;
+              ? parseInt(guestCount, 10) || 1
+              : parseInt(quantities[key] || "1");
+          const itemCost =
+            dataItem.type === "restaurant" ? dataItem.averageCost : dataItem.cost;
           return sum + itemCost * itemQuantity;
         }, 0);
 
@@ -1195,11 +1411,12 @@ const CreateEventScreen = ({ navigation, route }) => {
 
         const totalSpent = updatedData.reduce((sum, dataItem) => {
           const key = `${dataItem.type}-${dataItem.id}`;
-          const itemQuantity = parseInt(quantities[key] || "1");
-          const itemCost =
+          const itemQuantity =
             dataItem.type === "restaurant"
-              ? dataItem.averageCost
-              : dataItem.cost;
+              ? parseInt(guestCount, 10) || 1
+              : parseInt(quantities[key] || "1");
+          const itemCost =
+            dataItem.type === "restaurant" ? dataItem.averageCost : dataItem.cost;
           return sum + itemCost * itemQuantity;
         }, 0);
 
@@ -1209,8 +1426,18 @@ const CreateEventScreen = ({ navigation, route }) => {
         );
       });
     },
-    [quantities, budget]
+    [quantities, budget, guestCount]
   );
+
+  const calculateTotalCost = () => {
+    return filteredData.reduce((sum, item) => {
+      const quantity = parseInt(quantities[`${item.type}-${item.id}`] || "1");
+      const cost = item.type === "restaurant" ? item.averageCost : item.cost;
+      const effectiveQuantity =
+        item.type === "restaurant" ? parseInt(guestCount, 10) || 1 : quantity;
+      return sum + cost * effectiveQuantity;
+    }, 0);
+  };
 
   const handleSubmit = async () => {
     if (!weddingName.trim()) {
@@ -1232,16 +1459,18 @@ const CreateEventScreen = ({ navigation, route }) => {
       name: weddingName.trim(),
       date: dateString,
       host_id: user.id,
-      items: filteredData.map((item) => ({
-        id: item.id,
-        type: item.type,
-        quantity: parseInt(quantities[`${item.type}-${item.id}`] || "1"),
-        totalCost:
-          parseFloat(
-            item.totalCost ||
-              (item.type === "restaurant" ? item.averageCost : item.cost)
-          ) * parseInt(quantities[`${item.type}-${item.id}`] || "1"),
-      })),
+      items: filteredData.map((item) => {
+        const quantity = parseInt(quantities[`${item.type}-${item.id}`] || "1");
+        const effectiveQuantity =
+          item.type === "restaurant" ? parseInt(guestCount, 10) || 1 : quantity;
+        const cost = item.type === "restaurant" ? item.averageCost : item.cost;
+        return {
+          id: item.id,
+          type: item.type,
+          quantity: effectiveQuantity,
+          totalCost: cost * effectiveQuantity,
+        };
+      }),
     };
 
     try {
@@ -1304,14 +1533,6 @@ const CreateEventScreen = ({ navigation, route }) => {
     setSelectedCategoryItems([]);
     setSelectedCategoryLabel("");
     setSelectedCategoryType("");
-  };
-
-  const calculateTotalCost = () => {
-    return filteredData.reduce((sum, item) => {
-      const quantity = parseInt(quantities[`${item.type}-${item.id}`] || "1");
-      const cost = item.type === "restaurant" ? item.averageCost : item.cost;
-      return sum + cost * quantity;
-    }, 0);
   };
 
   const sortedCategories = [...categories].sort((a, b) => {
@@ -1439,7 +1660,7 @@ const CreateEventScreen = ({ navigation, route }) => {
         </View>
 
         <View style={styles.headerContainer}>
-        <View style={styles.categoryItem2}>{renderCategory("Добавить")}</View>
+          <View style={styles.categoryItem2}>{renderCategory("Добавить")}</View>
           <View style={styles.budgetContainer}>
             <TextInput
               style={styles.budgetInput}
@@ -1476,7 +1697,6 @@ const CreateEventScreen = ({ navigation, route }) => {
                     {renderCategory(item)}
                   </View>
                 ))}
-                {/* <View style={styles.categoryItem}>{renderCategory("Добавить")}</View> */}
               </View>
               <View style={styles.bottomPadding} />
             </ScrollView>
@@ -1508,7 +1728,7 @@ const CreateEventScreen = ({ navigation, route }) => {
           updateCategories={updateCategories}
         />
 
-<CategoryItemsModal
+        <CategoryItemsModal
           visible={categoryModalVisible}
           onClose={handleCloseCategoryModal}
           categoryItems={selectedCategoryItems}
@@ -1525,7 +1745,7 @@ const CreateEventScreen = ({ navigation, route }) => {
           setFilteredData={setFilteredData}
           setRemainingBudget={setRemainingBudget}
           updateCategories={updateCategories}
-          guestCount={guestCount} // Передаем guestCount
+          guestCount={guestCount}
         />
 
         <Modal
@@ -1770,8 +1990,7 @@ const CreateEventScreen = ({ navigation, route }) => {
                               Название: {selectedItem.item_name}
                             </Text>
                             <Text style={styles.detailsModalText}>
-                              Описание:{" "}
-                              {selectedItem.description || "Не указано"}
+                              Описание: {selectedItem.description || "Не указано"}
                             </Text>
                             <Text style={styles.detailsModalText}>
                               Стоимость: {selectedItem.cost} ₸
@@ -1817,235 +2036,235 @@ const CreateEventScreen = ({ navigation, route }) => {
         </Modal>
 
         <Modal
-          animationType="slide"
-          transparent={true}
-          visible={modalVisible}
-          onRequestClose={() => {
-            setModalVisible(false);
-            setWeddingName("");
-            setWeddingDate(new Date());
-            setShowDatePicker(false);
-          }}
+  animationType="slide"
+  transparent={true}
+  visible={modalVisible}
+  onRequestClose={() => {
+    setModalVisible(false);
+    setWeddingName("");
+    setWeddingDate(new Date());
+    setShowDatePicker(false);
+  }}
+>
+  <SafeAreaView style={styles.modalOverlay}>
+    <Animatable.View
+      style={styles.modalContent}
+      animation="zoomIn"
+      duration={300}
+    >
+      <ScrollView contentContainerStyle={styles.scrollViewContent}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>
+            Создание мероприятия "Свадьба"
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              setModalVisible(false);
+              setWeddingName("");
+              setWeddingDate(new Date());
+              setShowDatePicker(false);
+            }}
+          >
+            <Icon name="close" size={24} color={COLORS.textSecondary} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.inputContainer}>
+          <Icon
+            name="event-note"
+            size={20}
+            color={COLORS.textSecondary}
+            style={styles.inputIcon}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Имя свадьбы (например, Свадьба Ивана и Марии)"
+            value={weddingName}
+            onChangeText={setWeddingName}
+            placeholderTextColor={COLORS.textSecondary}
+          />
+        </View>
+        <TouchableOpacity
+          style={styles.dateButton}
+          onPress={() => setShowDatePicker(true)}
         >
-          <SafeAreaView style={styles.modalOverlay}>
-            <Animatable.View
-              style={styles.modalContent}
-              animation="zoomIn"
-              duration={300}
-            >
-              <ScrollView contentContainerStyle={styles.scrollViewContent}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>
-                    Создание мероприятия "Свадьба"
+          <Icon
+            name="calendar-today"
+            size={20}
+            color={COLORS.secondary}
+            style={styles.buttonIcon}
+          />
+          <Text style={styles.dateButtonText}>
+            {weddingDate.toLocaleDateString("ru-RU") || "Выберите дату свадьбы"}
+          </Text>
+        </TouchableOpacity>
+        {showDatePicker && (
+          <Calendar
+            style={styles.calendar}
+            current={weddingDate.toISOString().split("T")[0]}
+            onDayPress={onDateChange}
+            minDate={new Date().toISOString().split("T")[0]}
+            theme={{
+              selectedDayBackgroundColor: COLORS.primary,
+              todayTextColor: COLORS.accent,
+              arrowColor: COLORS.secondary,
+              textDayFontSize: 16,
+              textMonthFontSize: 18,
+              textDayHeaderFontSize: 14,
+            }}
+          />
+        )}
+        <Text style={styles.subtitle}>Выбранные элементы:</Text>
+        <View style={styles.itemsContainer}>
+          {filteredData.length > 0 ? (
+            Object.entries(
+              filteredData.reduce((acc, item) => {
+                const type = item.type;
+                if (!acc[type]) acc[type] = [];
+                acc[type].push(item);
+                return acc;
+              }, {})
+            )
+              .sort(
+                ([typeA], [typeB]) =>
+                  (typeOrder[typeA] || 11) - (typeOrder[typeB] || 11)
+              )
+              .map(([type, items]) => (
+                <View key={type}>
+                  <Text style={styles.categoryHeader}>
+                    {typesMapping.find((t) => t.type === type)?.label || type} (
+                    {items.length})
                   </Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setModalVisible(false);
-                      setWeddingName("");
-                      setWeddingDate(new Date());
-                      setShowDatePicker(false);
-                    }}
-                  >
-                    <Icon name="close" size={24} color={COLORS.textSecondary} />
-                  </TouchableOpacity>
+                  {items.map((item) => {
+                    const quantity = parseInt(
+                      quantities[`${item.type}-${item.id}`] || "1"
+                    );
+                    const cost =
+                      item.type === "restaurant" ? item.averageCost : item.cost;
+                    const effectiveQuantity =
+                      item.type === "restaurant"
+                        ? parseInt(guestCount, 10) || 1
+                        : quantity;
+                    const totalItemCost = cost * effectiveQuantity;
+                    return (
+                      <View
+                        key={`${item.type}-${item.id}`}
+                        style={styles.itemContainer}
+                      >
+                        <Icon
+                          name={
+                            item.type === "restaurant"
+                              ? "restaurant"
+                              : item.type === "clothing"
+                              ? "store"
+                              : item.type === "tamada"
+                              ? "mic"
+                              : item.type === "program"
+                              ? "event"
+                              : item.type === "traditionalGift"
+                              ? "card-giftcard"
+                              : item.type === "flowers"
+                              ? "local-florist"
+                              : item.type === "cake"
+                              ? "cake"
+                              : item.type === "alcohol"
+                              ? "local-drink"
+                              : item.type === "transport"
+                              ? "directions-car"
+                              : item.type === "jewelry"
+                              ? "diamond"
+                              : "shopping-bag"
+                          }
+                          size={18}
+                          color={COLORS.primary}
+                          style={styles.itemIcon}
+                        />
+                        <Text style={styles.itemText}>
+                          {(() => {
+                            switch (item.type) {
+                              case "restaurant":
+                                return `${item.name} (${item.cuisine}) - ${cost} тг x ${effectiveQuantity} гостей = ${totalItemCost} тг`;
+                              case "clothing":
+                                return `${item.itemName} (${item.storeName}) - ${cost} тг x ${effectiveQuantity} = ${totalItemCost} тг`;
+                              case "tamada":
+                                return `${item.name} - ${cost} тг x ${effectiveQuantity} = ${totalItemCost} тг`;
+                              case "program":
+                                return `${item.teamName} - ${cost} тг x ${effectiveQuantity} = ${totalItemCost} тг`;
+                              case "traditionalGift":
+                                return `${item.itemName} (${
+                                  item.salonName || "Не указано"
+                                }) - ${cost} тг x ${effectiveQuantity} = ${totalItemCost} тг`; // Fixed typo here
+                              case "flowers":
+                                return `${item.flowerName} (${item.flowerType}) - ${cost} тг x ${effectiveQuantity} = ${totalItemCost} тг`;
+                              case "cake":
+                                return `${item.name} (${item.cakeType}) - ${cost} тг x ${effectiveQuantity} = ${totalItemCost} тг`;
+                              case "alcohol":
+                                return `${item.alcoholName} (${item.category}) - ${cost} тг x ${effectiveQuantity} = ${totalItemCost} тг`;
+                              case "transport":
+                                return `${item.carName} (${item.brand}) - ${cost} тг x ${effectiveQuantity} = ${totalItemCost} тг`;
+                              case "goods":
+                                return `${item.item_name} - ${cost} тг x ${effectiveQuantity} = ${totalItemCost} тг`;
+                              case "jewelry":
+                                return `${item.itemName} (${item.storeName}) - ${cost} тг x ${effectiveQuantity} = ${totalItemCost} тг`;
+                              default:
+                                return "Неизвестный элемент";
+                            }
+                          })()}
+                        </Text>
+                      </View>
+                    );
+                  })}
                 </View>
-                <View style={styles.inputContainer}>
-                  <Icon
-                    name="event-note"
-                    size={20}
-                    color={COLORS.textSecondary}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Имя свадьбы (например, Свадьба Ивана и Марии)"
-                    value={weddingName}
-                    onChangeText={setWeddingName}
-                    placeholderTextColor={COLORS.textSecondary}
-                  />
-                </View>
-                <TouchableOpacity
-                  style={styles.dateButton}
-                  onPress={() => setShowDatePicker(true)}
-                >
-                  <Icon
-                    name="calendar-today"
-                    size={20}
-                    color={COLORS.secondary}
-                    style={styles.buttonIcon}
-                  />
-                  <Text style={styles.dateButtonText}>
-                    {weddingDate.toLocaleDateString("ru-RU") ||
-                      "Выберите дату свадьбы"}
-                  </Text>
-                </TouchableOpacity>
-                {showDatePicker && (
-                  <Calendar
-                    style={styles.calendar}
-                    current={weddingDate.toISOString().split("T")[0]}
-                    onDayPress={onDateChange}
-                    minDate={new Date().toISOString().split("T")[0]}
-                    theme={{
-                      selectedDayBackgroundColor: COLORS.primary,
-                      todayTextColor: COLORS.accent,
-                      arrowColor: COLORS.secondary,
-                      textDayFontSize: 16,
-                      textMonthFontSize: 18,
-                      textDayHeaderFontSize: 14,
-                    }}
-                  />
-                )}
-                <Text style={styles.subtitle}>Выбранные элементы:</Text>
-                <View style={styles.itemsContainer}>
-                  {filteredData.length > 0 ? (
-                    Object.entries(
-                      filteredData.reduce((acc, item) => {
-                        const type = item.type;
-                        if (!acc[type]) acc[type] = [];
-                        acc[type].push(item);
-                        return acc;
-                      }, {})
-                    )
-                      .sort(
-                        ([typeA], [typeB]) =>
-                          (typeOrder[typeA] || 11) - (typeOrder[typeB] || 11)
-                      )
-                      .map(([type, items]) => (
-                        <View key={type}>
-                          <Text style={styles.categoryHeader}>
-                            {typesMapping.find((t) => t.type === type)?.label ||
-                              type}{" "}
-                            ({items.length})
-                          </Text>
-                          {items.map((item) => {
-                            const quantity = parseInt(
-                              quantities[`${item.type}-${item.id}`] || "1"
-                            );
-                            const cost =
-                              item.type === "restaurant"
-                                ? item.averageCost
-                                : item.cost;
-                            const totalItemCost = cost * quantity;
-                            return (
-                              <View
-                                key={`${item.type}-${item.id}`}
-                                style={styles.itemContainer}
-                              >
-                                <Icon
-                                  name={
-                                    item.type === "restaurant"
-                                      ? "restaurant"
-                                      : item.type === "clothing"
-                                      ? "store"
-                                      : item.type === "tamada"
-                                      ? "mic"
-                                      : item.type === "program"
-                                      ? "event"
-                                      : item.type === "traditionalGift"
-                                      ? "card-giftcard"
-                                      : item.type === "flowers"
-                                      ? "local-florist"
-                                      : item.type === "cake"
-                                      ? "cake"
-                                      : item.type === "alcohol"
-                                      ? "local-drink"
-                                      : item.type === "transport"
-                                      ? "directions-car"
-                                      : item.type === "jewelry"
-                                      ? "diamond"
-                                      : "shopping-bag"
-                                  }
-                                  size={18}
-                                  color={COLORS.primary}
-                                  style={styles.itemIcon}
-                                />
-                                <Text style={styles.itemText}>
-                                  {(() => {
-                                    switch (item.type) {
-                                      case "restaurant":
-                                        return `${item.name} (${item.cuisine}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case "clothing":
-                                        return `${item.itemName} (${item.storeName}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case "tamada":
-                                        return `${item.name} - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case "program":
-                                        return `${item.teamName} - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case "traditionalGift":
-                                        return `${item.itemName} (${
-                                          item.salonName || "Не указано"
-                                        }) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case "flowers":
-                                        return `${item.flowerName} (${item.flowerType}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case "cake":
-                                        return `${item.name} (${item.cakeType}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case "alcohol":
-                                        return `${item.alcoholName} (${item.category}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case "transport":
-                                        return `${item.carName} (${item.brand}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case "goods":
-                                        return `${item.item_name} - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case "jewelry":
-                                        return `${item.itemName} (${item.storeName}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      default:
-                                        return "Неизвестный элемент";
-                                    }
-                                  })()}
-                                </Text>
-                              </View>
-                            );
-                          })}
-                        </View>
-                      ))
-                  ) : (
-                    <Text style={styles.noItems}>
-                      Выберите элементы для свадьбы
-                    </Text>
-                  )}
-                </View>
-                <View style={styles.totalContainer}>
-                  <Text style={styles.totalText}>
-                    Общая стоимость: {calculateTotalCost().toLocaleString("ru-RU")} тг
-                  </Text>
-                </View>
+              ))
+          ) : (
+            <Text style={styles.noItems}>Выберите элементы для свадьбы</Text>
+          )}
+        </View>
+        <View style={styles.totalContainer}>
+          <Text style={styles.totalText}>
+            Общая стоимость: {calculateTotalCost().toLocaleString("ru-RU")} тг
+          </Text>
+        </View>
 
-                <Text style={styles.totalText}>
-                  {filteredData.length > 0
-                    ? `Ваш бюджет (${parseFloat(budget).toLocaleString("ru-RU")} ₸)`
-                    : " "}
-                </Text>
+        <Text style={styles.totalText}>
+          {filteredData.length > 0
+            ? `Ваш бюджет (${parseFloat(budget).toLocaleString("ru-RU")} ₸)`
+            : " "}
+        </Text>
 
-                {filteredData.length > 0 && (
-                  <Text
-                    style={[styles.budgetInfo, remainingBudget < 0 && styles.budgetError]}
-                  >
-                    Остаток: {remainingBudget.toLocaleString("ru-RU")} ₸{" "}
-                    {remainingBudget < 0 && "(превышение)"}
-                  </Text>
-                )}
-                <Text></Text>
+        {filteredData.length > 0 && (
+          <Text
+            style={[styles.budgetInfo, remainingBudget < 0 && styles.budgetError]}
+          >
+            Остаток: {remainingBudget.toLocaleString("ru-RU")} ₸{" "}
+            {remainingBudget < 0 && "(превышение)"}
+          </Text>
+        )}
+        <Text></Text>
 
-                <View style={styles.modalButtonContainer}>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.confirmButton]}
-                    onPress={handleSubmit}
-                  >
-                    <Icon
-                      name="check"
-                      size={20}
-                      color={COLORS.white}
-                      style={styles.buttonIcon}
-                    />
-                    <Text style={styles.modalButtonText}>Создать свадьбу</Text>
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-            </Animatable.View>
-          </SafeAreaView>
-        </Modal>
+        <View style={styles.modalButtonContainer}>
+          <TouchableOpacity
+            style={[styles.modalButton, styles.confirmButton]}
+            onPress={handleSubmit}
+          >
+            <Icon
+              name="check"
+              size={20}
+              color={COLORS.white}
+              style={styles.buttonIcon}
+            />
+            <Text style={styles.modalButtonText}>Создать свадьбу</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </Animatable.View>
+  </SafeAreaView>
+</Modal>
       </LinearGradient>
     </>
   );
 };
+
+
 
 const styles = StyleSheet.create({
   categoryButton: {
