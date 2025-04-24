@@ -1,4 +1,3 @@
-
 import React, {
   useState,
   useRef,
@@ -56,6 +55,7 @@ const typeOrder = {
   cake: 8,
   alcohol: 9,
   goods: 10,
+  jewelry: 11,
 };
 
 const typesMapping = [
@@ -101,14 +101,12 @@ const categoryToTypeMap = {
   "Свадебный салон": "clothing",
   "Прокат авто": "transport",
   Торты: "cake",
-  Алкоголь: "alcohol",
   // 'Фото видео съемка':''
   // 'Оформление'
   // 'Продукты'
   // 'Прочее'
 };
 
-// Обратное отображение type в категорию
 const typeToCategoryMap = Object.fromEntries(
   Object.entries(categoryToTypeMap).map(([category, type]) => [type, category])
 );
@@ -158,7 +156,6 @@ const AddItemModal = ({
     [filteredItems]
   );
 
- 
   const filteredDataMemo = useMemo(() => {
     let result = filteredItems;
     if (searchQuery) {
@@ -181,8 +178,8 @@ const AddItemModal = ({
           item.portfolio,
           item.cakeType,
           item.flowerType,
-          item.material, // Добавляем для ювелирных изделий
-          item.type, // Добавляем для ювелирных изделий (например, "Кольцо")
+          item.material,
+          item.type,
         ]
           .filter(Boolean)
           .some((field) =>
@@ -220,7 +217,6 @@ const AddItemModal = ({
 
   const renderAddItem = useCallback(
     ({ item }) => {
-      console.log("renderAddItem ITEM= ", item);
       const count = filteredData.filter(
         (selectedItem) =>
           `${selectedItem.type}-${selectedItem.id}` ===
@@ -305,6 +301,7 @@ const AddItemModal = ({
       updateCategories,
     ]
   );
+
   const closeModal = () => {
     setSearchQuery("");
     setSelectedTypeFilter("all");
@@ -462,7 +459,7 @@ const AddItemModal = ({
   );
 };
 
-
+// Компонент для отображения выбранного элемента
 const SelectedItem = ({
   item,
   quantities,
@@ -477,32 +474,29 @@ const SelectedItem = ({
   onClose,
 }) => {
   const itemKey = `${item.type}-${item.id}`;
-  const [inputQuantity, setInputQuantity] = useState(quantities[itemKey] || "1"); // Локальное состояние для TextInput
+  const [inputQuantity, setInputQuantity] = useState(quantities[itemKey] || "1");
 
-  // Синхронизируем inputQuantity, если quantities изменилось извне
   useEffect(() => {
     setInputQuantity(quantities[itemKey] || "1");
   }, [quantities[itemKey]]);
 
   const cost = item.type === "restaurant" ? item.averageCost : item.cost;
-  const parsedQuantityForCalc = parseInt(inputQuantity, 10) || 1; // Для расчетов минимум 1
+  const parsedQuantityForCalc = parseInt(inputQuantity, 10) || 1;
   const totalCost = cost * parsedQuantityForCalc;
 
   const handleQuantityChange = (value) => {
-    const filteredValue = value.replace(/[^0-9]/g, ""); // Разрешаем только цифры
-    const newQuantity = filteredValue === "" ? "" : filteredValue; // Пустое значение разрешено в UI
-    setInputQuantity(newQuantity); // Обновляем локальное состояние
+    const filteredValue = value.replace(/[^0-9]/g, "");
+    const newQuantity = filteredValue === "" ? "" : filteredValue;
+    setInputQuantity(newQuantity);
   };
 
   const syncQuantity = (value) => {
-    const newQuantity = value === "" ? "1" : value; // Если пусто, устанавливаем "1"
+    const newQuantity = value === "" ? "1" : value;
     const quantityForCalc = parseInt(newQuantity, 10) || 1;
 
-    // Обновляем quantities
     setQuantities((prevQuantities) => {
       const updatedQuantities = { ...prevQuantities, [itemKey]: newQuantity };
 
-      // Обновляем filteredData
       const updatedFilteredData = filteredData.map((dataItem) => {
         if (`${dataItem.type}-${dataItem.id}` === itemKey) {
           return { ...dataItem, totalCost: cost * quantityForCalc };
@@ -511,7 +505,6 @@ const SelectedItem = ({
       });
       setFilteredData(updatedFilteredData);
 
-      // Обновляем remainingBudget
       const totalSpent = updatedFilteredData.reduce((sum, dataItem) => {
         const key = `${dataItem.type}-${dataItem.id}`;
         const itemQuantity = parseInt(updatedQuantities[key], 10) || 1;
@@ -600,7 +593,7 @@ const SelectedItem = ({
           </TouchableOpacity>
           <TextInput
             style={styles.quantityInput}
-            value={inputQuantity} // Привязываем к локальному состоянию
+            value={inputQuantity}
             onChangeText={handleQuantityChange}
             onBlur={handleBlur}
             keyboardType="numeric"
@@ -636,7 +629,6 @@ const SelectedItem = ({
   );
 };
 
-
 // Модальное окно для отображения элементов категории
 const CategoryItemsModal = ({
   visible,
@@ -656,9 +648,13 @@ const CategoryItemsModal = ({
   setRemainingBudget,
   updateCategories,
 }) => {
-  const selectedItems = filteredData.filter(
-    (item) => item.type === categoryType
-  );
+  const selectedItems = filteredData
+    .filter((item) => item.type === categoryType)
+    .sort((a, b) => (typeOrder[a.type] || 11) - (typeOrder[b.type] || 11));
+
+  const sortedCategoryItems = [...categoryItems].sort((a, b) => {
+    return (typeOrder[a.type] || 11) - (typeOrder[b.type] || 11);
+  });
 
   const renderCategoryItem = useCallback(
     ({ item }) => {
@@ -801,8 +797,8 @@ const CategoryItemsModal = ({
                 ))}
               </View>
             )}
-            {categoryItems.length > 0 ? (
-              categoryItems.map((item) => (
+            {sortedCategoryItems.length > 0 ? (
+              sortedCategoryItems.map((item) => (
                 <View key={`${item.type}-${item.id}`}>
                   {renderCategoryItem({ item })}
                 </View>
@@ -817,6 +813,7 @@ const CategoryItemsModal = ({
   );
 };
 
+// Главный экран
 const CreateEventScreen = ({ navigation, route }) => {
   const selectedCategories = route?.params?.selectedCategories || [];
 
@@ -824,11 +821,7 @@ const CreateEventScreen = ({ navigation, route }) => {
   const { token, user } = useSelector((state) => state.auth);
 
   const [categories, setCategories] = useState(selectedCategories);
-
-
   const [disabledCategories, setDisabledCategories] = useState([]);
-
-
   const [data, setData] = useState({
     restaurants: [],
     clothing: [],
@@ -872,40 +865,36 @@ const CreateEventScreen = ({ navigation, route }) => {
     });
   }, []);
 
-
-
-  const handleRemoveCategory = useCallback((category) => {
-    setDisabledCategories((prev) => {
-      if (prev.includes(category)) {
-        // Если категория уже заблокирована, разблокируем её
-        return prev.filter((cat) => cat !== category);
-      } else {
-        // Блокируем категорию
-        const type = categoryToTypeMap[category];
-        if (type) {
-          setFilteredData((prevData) =>
-            prevData.filter((item) => item.type !== type)
-          );
+  const handleRemoveCategory = useCallback(
+    (category) => {
+      setDisabledCategories((prev) => {
+        if (prev.includes(category)) {
+          return prev.filter((cat) => cat !== category);
+        } else {
+          const type = categoryToTypeMap[category];
+          if (type) {
+            setFilteredData((prevData) =>
+              prevData.filter((item) => item.type !== type)
+            );
+          }
+          return [...prev, category];
         }
-        return [...prev, category];
-      }
-    });
-  
-    // Пересчитываем бюджет после изменения filteredData
-    setFilteredData((prevData) => {
-      const totalSpent = prevData.reduce((sum, dataItem) => {
-        const key = `${dataItem.type}-${dataItem.id}`;
-        const itemQuantity = parseInt(quantities[key] || "1");
-        const itemCost =
-          dataItem.type === "restaurant" ? dataItem.averageCost : dataItem.cost;
-        return sum + itemCost * itemQuantity;
-      }, 0);
-      setRemainingBudget(parseFloat(budget) - totalSpent);
-      return prevData;
-    });
-  }, [quantities, budget]);
+      });
 
-
+      setFilteredData((prevData) => {
+        const totalSpent = prevData.reduce((sum, dataItem) => {
+          const key = `${dataItem.type}-${dataItem.id}`;
+          const itemQuantity = parseInt(quantities[key] || "1");
+          const itemCost =
+            dataItem.type === "restaurant" ? dataItem.averageCost : dataItem.cost;
+          return sum + itemCost * itemQuantity;
+        }, 0);
+        setRemainingBudget(parseFloat(budget) - totalSpent);
+        return prevData;
+      });
+    },
+    [quantities, budget]
+  );
 
   const fetchData = async () => {
     if (!token || !user?.id) return;
@@ -940,10 +929,6 @@ const CreateEventScreen = ({ navigation, route }) => {
         goods: userData[9] || [],
         jewelry: userData[10] || [],
       };
-      console.log(
-        "общая инфа по всем данным которые приходят-  ",
-        newData.jewelry
-      );
       setData(newData);
     } catch (error) {
       console.error("Ошибка загрузки данных:", error);
@@ -979,63 +964,46 @@ const CreateEventScreen = ({ navigation, route }) => {
     }
   };
 
-  
-  useEffect(() => {
-    if (
-      shouldFilter &&
-      budget &&
-      guestCount &&
-      !isNaN(parseFloat(budget)) &&
-      !isNaN(parseFloat(guestCount))
-    ) {
-      filterDataByBudget();
-      setShouldFilter(false);
-    }
-  }, [budget, guestCount, filterDataByBudget, shouldFilter, disabledCategories]);
-  
-
   const filterDataByBudget = useCallback(() => {
     if (!budget || isNaN(budget) || parseFloat(budget) <= 0) {
       alert("Пожалуйста, введите корректную сумму бюджета");
       return;
     }
-  
+
     if (!guestCount || isNaN(guestCount) || parseFloat(guestCount) <= 0) {
       alert("Пожалуйста, введите корректное количество гостей");
       return;
     }
-  
+
     const budgetValue = parseFloat(budget);
     const guests = parseFloat(guestCount);
     let remaining = budgetValue;
     const selectedItems = [];
-  
-    // Проверяем, есть ли категория "Кейтеринг" (ресторан) в списке категорий и не заблокирована ли она
+
     const hasRestaurantCategory =
       categories.includes("Ресторан") && !disabledCategories.includes("Ресторан");
-  
-    // Если категория "Кейтеринг" выбрана и не заблокирована, фильтруем рестораны
+
     if (hasRestaurantCategory) {
       const suitableRestaurants = data.restaurants.filter(
         (restaurant) => parseFloat(restaurant.capacity) >= guests
       );
-  
+
       if (suitableRestaurants.length === 0) {
         alert(
           "Нет ресторанов с достаточной вместимостью для указанного количества гостей"
         );
         return;
       }
-  
+
       const sortedRestaurants = suitableRestaurants
         .filter((r) => parseFloat(r.averageCost) <= remaining)
         .sort((a, b) => parseFloat(a.averageCost) - parseFloat(b.averageCost));
-  
+
       if (sortedRestaurants.length === 0) {
         alert("Нет ресторанов, подходящих под ваш бюджет");
         return;
       }
-  
+
       const selectedRestaurant =
         sortedRestaurants[Math.floor(sortedRestaurants.length / 2)];
       const restaurantCost = parseFloat(selectedRestaurant.averageCost);
@@ -1046,13 +1014,12 @@ const CreateEventScreen = ({ navigation, route }) => {
       });
       remaining -= restaurantCost;
     }
-  
-    // Определяем доступные типы на основе выбранных категорий, исключая заблокированные
+
     const allowedTypes = categories
-      .filter((category) => !disabledCategories.includes(category)) // Исключаем заблокированные категории
+      .filter((category) => !disabledCategories.includes(category))
       .map((category) => categoryToTypeMap[category])
       .filter((type) => type && type !== "restaurant" && type !== "none");
-  
+
     const types = [
       { key: "clothing", costField: "cost", type: "clothing" },
       { key: "tamada", costField: "cost", type: "tamada" },
@@ -1063,13 +1030,13 @@ const CreateEventScreen = ({ navigation, route }) => {
       { key: "alcohol", costField: "cost", type: "alcohol" },
       { key: "transport", costField: "cost", type: "transport" },
       { key: "jewelry", costField: "cost", type: "jewelry" },
-    ].filter(({ type }) => allowedTypes.includes(type)); // Фильтруем типы по разрешенным категориям
-  
+    ].filter(({ type }) => allowedTypes.includes(type));
+
     for (const { key, costField, type } of types) {
       const items = data[key]
         .filter((item) => parseFloat(item[costField]) <= remaining)
         .sort((a, b) => parseFloat(a[costField]) - parseFloat(b[costField]));
-  
+
       if (items.length > 0) {
         const maxItemsToSelect = Math.min(2, items.length);
         for (let i = 0; i < maxItemsToSelect; i++) {
@@ -1082,16 +1049,21 @@ const CreateEventScreen = ({ navigation, route }) => {
         }
       }
     }
-  
-    setFilteredData(selectedItems);
+
+    const sortedSelectedItems = [...selectedItems].sort((a, b) => {
+      return (typeOrder[a.type] || 11) - (typeOrder[b.type] || 11);
+    });
+
+    setFilteredData(sortedSelectedItems);
     setRemainingBudget(remaining);
     setQuantities(
-      selectedItems.reduce((acc, item) => {
+      sortedSelectedItems.reduce((acc, item) => {
         const itemKey = `${item.type}-${item.id}`;
         return { ...acc, [itemKey]: "1" };
       }, {})
     );
   }, [budget, guestCount, data, categories, disabledCategories]);
+
   useEffect(() => {
     if (
       shouldFilter &&
@@ -1149,7 +1121,9 @@ const CreateEventScreen = ({ navigation, route }) => {
         }, 0);
 
         setRemainingBudget(parseFloat(budget) - totalSpent);
-        return updatedData;
+        return updatedData.sort(
+          (a, b) => (typeOrder[a.type] || 11) - (typeOrder[b.type] || 11)
+        );
       });
 
       setCategoryModalVisible(false);
@@ -1181,7 +1155,9 @@ const CreateEventScreen = ({ navigation, route }) => {
         }, 0);
 
         setRemainingBudget(parseFloat(budget) - totalSpent);
-        return updatedData;
+        return updatedData.sort(
+          (a, b) => (typeOrder[a.type] || 11) - (typeOrder[b.type] || 11)
+        );
       });
     },
     [quantities, budget]
@@ -1289,6 +1265,12 @@ const CreateEventScreen = ({ navigation, route }) => {
     }, 0);
   };
 
+  const sortedCategories = [...categories].sort((a, b) => {
+    const typeA = categoryToTypeMap[a];
+    const typeB = categoryToTypeMap[b];
+    return (typeOrder[typeA] || 11) - (typeOrder[typeB] || 11);
+  });
+
   const renderCategory = (item) => {
     if (item === "Добавить") {
       return (
@@ -1315,9 +1297,9 @@ const CreateEventScreen = ({ navigation, route }) => {
         </View>
       );
     }
-  
+
     const isDisabled = disabledCategories.includes(item);
-  
+
     return (
       <View style={styles.categoryRow}>
         <TouchableOpacity
@@ -1352,16 +1334,18 @@ const CreateEventScreen = ({ navigation, route }) => {
                     ? "directions-car"
                     : item === "Фото-видео съёмка"
                     ? "camera-alt"
-                    : item === "Ведущие"
+                    : item === "Ведущий"
                     ? "mic"
-                    : item === "Турыбек Кабота"
+                    : item === "Традиционные подарки"
                     ? "card-giftcard"
-                    : item === "Свадебные салоны"
+                    : item === "Свадебный салон"
                     ? "store"
                     : item === "Алкоголь"
                     ? "local-drink"
                     : item === "Ювелирные изделия"
                     ? "diamond"
+                    : item === "Торты"
+                    ? "cake"
                     : "category"
                 }
                 size={20}
@@ -1384,27 +1368,20 @@ const CreateEventScreen = ({ navigation, route }) => {
 
   return (
     <>
-
       <LinearGradient
         colors={["#F1EBDD", "#897066"]}
         start={{ x: 0, y: 1 }}
         end={{ x: 0, y: 0 }}
         style={styles.splashContainer}
       >
+        <TouchableOpacity
+          style={{ marginTop: "15%", marginLeft: "2%" }}
+          onPress={() => navigation.goBack()}
+        >
+          <AntDesign name="left" size={24} color="black" />
+        </TouchableOpacity>
 
-
-
-<TouchableOpacity
-      style={{marginTop:'15%',marginLeft:'2%'}}
-      onPress={() => navigation.goBack()}
-    >
-      {/* <Icon name="chevron-back-outline" size={24} color={COLORS.white} /> */}
-      <AntDesign name="left" size={24} color="black" />
-    </TouchableOpacity>
-
-
-
-          <View style={styles.logoContainer}>
+        <View style={styles.logoContainer}>
           <Image
             source={require("../../assets/kazanRevert.png")}
             style={styles.potIcon}
@@ -1413,9 +1390,7 @@ const CreateEventScreen = ({ navigation, route }) => {
         </View>
 
         <View style={styles.headerContainer}>
-
-       
-
+        <View style={styles.categoryItem2}>{renderCategory("Добавить")}</View>
           <View style={styles.budgetContainer}>
             <TextInput
               style={styles.budgetInput}
@@ -1433,16 +1408,9 @@ const CreateEventScreen = ({ navigation, route }) => {
               keyboardType="numeric"
               placeholderTextColor="#FFF"
             />
-
-
-            <TouchableOpacity >
-
-
-            </TouchableOpacity>
+            <TouchableOpacity />
           </View>
         </View>
-
-      
 
         <View style={styles.listContainer}>
           {loading ? (
@@ -1454,35 +1422,29 @@ const CreateEventScreen = ({ navigation, route }) => {
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.categoryGrid}>
-                {categories.map((item, index) => (
+                {sortedCategories.map((item, index) => (
                   <View key={index} style={styles.categoryItem}>
                     {renderCategory(item)}
                   </View>
                 ))}
+                {/* <View style={styles.categoryItem}>{renderCategory("Добавить")}</View> */}
               </View>
               <View style={styles.bottomPadding} />
             </ScrollView>
           )}
         </View>
 
-      
-
         <View style={styles.bottomContainer}>
           <TouchableOpacity
             style={styles.nextButton}
             onPress={() => setModalVisible(true)}
           >
-        
             <Image
-            source={require("../../assets/next.png")}
-            style={styles.potIcon3}
-            resizeMode="contain"
-          />
-
+              source={require("../../assets/next.png")}
+              style={styles.potIcon3}
+              resizeMode="contain"
+            />
           </TouchableOpacity>
-          {/* <TouchableOpacity style={styles.nextButton} onPress={handleGoBack}>
-            <Text style={styles.nextButtonText}>Назад</Text>
-          </TouchableOpacity> */}
         </View>
 
         <AddItemModal
@@ -1766,6 +1728,26 @@ const CreateEventScreen = ({ navigation, route }) => {
                             </Text>
                           </>
                         );
+                      case "jewelry":
+                        return (
+                          <>
+                            <Text style={styles.detailsModalText}>
+                              Тип: Ювелирные изделия
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Магазин: {selectedItem.storeName}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Товар: {selectedItem.itemName}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Материал: {selectedItem.material}
+                            </Text>
+                            <Text style={styles.detailsModalText}>
+                              Стоимость: {selectedItem.cost} ₸
+                            </Text>
+                          </>
+                        );
                       default:
                         return (
                           <Text style={styles.detailsModalText}>
@@ -1783,180 +1765,6 @@ const CreateEventScreen = ({ navigation, route }) => {
             </Animatable.View>
           </SafeAreaView>
         </Modal>
-
-        {/* <Modal
-          animationType="slide"
-          transparent={true}
-          visible={modalVisible}
-          onRequestClose={() => {
-            setModalVisible(false);
-            setWeddingName('');
-            setWeddingDate(new Date());
-            setShowDatePicker(false);
-          }}
-        >
-          <SafeAreaView style={styles.modalOverlay}>
-            <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
-              <ScrollView contentContainerStyle={styles.scrollViewContent}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Создание мероприятия "Свадьба"</Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setModalVisible(false);
-                      setWeddingName('');
-                      setWeddingDate(new Date());
-                      setShowDatePicker(false);
-                    }}
-                  >
-                    <Icon name="close" size={24} color={COLORS.textSecondary} />
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.inputContainer}>
-                  <Icon name="event-note" size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Имя свадьбы (например, Свадьба Ивана и Марии)"
-                    value={weddingName}
-                    onChangeText={setWeddingName}
-                    placeholderTextColor={COLORS.textSecondary}
-                  />
-                </View>
-                <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
-                  <Icon name="calendar-today" size={20} color={COLORS.secondary} style={styles.buttonIcon} />
-                  <Text style={styles.dateButtonText}>
-                    {weddingDate.toLocaleDateString('ru-RU') || 'Выберите дату свадьбы'}
-                  </Text>
-                </TouchableOpacity>
-                {showDatePicker && (
-                  <Calendar
-                    style={styles.calendar}
-                    current={weddingDate.toISOString().split('T')[0]}
-                    onDayPress={onDateChange}
-                    minDate={new Date().toISOString().split('T')[0]}
-                    theme={{
-                      selectedDayBackgroundColor: COLORS.primary,
-                      todayTextColor: COLORS.accent,
-                      arrowColor: COLORS.secondary,
-                      textDayFontSize: 16,
-                      textMonthFontSize: 18,
-                      textDayHeaderFontSize: 14,
-                    }}
-                  />
-                )}
-                <Text style={styles.subtitle}>Выбранные элементы:</Text>
-                <View style={styles.itemsContainer}>
-                  {filteredData.length > 0 ? (
-                    Object.entries(
-                      filteredData.reduce((acc, item) => {
-                        const type = item.type;
-                        if (!acc[type]) acc[type] = [];
-                        acc[type].push(item);
-                        return acc;
-                      }, {})
-                    )
-                      .sort(([typeA], [typeB]) => (typeOrder[typeA] || 11) - (typeOrder[typeB] || 11))
-                      .map(([type, items]) => (
-                        <View key={type}>
-                          <Text style={styles.categoryHeader}>
-                            {typesMapping.find((t) => t.type === type)?.label || type} ({items.length})
-                          </Text>
-                          {items.map((item) => {
-                            const quantity = parseInt(quantities[`${item.type}-${item.id}`] || '1');
-                            const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
-                            const totalItemCost = cost * quantity;
-                            return (
-                              <View key={`${item.type}-${item.id}`} style={styles.itemContainer}>
-                                <Icon
-                                  name={
-                                    item.type === 'restaurant'
-                                      ? 'restaurant'
-                                      : item.type === 'clothing'
-                                      ? 'store'
-                                      : item.type === 'tamada'
-                                      ? 'mic'
-                                      : item.type === 'program'
-                                      ? 'event'
-                                      : item.type === 'traditionalGift'
-                                      ? 'card-giftcard'
-                                      : item.type === 'flowers'
-                                      ? 'local-florist'
-                                      : item.type === 'cake'
-                                      ? 'cake'
-                                      : item.type === 'alcohol'
-                                      ? 'local-drink'
-                                      : item.type === 'alcohol'
-                                      ? 'local-drink'
-                                      : item.type === 'transport'
-                                      ? 'directions-car'
-                                      : 'shopping-bag'
-                                  }
-                                  size={18}
-                                  color={COLORS.primary}
-                                  style={styles.itemIcon}
-                                />
-                                <Text style={styles.itemText}>
-                                  {(() => {
-                                    switch (item.type) {
-                                      case 'restaurant':
-                                        return `${item.name} (${item.cuisine}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case 'clothing':
-                                        return `${item.itemName} (${item.storeName}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case 'tamada':
-                                        return `${item.name} - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case 'program':
-                                        return `${item.teamName} - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case 'traditionalGift':
-                                        return `${item.itemName} (${item.salonName || 'Не указано'}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case 'flowers':
-                                        return `${item.flowerName} (${item.flowerType}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case 'cake':
-                                        return `${item.name} (${item.cakeType}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case 'alcohol':
-                                        return `${item.alcoholName} (${item.category}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case 'transport':
-                                        return `${item.carName} (${item.brand}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case 'goods':
-                                        return `${item.item_name} - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      default:
-                                        return 'Неизвестный элемент';
-                                    }
-                                  })()}
-                                </Text>
-                              </View>
-                            );
-                          })}
-                        </View>
-                      ))
-                  ) : (
-                    <Text style={styles.noItems}>Выберите элементы для свадьбы</Text>
-                  )}
-                </View>
-                <View style={styles.totalContainer}>
-                  <Icon name="attach-money" size={20} color={COLORS.accent} style={styles.totalIcon} />
-                  <Text style={styles.totalText}>Общая стоимость: {calculateTotalCost()} тг</Text>
-                </View>
-                <View style={styles.modalButtonContainer}>
-                  <TouchableOpacity style={[styles.modalButton, styles.confirmButton]} onPress={handleSubmit}>
-                    <Icon name="check" size={20} color={COLORS.white} style={styles.buttonIcon} />
-                    <Text style={styles.modalButtonText}>Создать свадьбу</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.cancelButton]}
-                    onPress={() => {
-                      setModalVisible(false);
-                      setWeddingName('');
-                      setWeddingDate(new Date());
-                      setShowDatePicker(false);
-                    }}
-                  >
-                    <Icon name="close" size={20} color={COLORS.white} style={styles.buttonIcon} />
-                    <Text style={styles.modalButtonText}>Закрыть</Text>
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-            </Animatable.View>
-          </SafeAreaView>
-        </Modal> */}
 
         <Modal
           animationType="slide"
@@ -2093,7 +1901,7 @@ const CreateEventScreen = ({ navigation, route }) => {
                                       ? "local-drink"
                                       : item.type === "transport"
                                       ? "directions-car"
-                                      : item.type === "jewelry" // Добавляем иконку для ювелирных изделий
+                                      : item.type === "jewelry"
                                       ? "diamond"
                                       : "shopping-bag"
                                   }
@@ -2126,7 +1934,7 @@ const CreateEventScreen = ({ navigation, route }) => {
                                         return `${item.carName} (${item.brand}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
                                       case "goods":
                                         return `${item.item_name} - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
-                                      case "jewelry": // Добавляем форматирование для ювелирных изделий
+                                      case "jewelry":
                                         return `${item.itemName} (${item.storeName}) - ${cost} тг x ${quantity} = ${totalItemCost} тг`;
                                       default:
                                         return "Неизвестный элемент";
@@ -2145,29 +1953,26 @@ const CreateEventScreen = ({ navigation, route }) => {
                   )}
                 </View>
                 <View style={styles.totalContainer}>
-                 
-                <Text 
-                style={styles.totalText}
-                >
-                    Общая стоимость: {calculateTotalCost().toLocaleString('ru-RU')} тг
+                  <Text style={styles.totalText}>
+                    Общая стоимость: {calculateTotalCost().toLocaleString("ru-RU")} тг
                   </Text>
-                  
                 </View>
 
                 <Text style={styles.totalText}>
                   {filteredData.length > 0
-                    ? `Ваш бюджет (${parseFloat(budget).toLocaleString('ru-RU')} ₸)`
-                    : ' '}
+                    ? `Ваш бюджет (${parseFloat(budget).toLocaleString("ru-RU")} ₸)`
+                    : " "}
                 </Text>
 
                 {filteredData.length > 0 && (
-                  <Text style={[styles.budgetInfo, remainingBudget < 0 && styles.budgetError]}>
-                    Остаток: {remainingBudget.toLocaleString('ru-RU')} ₸{' '}
-                    {remainingBudget < 0 && '(превышение)'}
+                  <Text
+                    style={[styles.budgetInfo, remainingBudget < 0 && styles.budgetError]}
+                  >
+                    Остаток: {remainingBudget.toLocaleString("ru-RU")} ₸{" "}
+                    {remainingBudget < 0 && "(превышение)"}
                   </Text>
                 )}
                 <Text></Text>
-                
 
                 <View style={styles.modalButtonContainer}>
                   <TouchableOpacity
@@ -2182,23 +1987,6 @@ const CreateEventScreen = ({ navigation, route }) => {
                     />
                     <Text style={styles.modalButtonText}>Создать свадьбу</Text>
                   </TouchableOpacity>
-                  {/* <TouchableOpacity
-                    style={[styles.modalButton, styles.cancelButton]}
-                    onPress={() => {
-                      setModalVisible(false);
-                      setWeddingName("");
-                      setWeddingDate(new Date());
-                      setShowDatePicker(false);
-                    }}
-                  >
-                    <Icon
-                      name="close"
-                      size={20}
-                      color={COLORS.white}
-                      style={styles.buttonIcon}
-                    />
-                    <Text style={styles.modalButtonText}>Закрыть</Text>
-                  </TouchableOpacity> */}
                 </View>
               </ScrollView>
             </Animatable.View>
@@ -2208,364 +1996,6 @@ const CreateEventScreen = ({ navigation, route }) => {
     </>
   );
 };
-
-// const styles = StyleSheet.create({
-//   splashContainer: { flex: 1 },
-//   headerContainer: {
-//     paddingHorizontal: 20,
-//     backgroundColor: "transparent",
-//     flexDirection: "row",
-//     justifyContent: "space-between",
-//     alignItems: "center",
-//     marginTop: "20%",
-//   },
-//   budgetContainer: { flexDirection: "row", alignItems: "center" },
-//   budgetInput: {
-//     backgroundColor: "rgba(255, 255, 255, 0.2)",
-//     color: "#FFF",
-//     paddingVertical: 8,
-//     paddingHorizontal: 15,
-//     borderRadius: 20,
-//     marginRight: 10,
-//     width: 120,
-//     fontSize: 16,
-//   },
-//   guestInput: {
-//     backgroundColor: "rgba(255, 255, 255, 0.2)",
-//     color: "#FFF",
-//     paddingVertical: 8,
-//     paddingHorizontal: 15,
-//     borderRadius: 20,
-//     width: 80,
-//     fontSize: 16,
-//   },
-//   logoContainer: { alignItems: "center", marginVertical: 20, marginTop:'5%' },
-//   potIcon: { width: 150, height: 150 },
-//   listContainer: { flex: 1, paddingHorizontal: 20 },
-//   scrollView: { flex: 1 },
-//   categoryGrid: {
-//     flexDirection: "column",
-//     alignItems: "center",
-//   },
-//   categoryItem: {
-//     width: "100%",
-//     padding: 5,
-//     alignItems: "center",
-//     justifyContent: "center",
-//   },
-//   categoryRow: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     width: "100%",
-//   },
-//   removeCategoryButton: {
-//     padding: 10,
-//     marginRight: 10,
-//   },
-//   categoryButton: {
-//     flex: 1,
-//     height: 50,
-//     borderRadius: 10,
-//     overflow: "hidden",
-//     shadowColor: COLORS.shadow,
-//     shadowOffset: { width: 0, height: 5 },
-//     shadowOpacity: 0.5,
-//     shadowRadius: 8,
-//     elevation: 5,
-//     marginVertical: 5,
-//   },
-//   categoryButtonGradient: {
-//     flex: 1,
-//     justifyContent: "center",
-//     alignItems: "center",
-//     borderWidth: 2,
-//     borderColor: "#5A4032",
-//     borderRadius: 10,
-//   },
-//   categoryText: {
-//     fontSize: 16,
-//     color: COLORS.white,
-//     fontWeight: "600",
-//     textAlign: "center",
-//     paddingHorizontal: 10,
-//   },
-//   bottomPadding: { height: 20 },
-//   bottomContainer: {
-//     paddingHorizontal: 20,
-//     paddingBottom: 20,
-//     backgroundColor: "transparent",
-//   },
-//   nextButton: {
-//     backgroundColor: COLORS.primary,
-//     paddingVertical: 15,
-//     borderRadius: 25,
-//     alignItems: "center",
-//     marginVertical: 5,
-//   },
-//   nextButtonText: { fontSize: 18, color: COLORS.white, fontWeight: "600" },
-//   modalOverlay: {
-//     flex: 1,
-//     backgroundColor: "rgba(0, 0, 0, 0.5)",
-//     justifyContent: "center",
-//     alignItems: "center",
-//   },
-//   addModalContainer: {
-//     backgroundColor: COLORS.card,
-//     borderRadius: 20,
-//     width: "90%",
-//     maxHeight: SCREEN_HEIGHT * 0.8,
-//     padding: 20,
-//     shadowColor: COLORS.shadow,
-//     shadowOffset: { width: 0, height: 5 },
-//     shadowOpacity: 0.3,
-//     shadowRadius: 10,
-//     elevation: 5,
-//     flex: 1,
-//   },
-//   addModalHeader: {
-//     flexDirection: "row",
-//     justifyContent: "space-between",
-//     alignItems: "center",
-//     marginBottom: 15,
-//   },
-//   addModalTitle: { fontSize: 20, fontWeight: "600", color: COLORS.textPrimary },
-//   addModalCloseIcon: { padding: 5 },
-//   addModalSearchContainer: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     backgroundColor: "#F7F7F7",
-//     borderRadius: 10,
-//     paddingHorizontal: 15,
-//     marginBottom: 15,
-//   },
-//   addModalSearchIcon: { marginRight: 10 },
-//   addModalSearchInput: {
-//     flex: 1,
-//     paddingVertical: 10,
-//     fontSize: 16,
-//     color: COLORS.textPrimary,
-//   },
-//   addModalClearIcon: { padding: 5 },
-//   addModalFilterScroll: { maxHeight: SCREEN_HEIGHT * 0.2, marginBottom: 15 },
-//   addModalFilterContainer: { paddingBottom: 10 },
-//   addModalFilterLabel: {
-//     fontSize: 16,
-//     fontWeight: "600",
-//     color: COLORS.textPrimary,
-//     marginBottom: 10,
-//   },
-//   addModalTypeFilterContainer: { marginBottom: 15 },
-//   addModalTypeButtons: { flexDirection: "row", flexWrap: "wrap" },
-//   addModalTypeButton: {
-//     backgroundColor: "#F7F7F7",
-//     paddingVertical: 8,
-//     paddingHorizontal: 15,
-//     borderRadius: 20,
-//     marginRight: 10,
-//     marginBottom: 10,
-//   },
-//   addModalTypeButtonActive: { backgroundColor: COLORS.primary },
-//   addModalTypeButtonText: { fontSize: 14, color: COLORS.textPrimary },
-//   addModalTypeButtonTextActive: { color: COLORS.white },
-//   addModalDistrictFilterContainer: { marginBottom: 15 },
-//   addModalDistrictButtons: { flexDirection: "row", flexWrap: "wrap" },
-//   addModalDistrictButton: {
-//     backgroundColor: "#F7F7F7",
-//     paddingVertical: 8,
-//     paddingHorizontal: 15,
-//     borderRadius: 20,
-//     marginRight: 10,
-//     marginBottom: 10,
-//   },
-//   addModalDistrictButtonActive: { backgroundColor: COLORS.primary },
-//   addModalDistrictButtonText: { fontSize: 14, color: COLORS.textPrimary },
-//   addModalDistrictButtonTextActive: { color: COLORS.white },
-//   addModalPriceFilterContainer: { marginBottom: 15 },
-//   addModalPriceButtons: { flexDirection: "row", flexWrap: "wrap" },
-//   addModalPriceButton: {
-//     backgroundColor: "#F7F7F7",
-//     paddingVertical: 8,
-//     paddingHorizontal: 15,
-//     borderRadius: 20,
-//     marginRight: 10,
-//     marginBottom: 10,
-//   },
-//   addModalPriceButtonActive: { backgroundColor: COLORS.primary },
-//   addModalPriceButtonText: { fontSize: 14, color: COLORS.textPrimary },
-//   addModalPriceButtonTextActive: { color: COLORS.white },
-//   addModalScrollView: { flex: 1, minHeight: 100 },
-//   addModalItemList: { paddingBottom: 20, flexGrow: 1 },
-//   addModalItemCard: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     backgroundColor: "#F7F7F7",
-//     borderRadius: 10,
-//     marginBottom: 10,
-//     padding: 10,
-//   },
-//   selectedItemCard: { backgroundColor: "#E6F0FA" },
-//   addModalItemContent: { flex: 1 },
-//   disabledItemContent: { opacity: 0.5 },
-//   addModalItemText: { fontSize: 14, color: COLORS.textPrimary },
-//   addModalItemCount: {
-//     fontSize: 12,
-//     color: COLORS.textSecondary,
-//     marginTop: 4,
-//   },
-//   addModalDetailsButton: {
-//     backgroundColor: COLORS.secondary,
-//     paddingVertical: 6,
-//     paddingHorizontal: 12,
-//     borderRadius: 8,
-//   },
-//   addModalDetailsButtonText: { fontSize: 12, color: COLORS.white },
-//   addModalEmptyText: { fontSize: 14, textAlign: "center", marginTop: 20 },
-//   selectedItemContainer: { marginBottom: 20 },
-//   quantityContainer: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     marginTop: 5,
-//   },
-//   quantityLabel: { fontSize: 12, color: COLORS.textSecondary, marginRight: 5 },
-//   quantityInput: {
-//     width: 50,
-//     padding: 5,
-//     borderWidth: 1,
-//     borderColor: COLORS.textSecondary,
-//     borderRadius: 5,
-//     fontSize: 12,
-//     color: COLORS.textPrimary,
-//     marginRight: 10,
-//   },
-//   totalCostText: { fontSize: 12, color: COLORS.primary, fontWeight: "600" },
-//   removeButton: {
-//     backgroundColor: COLORS.error,
-//     paddingVertical: 6,
-//     paddingHorizontal: 12,
-//     borderRadius: 8,
-//     marginRight: 10,
-//   },
-//   removeButtonText: { fontSize: 12, color: COLORS.white },
-//   modalContent: {
-//     backgroundColor: COLORS.card,
-//     borderRadius: 20,
-//     width: "90%",
-//     maxHeight: SCREEN_HEIGHT * 0.8,
-//     padding: 20,
-//     shadowColor: COLORS.shadow,
-//     shadowOffset: { width: 0, height: 5 },
-//     shadowOpacity: 0.3,
-//     shadowRadius: 10,
-//     elevation: 5,
-//   },
-//   scrollViewContent: { paddingBottom: 20 },
-//   modalHeader: {
-//     flexDirection: "row",
-//     justifyContent: "space-between",
-//     alignItems: "center",
-//     marginBottom: 20,
-//   },
-//   modalTitle: { fontSize: 20, fontWeight: "600", color: COLORS.textPrimary },
-//   inputContainer: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     backgroundColor: "#F7F7F7",
-//     borderRadius: 10,
-//     paddingHorizontal: 15,
-//     marginBottom: 15,
-//   },
-//   inputIcon: { marginRight: 10 },
-//   input: {
-//     flex: 1,
-//     paddingVertical: 10,
-//     fontSize: 16,
-//     color: COLORS.textPrimary,
-//   },
-//   dateButton: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     backgroundColor: "#F7F7F7",
-//     paddingVertical: 12,
-//     paddingHorizontal: 15,
-//     borderRadius: 10,
-//     marginBottom: 15,
-//   },
-//   buttonIcon: { marginRight: 10 },
-//   dateButtonText: { fontSize: 16, color: COLORS.textPrimary },
-//   calendar: { marginBottom: 15, borderRadius: 10, elevation: 2 },
-//   subtitle: {
-//     fontSize: 18,
-//     fontWeight: "600",
-//     color: COLORS.textPrimary,
-//     marginBottom: 10,
-//   },
-//   itemsContainer: { marginBottom: 20 },
-//   categoryHeader: {
-//     fontSize: 16,
-//     fontWeight: "500",
-//     color: COLORS.textPrimary,
-//     marginVertical: 10,
-//   },
-//   itemContainer: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     marginBottom: 8,
-//   },
-//   itemIcon: { marginRight: 10 },
-//   itemText: { fontSize: 14, color: COLORS.textPrimary, flex: 1 },
-//   noItems: { fontSize: 14, color: COLORS.textSecondary, textAlign: "center" },
-//   totalContainer: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     marginBottom: 20,
-//   },
-//   totalIcon: { marginRight: 10 },
-//   totalText: { fontSize: 16, fontWeight: "600", color: COLORS.textPrimary },
-//   modalButtonContainer: {
-//     flexDirection: "row",
-//     justifyContent: "space-between",
-//   },
-//   modalButton: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     paddingVertical: 12,
-//     paddingHorizontal: 20,
-//     borderRadius: 10,
-//   },
-//   confirmButton: { backgroundColor: COLORS.primary },
-//   cancelButton: { backgroundColor: COLORS.error },
-//   modalButtonText: { fontSize: 16, color: COLORS.white, fontWeight: "600" },
-//   detailsModalContainer: {
-//     backgroundColor: COLORS.card,
-//     borderRadius: 20,
-//     width: "90%",
-//     padding: 20,
-//     shadowColor: COLORS.shadow,
-//     shadowOffset: { width: 0, height: 5 },
-//     shadowOpacity: 0.3,
-//     shadowRadius: 10,
-//     elevation: 5,
-//   },
-//   detailsModalHeader: {
-//     flexDirection: "row",
-//     justifyContent: "space-between",
-//     alignItems: "center",
-//     marginBottom: 15,
-//   },
-//   detailsModalTitle: {
-//     fontSize: 20,
-//     fontWeight: "600",
-//     color: COLORS.textPrimary,
-//   },
-//   detailsModalCloseIcon: { padding: 5 },
-//   detailsModalContent: { marginBottom: 20 },
-//   detailsModalText: {
-//     fontSize: 16,
-//     color: COLORS.textPrimary,
-//     marginBottom: 8,
-//   },
-// });
-
 
 const styles = StyleSheet.create({
   categoryButton: {
@@ -2581,7 +2011,7 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
   disabledCategoryButton: {
-    opacity: 0.5, // Затемнение для заблокированных категорий
+    opacity: 0.5,
   },
   splashContainer: { flex: 1 },
   headerContainer: {
@@ -2590,7 +2020,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    // marginTop: "20%",
   },
   budgetContainer: { flexDirection: "row", alignItems: "center" },
   budgetInput: {
@@ -2623,7 +2052,14 @@ const styles = StyleSheet.create({
   },
   categoryItem: {
     width: "100%",
-    padding: 2, // Уменьшаем отступы, чтобы категории были ближе друг к другу
+    padding: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  categoryItem2: {
+    width: "35%",
+    // padding: 2,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -2631,23 +2067,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     width: "100%",
-    marginVertical: 2, // Уменьшаем вертикальный отступ
+    marginVertical: 2,
   },
   removeCategoryButton: {
     padding: 10,
     marginRight: 10,
-  },
-  categoryButton: {
-    flex: 1,
-    height: 50,
-    borderRadius: 10,
-    overflow: "hidden",
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 5,
-    marginVertical: 2, // Уменьшаем отступ
   },
   categoryButtonGradient: {
     flex: 1,
@@ -2672,16 +2096,8 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     borderRadius: 25,
-    overflow: "hidden", // Для градиента
+    overflow: "hidden",
     marginVertical: 5,
-
-    alignItems: "center",
-  },
-  nextButtonGradient: {
-    paddingVertical: 15,
-
-
-
     alignItems: "center",
   },
   nextButtonText: {
@@ -2689,7 +2105,6 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: "600",
   },
-  // Остальные стили остаются без изменений
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -2710,286 +2125,319 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   addModalHeader: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 15,
-      },
-      addModalTitle: { fontSize: 20, fontWeight: "600", color: COLORS.textPrimary },
-      addModalCloseIcon: { padding: 5 },
-      addModalSearchContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#F7F7F7",
-        borderRadius: 10,
-        paddingHorizontal: 15,
-        marginBottom: 15,
-      },
-      addModalSearchIcon: { marginRight: 10 },
-      addModalSearchInput: {
-        flex: 1,
-        paddingVertical: 10,
-        fontSize: 16,
-        color: COLORS.textPrimary,
-      },
-      addModalClearIcon: { padding: 5 },
-      addModalFilterScroll: { maxHeight: SCREEN_HEIGHT * 0.2, marginBottom: 15 },
-      addModalFilterContainer: { paddingBottom: 10 },
-      addModalFilterLabel: {
-        fontSize: 16,
-        fontWeight: "600",
-        color: COLORS.textPrimary,
-        marginBottom: 10,
-      },
-      addModalTypeFilterContainer: { marginBottom: 15 },
-      addModalTypeButtons: { flexDirection: "row", flexWrap: "wrap" },
-      addModalTypeButton: {
-        backgroundColor: "#F7F7F7",
-        paddingVertical: 8,
-        paddingHorizontal: 15,
-        borderRadius: 20,
-        marginRight: 10,
-        marginBottom: 10,
-      },
-      addModalTypeButtonActive: { backgroundColor: COLORS.primary },
-      addModalTypeButtonText: { fontSize: 14, color: COLORS.textPrimary },
-      addModalTypeButtonTextActive: { color: COLORS.white },
-      addModalDistrictFilterContainer: { marginBottom: 15 },
-      addModalDistrictButtons: { flexDirection: "row", flexWrap: "wrap" },
-      addModalDistrictButton: {
-        backgroundColor: "#F7F7F7",
-        paddingVertical: 8,
-        paddingHorizontal: 15,
-        borderRadius: 20,
-        marginRight: 10,
-        marginBottom: 10,
-      },
-      addModalDistrictButtonActive: { backgroundColor: COLORS.primary },
-      addModalDistrictButtonText: { fontSize: 14, color: COLORS.textPrimary },
-      addModalDistrictButtonTextActive: { color: COLORS.white },
-      addModalPriceFilterContainer: { marginBottom: 15 },
-      addModalPriceButtons: { flexDirection: "row", flexWrap: "wrap" },
-      addModalPriceButton: {
-        backgroundColor: "#F7F7F7",
-        paddingVertical: 8,
-        paddingHorizontal: 15,
-        borderRadius: 20,
-        marginRight: 10,
-        marginBottom: 10,
-      },
-      addModalPriceButtonActive: { backgroundColor: COLORS.primary },
-      addModalPriceButtonText: { fontSize: 14, color: COLORS.textPrimary },
-      addModalPriceButtonTextActive: { color: COLORS.white },
-      addModalScrollView: { flex: 1, minHeight: 100 },
-      addModalItemList: { paddingBottom: 20, flexGrow: 1 },
-      addModalItemCard: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#F7F7F7",
-        borderRadius: 10,
-        marginBottom: 10,
-        padding: 10,
-      },
-      selectedItemCard: { backgroundColor: "#E6F0FA" },
-      addModalItemContent: { flex: 1 },
-      disabledItemContent: { opacity: 0.5 },
-      addModalItemText: { fontSize: 14, color: COLORS.textPrimary },
-      addModalItemCount: {
-        fontSize: 12,
-        color: COLORS.textSecondary,
-        marginTop: 4,
-      },
-      addModalDetailsButton: {
-        backgroundColor: COLORS.secondary,
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 8,
-      },
-      addModalDetailsButtonText: { fontSize: 12, color: COLORS.white },
-      addModalEmptyText: { fontSize: 14, textAlign: "center", marginTop: 20 },
-      selectedItemContainer: { marginBottom: 20 },
-      quantityContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginTop: 5,
-      },
-      quantityLabel: { fontSize: 12, color: COLORS.textSecondary, marginRight: 5 },
-      quantityInput: {
-        width: 40,
-        height: 30,
-        borderWidth: 1,
-        borderColor: '#666',
-        borderRadius: 5,
-        fontSize: 12,
-        color: '#333',
-        textAlign: 'center',
-        backgroundColor: '#FFF',
-        padding: 0, // Убираем внутренние отступы для компактности
-      },
-      quantityContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 5,
-        gap: 10, // Расстояние между элементами
-      },
-      quantityLabel: {
-        fontSize: 12,
-        color: '#666',
-      },
-      totalCostText: {
-        fontSize: 12,
-        color: COLORS.primary,
-        fontWeight: '600',
-      },
-      removeButton: {
-        backgroundColor: '#FF4444', // Красный цвет для кнопки "Убрать"
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 8,
-        marginLeft: 10,
-      },
-      removeButtonText: {
-        fontSize: 12,
-        color: '#FFF',
-      },
-      addModalDetailsButton: {
-        backgroundColor: '#4682B4', // Голубой цвет для кнопки "Подробнее"
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 8,
-        marginLeft: 10,
-      },
-      addModalDetailsButtonText: {
-        fontSize: 12,
-        color: '#FFF',
-      },
-      totalCostText: { fontSize: 12, color: COLORS.primary, fontWeight: "600" },
-      removeButton: {
-        backgroundColor: COLORS.error,
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 8,
-        marginRight: 10,
-      },
-      removeButtonText: { fontSize: 12, color: COLORS.white },
-      modalContent: {
-        backgroundColor: COLORS.card,
-        borderRadius: 20,
-        width: "90%",
-        maxHeight: SCREEN_HEIGHT * 0.8,
-        padding: 20,
-        shadowColor: COLORS.shadow,
-        shadowOffset: { width: 0, height: 5 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        elevation: 5,
-      },
-      scrollViewContent: { paddingBottom: 20 },
-      modalHeader: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 20,
-      },
-      modalTitle: { fontSize: 20, fontWeight: "600", color: COLORS.textPrimary },
-      inputContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#F7F7F7",
-        borderRadius: 10,
-        paddingHorizontal: 15,
-        marginBottom: 15,
-      },
-      inputIcon: { marginRight: 10 },
-      input: {
-        flex: 1,
-        paddingVertical: 10,
-        fontSize: 16,
-        color: COLORS.textPrimary,
-      },
-      dateButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#F7F7F7",
-        paddingVertical: 12,
-        paddingHorizontal: 15,
-        borderRadius: 10,
-        marginBottom: 15,
-      },
-      buttonIcon: { marginRight: 10 },
-      dateButtonText: { fontSize: 16, color: COLORS.textPrimary },
-      calendar: { marginBottom: 15, borderRadius: 10, elevation: 2 },
-      subtitle: {
-        fontSize: 18,
-        fontWeight: "600",
-        color: COLORS.textPrimary,
-        marginBottom: 10,
-      },
-      itemsContainer: { marginBottom: 20 },
-      categoryHeader: {
-        fontSize: 16,
-        fontWeight: "500",
-        color: COLORS.textPrimary,
-        marginVertical: 10,
-      },
-      itemContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 8,
-      },
-      itemIcon: { marginRight: 10 },
-      itemText: { fontSize: 14, color: COLORS.textPrimary, flex: 1 },
-      noItems: { fontSize: 14, color: COLORS.textSecondary, textAlign: "center" },
-      totalContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 20,
-      },
-      totalIcon: { marginRight: 10 },
-      totalText: { fontSize: 16, fontWeight: "600", color: COLORS.textPrimary },
-      modalButtonContainer: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-      },
-      modalButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderRadius: 10,
-      },
-      confirmButton: { backgroundColor: COLORS.primary },
-      cancelButton: { backgroundColor: COLORS.error },
-      modalButtonText: { fontSize: 16, color: COLORS.white, fontWeight: "600" },
-      detailsModalContainer: {
-        backgroundColor: COLORS.card,
-        borderRadius: 20,
-        width: "90%",
-        padding: 20,
-        shadowColor: COLORS.shadow,
-        shadowOffset: { width: 0, height: 5 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        elevation: 5,
-      },
-      detailsModalHeader: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 15,
-      },
-      detailsModalTitle: {
-        fontSize: 20,
-        fontWeight: "600",
-        color: COLORS.textPrimary,
-      },
-      detailsModalCloseIcon: { padding: 5 },
-      detailsModalContent: { marginBottom: 20 },
-      detailsModalText: {
-        fontSize: 16,
-        color: COLORS.textPrimary,
-        marginBottom: 8,
-      },
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  addModalTitle: { fontSize: 20, fontWeight: "600", color: COLORS.textPrimary },
+  addModalCloseIcon: { padding: 5 },
+  addModalSearchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7F7F7",
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    marginBottom: 15,
+  },
+  addModalSearchIcon: { marginRight: 10 },
+  addModalSearchInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
+  addModalClearIcon: { padding: 5 },
+  addModalFilterScroll: { maxHeight: SCREEN_HEIGHT * 0.2, marginBottom: 15 },
+  addModalFilterContainer: { paddingBottom: 10 },
+  addModalFilterLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+    marginBottom: 10,
+  },
+  addModalTypeFilterContainer: { marginBottom: 15 },
+  addModalTypeButtons: { flexDirection: "row", flexWrap: "wrap" },
+  addModalTypeButton: {
+    backgroundColor: "#F7F7F7",
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    marginRight: 10,
+    marginBottom: 10,
+  },
+  addModalTypeButtonActive: { backgroundColor: COLORS.primary },
+  addModalTypeButtonText: { fontSize: 14, color: COLORS.textPrimary },
+  addModalTypeButtonTextActive: { color: COLORS.white },
+  addModalDistrictFilterContainer: { marginBottom: 15 },
+  addModalDistrictButtons: { flexDirection: "row", flexWrap: "wrap" },
+  addModalDistrictButton: {
+    backgroundColor: "#F7F7F7",
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    marginRight: 10,
+    marginBottom: 10,
+  },
+  addModalDistrictButtonActive: { backgroundColor: COLORS.primary },
+  addModalDistrictButtonText: { fontSize: 14, color: COLORS.textPrimary },
+  addModalDistrictButtonTextActive: { color: COLORS.white },
+  addModalPriceFilterContainer: { marginBottom: 15 },
+  addModalPriceButtons: { flexDirection: "row", flexWrap: "wrap" },
+  addModalPriceButton: {
+    backgroundColor: "#F7F7F7",
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    marginRight: 10,
+    marginBottom: 10,
+  },
+  addModalPriceButtonActive: { backgroundColor: COLORS.primary },
+  addModalPriceButtonText: { fontSize: 14, color: COLORS.textPrimary },
+  addModalPriceButtonTextActive: { color: COLORS.white },
+  addModalScrollView: { flex: 1, minHeight: 100 },
+  addModalItemList: { paddingBottom: 20, flexGrow: 1 },
+  addModalItemCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7F7F7",
+    borderRadius: 10,
+    marginBottom: 10,
+    padding: 10,
+  },
+  selectedItemCard: { backgroundColor: "#E6F0FA" },
+  addModalItemContent: { flex:1,
+    paddingRight: 10,
+  },
+  disabledItemContent: { opacity: 0.5 },
+  addModalItemText: {
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    flex: 1,
+  },
+  addModalItemCount: {
+    fontSize: 14,
+    color: COLORS.primary,
+    marginLeft: 10,
+  },
+  addModalDetailsButton: {
+    backgroundColor: COLORS.secondary,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+  },
+  addModalDetailsButtonText: {
+    fontSize: 14,
+    color: COLORS.white,
+    fontWeight: "600",
+  },
+  addModalEmptyText: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    textAlign: "center",
+    marginTop: 20,
+  },
+  selectedItemContainer: {
+    marginBottom: 20,
+  },
+  categoryHeader: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+    marginBottom: 10,
+  },
+  quantityContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+  },
+  quantityLabel: {
+    fontSize: 14,
+    color: COLORS.textPrimary,
+    marginRight: 10,
+  },
+  quantityInput: {
+    width: 50,
+    height: 30,
+    borderWidth: 1,
+    borderColor: COLORS.textSecondary,
+    borderRadius: 5,
+    textAlign: "center",
+    marginHorizontal: 10,
+    fontSize: 14,
+    color: COLORS.textPrimary,
+  },
+  totalCostText: {
+    fontSize: 14,
+    color: COLORS.textPrimary,
+    marginLeft: 10,
+  },
+  removeButton: {
+    backgroundColor: COLORS.error,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    marginRight: 10,
+  },
+  removeButtonText: {
+    fontSize: 14,
+    color: COLORS.white,
+    fontWeight: "600",
+  },
+  detailsModalContainer: {
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    width: "90%",
+    padding: 20,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  detailsModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  detailsModalTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+  },
+  detailsModalCloseIcon: { padding: 5 },
+  detailsModalContent: {
+    marginBottom: 20,
+  },
+  detailsModalText: {
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    marginBottom: 10,
+  },
+  modalContent: {
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    width: "90%",
+    maxHeight: SCREEN_HEIGHT * 0.8,
+    padding: 20,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  scrollViewContent: {
+    paddingBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7F7F7",
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    marginBottom: 15,
+  },
+  inputIcon: { marginRight: 10 },
+  input: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
+  dateButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7F7F7",
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+  },
+  buttonIcon: { marginRight: 10 },
+  dateButtonText: {
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
+  calendar: {
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  subtitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+    marginBottom: 10,
+  },
+  itemsContainer: {
+    marginBottom: 20,
+  },
+  itemContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7F7F7",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+  },
+  itemIcon: { marginRight: 10 },
+  itemText: {
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    flex: 1,
+  },
+  noItems: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    textAlign: "center",
+  },
+  totalContainer: {
+    marginBottom: 10,
+  },
+  totalText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+  },
+  budgetInfo: {
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
+  budgetError: {
+    color: COLORS.error,
+  },
+  modalButtonContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 20,
+  },
+  modalButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    marginHorizontal: 10,
+  },
+  confirmButton: {
+    backgroundColor: COLORS.primary,
+  },
+  modalButtonText: {
+    fontSize: 16,
+    color: COLORS.white,
+    fontWeight: "600",
+    marginLeft: 5,
+  },
 });
 
 export default CreateEventScreen;
