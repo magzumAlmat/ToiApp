@@ -1132,7 +1132,7 @@ const CreateEventScreen = ({ navigation, route }) => {
     [quantities, budget, guestCount, combinedData]
   );
 
-  
+
   const fetchData = async () => {
     if (!token || !user?.id) return;
     setLoading(true);
@@ -2282,7 +2282,7 @@ const styles = StyleSheet.create({
   disabledCategoryButton: {
     opacity: 0.5,
   },
-  splashContainer: { flex: 1 },
+  splashContainer: { flex: 1,marginBottom:'20%' },
   headerContainer: {
     paddingHorizontal: 20,
     backgroundColor: "transparent",
@@ -2310,7 +2310,7 @@ const styles = StyleSheet.create({
     width: 80,
     fontSize: 16,
   },
-  logoContainer: { alignItems: "center", marginVertical: 20, marginTop: "5%" },
+  logoContainer: { alignItems: "center", marginVertical: 20, marginTop: "0%" },
   potIcon: { width: 150, height: 150 },
   potIcon3: { width: 70, height: 70 },
   listContainer: { flex: 1, paddingHorizontal: 20 },
