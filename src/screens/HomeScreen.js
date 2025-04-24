@@ -472,6 +472,7 @@ const SelectedItem = ({
   setDetailsModalVisible,
   setSelectedItem,
   onClose,
+  guestCount, // Новый проп для проверки
 }) => {
   const itemKey = `${item.type}-${item.id}`;
   const [inputQuantity, setInputQuantity] = useState(quantities[itemKey] || "1");
@@ -484,15 +485,23 @@ const SelectedItem = ({
   const parsedQuantityForCalc = parseInt(inputQuantity, 10) || 1;
   const totalCost = cost * parsedQuantityForCalc;
 
-  const handleQuantityChange = (value) => {
-    const filteredValue = value.replace(/[^0-9]/g, "");
-    const newQuantity = filteredValue === "" ? "" : filteredValue;
-    setInputQuantity(newQuantity);
-  };
-
   const syncQuantity = (value) => {
-    const newQuantity = value === "" ? "1" : value;
-    const quantityForCalc = parseInt(newQuantity, 10) || 1;
+    let newQuantity = value === "" ? "1" : value;
+    let quantityForCalc = parseInt(newQuantity, 10) || 1;
+
+    // Проверка capacity для ресторанов
+    if (item.type === "restaurant" && guestCount) {
+      const totalGuests = quantityForCalc * parseInt(guestCount, 10);
+      if (totalGuests > item.capacity) {
+        quantityForCalc = Math.floor(item.capacity / parseInt(guestCount, 10));
+        newQuantity = quantityForCalc.toString();
+        alert(
+          `Вместимость ресторана (${item.capacity}) превышена. Максимальное количество: ${quantityForCalc}.`
+        );
+      }
+    }
+
+    setInputQuantity(newQuantity);
 
     setQuantities((prevQuantities) => {
       const updatedQuantities = { ...prevQuantities, [itemKey]: newQuantity };
@@ -518,10 +527,15 @@ const SelectedItem = ({
     });
   };
 
+  const handleQuantityChange = (value) => {
+    const filteredValue = value.replace(/[^0-9]/g, "");
+    const newQuantity = filteredValue === "" ? "" : filteredValue;
+    setInputQuantity(newQuantity);
+  };
+
   const incrementQuantity = () => {
     const currentQuantity = parseInt(inputQuantity, 10) || 1;
     const newQuantity = (currentQuantity + 1).toString();
-    setInputQuantity(newQuantity);
     syncQuantity(newQuantity);
   };
 
@@ -529,7 +543,6 @@ const SelectedItem = ({
     const currentQuantity = parseInt(inputQuantity, 10) || 1;
     if (currentQuantity > 1) {
       const newQuantity = (currentQuantity - 1).toString();
-      setInputQuantity(newQuantity);
       syncQuantity(newQuantity);
     }
   };
@@ -647,6 +660,7 @@ const CategoryItemsModal = ({
   setFilteredData,
   setRemainingBudget,
   updateCategories,
+  guestCount, // Новый проп
 }) => {
   const selectedItems = filteredData
     .filter((item) => item.type === categoryType)
@@ -714,6 +728,16 @@ const CategoryItemsModal = ({
             ]}
             onPress={() => {
               if (!isSelected) {
+                // Проверка capacity перед добавлением
+                if (item.type === "restaurant" && guestCount) {
+                  const totalGuests = parseInt(guestCount, 10);
+                  if (totalGuests > item.capacity) {
+                    alert(
+                      `Этот ресторан не может вместить ${totalGuests} гостей. Максимальная вместимость: ${item.capacity}.`
+                    );
+                    return;
+                  }
+                }
                 handleAddItem(item);
                 const category = typeToCategoryMap[item.type];
                 if (category) {
@@ -748,6 +772,7 @@ const CategoryItemsModal = ({
       onClose,
       selectedItems,
       updateCategories,
+      guestCount, // Добавляем в зависимости
     ]
   );
 
@@ -793,6 +818,7 @@ const CategoryItemsModal = ({
                     setDetailsModalVisible={setDetailsModalVisible}
                     setSelectedItem={setSelectedItem}
                     onClose={onClose}
+                    guestCount={guestCount} // Передаем guestCount
                   />
                 ))}
               </View>
@@ -1082,6 +1108,17 @@ const CreateEventScreen = ({ navigation, route }) => {
       const itemKey = `${item.type}-${item.id}`;
       const cost = item.type === "restaurant" ? item.averageCost : item.cost;
 
+      // Проверка capacity для ресторанов
+      if (item.type === "restaurant" && guestCount) {
+        const totalGuests = parseInt(guestCount, 10);
+        if (totalGuests > item.capacity) {
+          alert(
+            `Этот ресторан не может вместить ${totalGuests} гостей. Максимальная вместимость: ${item.capacity}.`
+          );
+          return;
+        }
+      }
+
       setFilteredData((prev) => {
         const existingItemIndex = prev.findIndex(
           (i) => `${i.type}-${i.id}` === itemKey
@@ -1093,6 +1130,18 @@ const CreateEventScreen = ({ navigation, route }) => {
           const currentQuantity =
             quantities[itemKey] === "" ? "1" : quantities[itemKey] || "1";
           newQuantity = (parseInt(currentQuantity) + 1).toString();
+
+          // Дополнительная проверка capacity при увеличении количества
+          if (item.type === "restaurant" && guestCount) {
+            const totalGuests = parseInt(newQuantity, 10) * parseInt(guestCount, 10);
+            if (totalGuests > item.capacity) {
+              alert(
+                `Вместимость ресторана (${item.capacity}) превышена. Максимальное количество: ${Math.floor(item.capacity / parseInt(guestCount, 10))}.`
+              );
+              return prev; // Не добавляем, если превышена вместимость
+            }
+          }
+
           updatedData = [...prev];
           updatedData[existingItemIndex] = {
             ...updatedData[existingItemIndex],
@@ -1128,7 +1177,7 @@ const CreateEventScreen = ({ navigation, route }) => {
 
       setCategoryModalVisible(false);
     },
-    [quantities, budget, setCategoryModalVisible]
+    [quantities, budget, guestCount, setCategoryModalVisible]
   );
 
   const handleRemoveItem = useCallback(
@@ -1459,7 +1508,7 @@ const CreateEventScreen = ({ navigation, route }) => {
           updateCategories={updateCategories}
         />
 
-        <CategoryItemsModal
+<CategoryItemsModal
           visible={categoryModalVisible}
           onClose={handleCloseCategoryModal}
           categoryItems={selectedCategoryItems}
@@ -1476,6 +1525,7 @@ const CreateEventScreen = ({ navigation, route }) => {
           setFilteredData={setFilteredData}
           setRemainingBudget={setRemainingBudget}
           updateCategories={updateCategories}
+          guestCount={guestCount} // Передаем guestCount
         />
 
         <Modal
