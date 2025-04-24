@@ -7,7 +7,7 @@ import {
   Text,
   TextInput,
   SafeAreaView,
-  ScrollView,
+  ScrollView,ImageBackground
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -41,16 +41,18 @@ const BeforeHomeScreen = ({ navigation, route }) => {
     'Шоу программа',
     'Свадебный салон',
     'Прокат авто',
-    // 'Фото видео съемка',
-    // 'Оформление',
+  
     'Традиционные подарки',
     'Ювелирные изделия',
-    // 'Продукты',
+  
     'Торты',
     'Алкоголь',
     'Торты',
-    // 'Прочее',
-    // 'Добавить',
+      'Продукты',
+      'Фото видео съемка',
+    'Оформление',
+    'Прочее',
+    'Добавить',
   ];
 
   // Инициализируем состояние activeCategories на основе переданных категорий
@@ -219,13 +221,19 @@ const BeforeHomeScreen = ({ navigation, route }) => {
             </Text>
           </View>
         )} */}
+
+         <Image
+                source={require('../../assets/footer.png')}
+                style={styles.topPatternContainer}
+                imageStyle={styles.topPatternImage}
+              />
       </LinearGradient>
 
   );
 };
 
 const styles = StyleSheet.create({
-  splashContainer: { flex: 1 },
+  splashContainer: { flex: 1 ,position: "relative",},
   headerContainer: {
     paddingHorizontal: 20,
     backgroundColor: 'transparent',
@@ -265,7 +273,7 @@ const styles = StyleSheet.create({
   },
   logoContainer: { alignItems: 'center', marginVertical: 20 },
   potIcon: { width: 150, height: 150 },
-  potIcon3: { width: 70, height: 70 },
+  potIcon3: { width: 120, height: 120,zIndex:2, },
   listContainer: { flex: 1, paddingHorizontal: 20 },
   scrollView: { flex: 1 },
   categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
@@ -301,7 +309,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   bottomPadding: { height: 20 },
-  bottomContainer: { paddingHorizontal: 20, paddingBottom: 20 },
+  bottomContainer: { paddingHorizontal: 20, paddingBottom: 20,zIndex:3 },
   nextButton: {
 
     paddingVertical: 15,
@@ -323,6 +331,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FFF',
   },
+
+
+
+  topPatternContainer: {
+    position: 'absolute',
+    top: 0,
+    width: '100%',
+    height: '20%',
+    zIndex: 1,
+    marginTop: '180%',
+  },
+  topPatternImage: {
+    width: '100%',
+    height: '100%',
+   
+  },
+
+  
 });
 
 export default BeforeHomeScreen;
