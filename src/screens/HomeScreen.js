@@ -825,6 +825,10 @@ const CreateEventScreen = ({ navigation, route }) => {
 
   const [categories, setCategories] = useState(selectedCategories);
 
+
+  const [disabledCategories, setDisabledCategories] = useState([]);
+
+
   const [data, setData] = useState({
     restaurants: [],
     clothing: [],
@@ -868,20 +872,40 @@ const CreateEventScreen = ({ navigation, route }) => {
     });
   }, []);
 
+
+
   const handleRemoveCategory = useCallback((category) => {
-    setCategories((prevCategories) => {
-      const updatedCategories = prevCategories.filter(
-        (cat) => cat !== category
-      );
-      const type = categoryToTypeMap[category];
-      if (type) {
-        setFilteredData((prevData) =>
-          prevData.filter((item) => item.type !== type)
-        );
+    setDisabledCategories((prev) => {
+      if (prev.includes(category)) {
+        // Если категория уже заблокирована, разблокируем её
+        return prev.filter((cat) => cat !== category);
+      } else {
+        // Блокируем категорию
+        const type = categoryToTypeMap[category];
+        if (type) {
+          setFilteredData((prevData) =>
+            prevData.filter((item) => item.type !== type)
+          );
+        }
+        return [...prev, category];
       }
-      return updatedCategories;
     });
-  }, []);
+  
+    // Пересчитываем бюджет после изменения filteredData
+    setFilteredData((prevData) => {
+      const totalSpent = prevData.reduce((sum, dataItem) => {
+        const key = `${dataItem.type}-${dataItem.id}`;
+        const itemQuantity = parseInt(quantities[key] || "1");
+        const itemCost =
+          dataItem.type === "restaurant" ? dataItem.averageCost : dataItem.cost;
+        return sum + itemCost * itemQuantity;
+      }, 0);
+      setRemainingBudget(parseFloat(budget) - totalSpent);
+      return prevData;
+    });
+  }, [quantities, budget]);
+
+
 
   const fetchData = async () => {
     if (!token || !user?.id) return;
@@ -956,48 +980,62 @@ const CreateEventScreen = ({ navigation, route }) => {
   };
 
   
+  useEffect(() => {
+    if (
+      shouldFilter &&
+      budget &&
+      guestCount &&
+      !isNaN(parseFloat(budget)) &&
+      !isNaN(parseFloat(guestCount))
+    ) {
+      filterDataByBudget();
+      setShouldFilter(false);
+    }
+  }, [budget, guestCount, filterDataByBudget, shouldFilter, disabledCategories]);
+  
 
   const filterDataByBudget = useCallback(() => {
     if (!budget || isNaN(budget) || parseFloat(budget) <= 0) {
       alert("Пожалуйста, введите корректную сумму бюджета");
       return;
     }
-
+  
     if (!guestCount || isNaN(guestCount) || parseFloat(guestCount) <= 0) {
       alert("Пожалуйста, введите корректное количество гостей");
       return;
     }
-
+  
     const budgetValue = parseFloat(budget);
     const guests = parseFloat(guestCount);
     let remaining = budgetValue;
     const selectedItems = [];
-
-    // Проверяем, есть ли категория "Кейтеринг" (ресторан) в списке категорий
-    const hasRestaurantCategory = categories.includes("Ресторан");
-
-    // Если категория "Кейтеринг" выбрана, фильтруем рестораны
+  
+    // Проверяем, есть ли категория "Кейтеринг" (ресторан) в списке категорий и не заблокирована ли она
+    const hasRestaurantCategory =
+      categories.includes("Ресторан") && !disabledCategories.includes("Ресторан");
+  
+    // Если категория "Кейтеринг" выбрана и не заблокирована, фильтруем рестораны
     if (hasRestaurantCategory) {
       const suitableRestaurants = data.restaurants.filter(
         (restaurant) => parseFloat(restaurant.capacity) >= guests
       );
-
+  
       if (suitableRestaurants.length === 0) {
         alert(
           "Нет ресторанов с достаточной вместимостью для указанного количества гостей"
         );
         return;
       }
-
+  
       const sortedRestaurants = suitableRestaurants
         .filter((r) => parseFloat(r.averageCost) <= remaining)
         .sort((a, b) => parseFloat(a.averageCost) - parseFloat(b.averageCost));
-
+  
       if (sortedRestaurants.length === 0) {
         alert("Нет ресторанов, подходящих под ваш бюджет");
         return;
       }
-
+  
       const selectedRestaurant =
         sortedRestaurants[Math.floor(sortedRestaurants.length / 2)];
       const restaurantCost = parseFloat(selectedRestaurant.averageCost);
@@ -1008,12 +1046,13 @@ const CreateEventScreen = ({ navigation, route }) => {
       });
       remaining -= restaurantCost;
     }
-
-    // Определяем доступные типы на основе выбранных категорий
+  
+    // Определяем доступные типы на основе выбранных категорий, исключая заблокированные
     const allowedTypes = categories
+      .filter((category) => !disabledCategories.includes(category)) // Исключаем заблокированные категории
       .map((category) => categoryToTypeMap[category])
-      .filter((type) => type && type !== "restaurant" && type !== "none"); // Исключаем рестораны (уже обработаны) и неподдерживаемые типы
-
+      .filter((type) => type && type !== "restaurant" && type !== "none");
+  
     const types = [
       { key: "clothing", costField: "cost", type: "clothing" },
       { key: "tamada", costField: "cost", type: "tamada" },
@@ -1025,12 +1064,12 @@ const CreateEventScreen = ({ navigation, route }) => {
       { key: "transport", costField: "cost", type: "transport" },
       { key: "jewelry", costField: "cost", type: "jewelry" },
     ].filter(({ type }) => allowedTypes.includes(type)); // Фильтруем типы по разрешенным категориям
-
+  
     for (const { key, costField, type } of types) {
       const items = data[key]
         .filter((item) => parseFloat(item[costField]) <= remaining)
         .sort((a, b) => parseFloat(a[costField]) - parseFloat(b[costField]));
-
+  
       if (items.length > 0) {
         const maxItemsToSelect = Math.min(2, items.length);
         for (let i = 0; i < maxItemsToSelect; i++) {
@@ -1043,7 +1082,7 @@ const CreateEventScreen = ({ navigation, route }) => {
         }
       }
     }
-
+  
     setFilteredData(selectedItems);
     setRemainingBudget(remaining);
     setQuantities(
@@ -1052,8 +1091,7 @@ const CreateEventScreen = ({ navigation, route }) => {
         return { ...acc, [itemKey]: "1" };
       }, {})
     );
-  }, [budget, guestCount, data, categories]); // Добавляем categories в зависимости
-
+  }, [budget, guestCount, data, categories, disabledCategories]);
   useEffect(() => {
     if (
       shouldFilter &&
@@ -1277,17 +1315,29 @@ const CreateEventScreen = ({ navigation, route }) => {
         </View>
       );
     }
+  
+    const isDisabled = disabledCategories.includes(item);
+  
     return (
       <View style={styles.categoryRow}>
         <TouchableOpacity
           style={styles.removeCategoryButton}
           onPress={() => handleRemoveCategory(item)}
         >
-          <Icon name="remove-circle" size={20} color={COLORS.error} />
+          <Icon
+            name={isDisabled ? "add-circle" : "remove-circle"}
+            size={20}
+            color={isDisabled ? COLORS.primary : COLORS.error}
+          />
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.categoryButton}
-          onPress={() => handleCategoryPress(item)}
+          style={[styles.categoryButton, isDisabled && styles.disabledCategoryButton]}
+          onPress={() => {
+            if (!isDisabled) {
+              handleCategoryPress(item);
+            }
+          }}
+          disabled={isDisabled}
         >
           <LinearGradient
             colors={[COLORS.buttonGradientStart, COLORS.buttonGradientEnd]}
@@ -2518,6 +2568,21 @@ const CreateEventScreen = ({ navigation, route }) => {
 
 
 const styles = StyleSheet.create({
+  categoryButton: {
+    flex: 1,
+    height: 50,
+    borderRadius: 10,
+    overflow: "hidden",
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 5,
+    marginVertical: 2,
+  },
+  disabledCategoryButton: {
+    opacity: 0.5, // Затемнение для заблокированных категорий
+  },
   splashContainer: { flex: 1 },
   headerContainer: {
     paddingHorizontal: 20,
