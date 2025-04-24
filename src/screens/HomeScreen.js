@@ -462,6 +462,181 @@ const AddItemModal = ({
   );
 };
 
+
+const SelectedItem = ({
+  item,
+  quantities,
+  setQuantities,
+  filteredData,
+  setFilteredData,
+  budget,
+  setRemainingBudget,
+  handleRemoveItem,
+  setDetailsModalVisible,
+  setSelectedItem,
+  onClose,
+}) => {
+  const itemKey = `${item.type}-${item.id}`;
+  const [inputQuantity, setInputQuantity] = useState(quantities[itemKey] || "1"); // Локальное состояние для TextInput
+
+  // Синхронизируем inputQuantity, если quantities изменилось извне
+  useEffect(() => {
+    setInputQuantity(quantities[itemKey] || "1");
+  }, [quantities[itemKey]]);
+
+  const cost = item.type === "restaurant" ? item.averageCost : item.cost;
+  const parsedQuantityForCalc = parseInt(inputQuantity, 10) || 1; // Для расчетов минимум 1
+  const totalCost = cost * parsedQuantityForCalc;
+
+  const handleQuantityChange = (value) => {
+    const filteredValue = value.replace(/[^0-9]/g, ""); // Разрешаем только цифры
+    const newQuantity = filteredValue === "" ? "" : filteredValue; // Пустое значение разрешено в UI
+    setInputQuantity(newQuantity); // Обновляем локальное состояние
+  };
+
+  const syncQuantity = (value) => {
+    const newQuantity = value === "" ? "1" : value; // Если пусто, устанавливаем "1"
+    const quantityForCalc = parseInt(newQuantity, 10) || 1;
+
+    // Обновляем quantities
+    setQuantities((prevQuantities) => {
+      const updatedQuantities = { ...prevQuantities, [itemKey]: newQuantity };
+
+      // Обновляем filteredData
+      const updatedFilteredData = filteredData.map((dataItem) => {
+        if (`${dataItem.type}-${dataItem.id}` === itemKey) {
+          return { ...dataItem, totalCost: cost * quantityForCalc };
+        }
+        return dataItem;
+      });
+      setFilteredData(updatedFilteredData);
+
+      // Обновляем remainingBudget
+      const totalSpent = updatedFilteredData.reduce((sum, dataItem) => {
+        const key = `${dataItem.type}-${dataItem.id}`;
+        const itemQuantity = parseInt(updatedQuantities[key], 10) || 1;
+        const itemCost =
+          dataItem.type === "restaurant" ? dataItem.averageCost : dataItem.cost;
+        return sum + itemCost * itemQuantity;
+      }, 0);
+      setRemainingBudget(parseFloat(budget) - totalSpent);
+
+      return updatedQuantities;
+    });
+  };
+
+  const incrementQuantity = () => {
+    const currentQuantity = parseInt(inputQuantity, 10) || 1;
+    const newQuantity = (currentQuantity + 1).toString();
+    setInputQuantity(newQuantity);
+    syncQuantity(newQuantity);
+  };
+
+  const decrementQuantity = () => {
+    const currentQuantity = parseInt(inputQuantity, 10) || 1;
+    if (currentQuantity > 1) {
+      const newQuantity = (currentQuantity - 1).toString();
+      setInputQuantity(newQuantity);
+      syncQuantity(newQuantity);
+    }
+  };
+
+  const handleBlur = () => {
+    if (inputQuantity === "" || !inputQuantity) {
+      setInputQuantity("1");
+      syncQuantity("1");
+    } else {
+      syncQuantity(inputQuantity);
+    }
+  };
+
+  let title;
+  switch (item.type) {
+    case "restaurant":
+      title = `${item.name} (${cost} ₸)`;
+      break;
+    case "clothing":
+      title = `${item.storeName} - ${item.itemName} (${cost} ₸)`;
+      break;
+    case "flowers":
+      title = `${item.salonName} - ${item.flowerName} (${cost} ₸)`;
+      break;
+    case "cake":
+      title = `${item.name} (${cost} ₸)`;
+      break;
+    case "alcohol":
+      title = `${item.salonName} - ${item.alcoholName} (${cost} ₸)`;
+      break;
+    case "program":
+      title = `${item.teamName} (${cost} ₸)`;
+      break;
+    case "tamada":
+      title = `${item.name} (${cost} ₸)`;
+      break;
+    case "traditionalGift":
+      title = `${item.salonName} - ${item.itemName} (${cost} ₸)`;
+      break;
+    case "transport":
+      title = `${item.salonName} - ${item.carName} (${cost} ₸)`;
+      break;
+    case "goods":
+      title = `${item.item_name} (${cost} ₸)`;
+      break;
+    case "jewelry":
+      title = `${item.storeName} - ${item.itemName} (${cost} ₸)`;
+      break;
+    default:
+      title = "Неизвестный элемент";
+  }
+
+  return (
+    <View style={[styles.addModalItemCard, styles.selectedItemCard]}>
+      <View style={styles.addModalItemContent}>
+        <Text style={styles.addModalItemText}>Выбрано: {title}</Text>
+        <View style={styles.quantityContainer}>
+          <Text style={styles.quantityLabel}>Количество:</Text>
+          <TouchableOpacity onPress={decrementQuantity}>
+            <Icon name="remove" size={20} color={COLORS.primary} />
+          </TouchableOpacity>
+          <TextInput
+            style={styles.quantityInput}
+            value={inputQuantity} // Привязываем к локальному состоянию
+            onChangeText={handleQuantityChange}
+            onBlur={handleBlur}
+            keyboardType="numeric"
+            placeholder="1"
+            placeholderTextColor="#666"
+            textAlign="center"
+          />
+          <TouchableOpacity onPress={incrementQuantity}>
+            <Icon name="add" size={20} color={COLORS.primary} />
+          </TouchableOpacity>
+          <Text style={styles.totalCostText}>
+            Итого: {totalCost.toLocaleString()} ₸
+          </Text>
+        </View>
+      </View>
+      <TouchableOpacity
+        style={styles.removeButton}
+        onPress={() => handleRemoveItem(item)}
+      >
+        <Text style={styles.removeButtonText}>Убрать</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.addModalDetailsButton}
+        onPress={() => {
+          setSelectedItem(item);
+          setDetailsModalVisible(true);
+          onClose();
+        }}
+      >
+        <Text style={styles.addModalDetailsButtonText}>Подробнее</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+
 // Модальное окно для отображения элементов категории
 const CategoryItemsModal = ({
   visible,
@@ -580,164 +755,6 @@ const CategoryItemsModal = ({
     ]
   );
 
-  
-  const renderSelectedItem = useCallback(
-    (item) => {
-      const itemKey = `${item.type}-${item.id}`;
-      const quantity = quantities[itemKey] || "1";
-      const cost = item.type === "restaurant" ? item.averageCost : item.cost;
-      const parsedQuantityForCalc =
-        quantity === "" ? 1 : parseInt(quantity) || 1;
-      const totalCost = cost * parsedQuantityForCalc;
-
-      const handleQuantityChange = (value) => {
-        const filteredValue = value.replace(/[^0-9]/g, "");
-        const updatedQuantities = { ...quantities, [itemKey]: filteredValue };
-        setQuantities(updatedQuantities);
-
-        const quantityForCalc =
-          filteredValue === "" ? 1 : parseInt(filteredValue) || 1;
-        const updatedFilteredData = filteredData.map((dataItem) => {
-          if (`${dataItem.type}-${dataItem.id}` === itemKey) {
-            return { ...dataItem, totalCost: cost * quantityForCalc };
-          }
-          return dataItem;
-        });
-        setFilteredData(updatedFilteredData);
-
-        const totalSpent = updatedFilteredData.reduce((sum, dataItem) => {
-          const key = `${dataItem.type}-${dataItem.id}`;
-          const itemQuantity =
-            updatedQuantities[key] === ""
-              ? 1
-              : parseInt(updatedQuantities[key] || "1");
-          const itemCost =
-            dataItem.type === "restaurant"
-              ? dataItem.averageCost
-              : dataItem.cost;
-          return sum + itemCost * itemQuantity;
-        }, 0);
-        setRemainingBudget(parseFloat(budget) - totalSpent);
-      };
-
-      const handleBlur = () => {
-        if (quantities[itemKey] === "") {
-          const updatedQuantities = { ...quantities, [itemKey]: "1" };
-          setQuantities(updatedQuantities);
-
-          const updatedFilteredData = filteredData.map((dataItem) => {
-            if (`${dataItem.type}-${dataItem.id}` === itemKey) {
-              return { ...dataItem, totalCost: cost * 1 };
-            }
-            return dataItem;
-          });
-          setFilteredData(updatedFilteredData);
-
-          const totalSpent = updatedFilteredData.reduce((sum, dataItem) => {
-            const key = `${dataItem.type}-${dataItem.id}`;
-            const itemQuantity =
-              updatedQuantities[key] === ""
-                ? 1
-                : parseInt(updatedQuantities[key] || "1");
-            const itemCost =
-              dataItem.type === "restaurant"
-                ? dataItem.averageCost
-                : dataItem.cost;
-            return sum + itemCost * itemQuantity;
-          }, 0);
-          setRemainingBudget(parseFloat(budget) - totalSpent);
-        }
-      };
-
-      let title;
-      switch (item.type) {
-        case "restaurant":
-          title = `${item.name} (${cost} ₸)`;
-          break;
-        case "clothing":
-          title = `${item.storeName} - ${item.itemName} (${cost} ₸)`;
-          break;
-        case "flowers":
-          title = `${item.salonName} - ${item.flowerName} (${cost} ₸)`;
-          break;
-        case "cake":
-          title = `${item.name} (${cost} ₸)`;
-          break;
-        case "alcohol":
-          title = `${item.salonName} - ${item.alcoholName} (${cost} ₸)`;
-          break;
-        case "program":
-          title = `${item.teamName} (${cost} ₸)`;
-          break;
-        case "tamada":
-          title = `${item.name} (${cost} ₸)`;
-          break;
-        case "traditionalGift":
-          title = `${item.salonName} - ${item.itemName} (${cost} ₸)`;
-          break;
-        case "transport":
-          title = `${item.salonName} - ${item.carName} (${cost} ₸)`;
-          break;
-        case "goods":
-          title = `${item.item_name} (${cost} ₸)`;
-          break;
-        case "jewelry":
-          title = `${item.storeName} - ${item.itemName} (${cost} ₸)`;
-          break;
-        default:
-          title = "Неизвестный элемент";
-      }
-
-      return (
-        <View style={[styles.addModalItemCard, styles.selectedItemCard]}>
-          <View style={styles.addModalItemContent}>
-            <Text style={styles.addModalItemText}>Выбрано: {title}</Text>
-            <View style={styles.quantityContainer}>
-              <Text style={styles.quantityLabel}>Количество:</Text>
-              <TextInput
-                style={styles.quantityInput}
-                value={quantity}
-                onChangeText={handleQuantityChange}
-                onBlur={handleBlur}
-                keyboardType="numeric"
-                placeholder="1"
-              />
-              <Text style={styles.totalCostText}>Итого: {totalCost} ₸</Text>
-            </View>
-          </View>
-          <TouchableOpacity
-            style={styles.removeButton}
-            onPress={() => handleRemoveItem(item)}
-          >
-            <Text style={styles.removeButtonText}>Убрать</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.addModalDetailsButton}
-            onPress={() => {
-              setSelectedItem(item);
-              setDetailsModalVisible(true);
-              onClose();
-            }}
-          >
-            <Text style={styles.addModalDetailsButtonText}>Подробнее</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    },
-    [
-      quantities,
-      filteredData,
-      budget,
-      handleRemoveItem,
-      setDetailsModalVisible,
-      setSelectedItem,
-      onClose,
-      setQuantities,
-      setFilteredData,
-      setRemainingBudget,
-    ]
-  );
-
   const handleClose = () => {
     onClose();
   };
@@ -767,9 +784,20 @@ const CategoryItemsModal = ({
                   Выбранные элементы ({selectedItems.length}):
                 </Text>
                 {selectedItems.map((item) => (
-                  <View key={`${item.type}-${item.id}`}>
-                    {renderSelectedItem(item)}
-                  </View>
+                  <SelectedItem
+                    key={`${item.type}-${item.id}`}
+                    item={item}
+                    quantities={quantities}
+                    setQuantities={setQuantities}
+                    filteredData={filteredData}
+                    setFilteredData={setFilteredData}
+                    budget={budget}
+                    setRemainingBudget={setRemainingBudget}
+                    handleRemoveItem={handleRemoveItem}
+                    setDetailsModalVisible={setDetailsModalVisible}
+                    setSelectedItem={setSelectedItem}
+                    onClose={onClose}
+                  />
                 ))}
               </View>
             )}
@@ -1402,9 +1430,9 @@ const CreateEventScreen = ({ navigation, route }) => {
           />
 
           </TouchableOpacity>
-          <TouchableOpacity style={styles.nextButton} onPress={handleGoBack}>
+          {/* <TouchableOpacity style={styles.nextButton} onPress={handleGoBack}>
             <Text style={styles.nextButtonText}>Назад</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         <AddItemModal
@@ -2722,14 +2750,53 @@ const styles = StyleSheet.create({
       },
       quantityLabel: { fontSize: 12, color: COLORS.textSecondary, marginRight: 5 },
       quantityInput: {
-        width: 50,
-        padding: 5,
+        width: 40,
+        height: 30,
         borderWidth: 1,
-        borderColor: COLORS.textSecondary,
+        borderColor: '#666',
         borderRadius: 5,
         fontSize: 12,
-        color: COLORS.textPrimary,
-        marginRight: 10,
+        color: '#333',
+        textAlign: 'center',
+        backgroundColor: '#FFF',
+        padding: 0, // Убираем внутренние отступы для компактности
+      },
+      quantityContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 5,
+        gap: 10, // Расстояние между элементами
+      },
+      quantityLabel: {
+        fontSize: 12,
+        color: '#666',
+      },
+      totalCostText: {
+        fontSize: 12,
+        color: COLORS.primary,
+        fontWeight: '600',
+      },
+      removeButton: {
+        backgroundColor: '#FF4444', // Красный цвет для кнопки "Убрать"
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        marginLeft: 10,
+      },
+      removeButtonText: {
+        fontSize: 12,
+        color: '#FFF',
+      },
+      addModalDetailsButton: {
+        backgroundColor: '#4682B4', // Голубой цвет для кнопки "Подробнее"
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        marginLeft: 10,
+      },
+      addModalDetailsButtonText: {
+        fontSize: 12,
+        color: '#FFF',
       },
       totalCostText: { fontSize: 12, color: COLORS.primary, fontWeight: "600" },
       removeButton: {
