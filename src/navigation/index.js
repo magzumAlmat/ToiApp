@@ -1186,7 +1186,7 @@ const CreateEventScreen = ({ navigation }) => {
       />
       <View style={styles.bottomContainer}>
         <TouchableOpacity
-          onPress={() => navigation.navigate('BeforeHomeScreen')}
+          onPress={() => navigation.navigate('NewScreen')}
           style={styles.imageButton}
         >
           <Image

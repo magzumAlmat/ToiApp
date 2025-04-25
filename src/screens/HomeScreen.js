@@ -20,13 +20,14 @@ import {
   SafeAreaView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import Icon from "react-native-vector-icons/MaterialIcons";
+// import Icon from "react-native-vector-icons/MaterialIcons";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { useDispatch, useSelector } from "react-redux";
 import api from "../api/api";
 import * as Animatable from "react-native-animatable";
 import { Calendar } from "react-native-calendars";
-
+import Icon from "react-native-vector-icons/MaterialIcons";
+import Icon2 from "react-native-vector-icons/MaterialCommunityIcons";
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const COLORS = {
@@ -460,7 +461,6 @@ const AddItemModal = ({
 };
 
 // Компонент для отображения выбранного элемента
-
 const SelectedItem = ({
   item,
   quantities,
@@ -479,6 +479,7 @@ const SelectedItem = ({
   const itemKey = `${item.type}-${item.id}`;
   const [inputQuantity, setInputQuantity] = useState(quantities[itemKey] || "1");
   const [inputGuestCount, setInputGuestCount] = useState(initialGuestCount?.toString() || "1");
+  const isSelected = !!quantities[itemKey];
 
   useEffect(() => {
     setInputQuantity(quantities[itemKey] || "1");
@@ -492,7 +493,6 @@ const SelectedItem = ({
   const parsedGuestCount = parseInt(inputGuestCount, 10) || 1;
   const parsedQuantity = parseInt(inputQuantity, 10) || 1;
 
-  // Итоговая стоимость: для ресторанов — на основе гостей, для других — на основе количества
   const totalCost =
     item.type === "restaurant" ? cost * parsedGuestCount : cost * parsedQuantity;
 
@@ -501,7 +501,6 @@ const SelectedItem = ({
     let quantityForCalc = parseInt(newQuantity, 10) || 1;
     let parsedGuestCount = parseInt(guestCountValue, 10) || 1;
 
-    // Проверка вместимости для ресторанов
     if (item.type === "restaurant" && parsedGuestCount > 0) {
       if (parsedGuestCount > item.capacity) {
         parsedGuestCount = item.capacity;
@@ -550,6 +549,10 @@ const SelectedItem = ({
     });
   };
 
+  const handleAddItem = () => {
+    syncQuantity("1");
+  };
+
   const handleQuantityChange = (value) => {
     const filteredValue = value.replace(/[^0-9]/g, "");
     setInputQuantity(filteredValue);
@@ -557,7 +560,7 @@ const SelectedItem = ({
 
   const handleGuestCountChange = (value) => {
     const filteredValue = value.replace(/[^0-9]/g, "");
-    setInputGuestCount(filteredValue);
+    setInputGuestCount (filteredValue);
     if (setGuestCount) {
       setGuestCount(filteredValue === "" ? 1 : parseInt(filteredValue, 10));
     }
@@ -660,76 +663,293 @@ const SelectedItem = ({
   }
 
   return (
-    <View style={[styles.addModalItemCard, styles.selectedItemCard]}>
-      <View style={styles.addModalItemContent}>
-        <Text style={styles.addModalItemText}>Выбрано: {title}</Text>
-        {item.type === "restaurant" ? (
-          <View style={styles.quantityContainer}>
-            <Text style={styles.quantityLabel}>Количество гостей:</Text>
-            <TouchableOpacity onPress={decrementGuestCount}>
-              <Icon name="remove" size={20} color={COLORS.primary} />
+    <View style={styles.card}>
+      <View style={styles.header}>
+        <Text style={styles.titleText} numberOfLines={2} ellipsizeMode="tail">
+          {title}
+        </Text>
+        <View style={styles.actions}>
+          {!isSelected && (
+            <TouchableOpacity style={styles.actionButton} onPress={handleAddItem}>
+              <Icon name="plus-circle" size={24} color="#26A69A" />
             </TouchableOpacity>
-            <TextInput
-              style={styles.quantityInput}
-              value={inputGuestCount}
-              onChangeText={handleGuestCountChange}
-              onBlur={handleGuestCountBlur}
-              keyboardType="numeric"
-              placeholder="1"
-              placeholderTextColor="#666"
-              textAlign="center"
-            />
-            <TouchableOpacity onPress={incrementGuestCount}>
-              <Icon name="add" size={20} color={COLORS.primary} />
+          )}
+           <TouchableOpacity
+              style={styles.quantityButton}
+            onPress={() => handleRemoveItem(item)}
+            >
+
+
+           <Icon2 name="trash-can" size={18} color="#0000000" />
             </TouchableOpacity>
-            <Text style={styles.totalCostText}>
-              Итого: {totalCost.toLocaleString()} ₸
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.quantityContainer}>
-            <Text style={styles.quantityLabel}>Количество:</Text>
-            <TouchableOpacity onPress={decrementQuantity}>
-              <Icon name="remove" size={20} color={COLORS.primary} />
-            </TouchableOpacity>
-            <TextInput
-              style={styles.quantityInput}
-              value={inputQuantity}
-              onChangeText={handleQuantityChange}
-              onBlur={handleBlur}
-              keyboardType="numeric"
-              placeholder="1"
-              placeholderTextColor="#666"
-              textAlign="center"
-            />
-            <TouchableOpacity onPress={incrementQuantity}>
-              <Icon name="add" size={20} color={COLORS.primary} />
-            </TouchableOpacity>
-            <Text style={styles.totalCostText}>
-              Итого: {totalCost.toLocaleString()} ₸
-            </Text>
-          </View>
-        )}
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              setSelectedItem(item);
+              setDetailsModalVisible(true);
+              onClose();
+            }}
+            
+          >
+             
+            <Icon2 name="magnify" size={24} color="#0288D1" />
+          </TouchableOpacity>
+        </View>
       </View>
-      <TouchableOpacity
-        style={styles.removeButton}
-        onPress={() => handleRemoveItem(item)}
-      >
-        <Text style={styles.removeButtonText}>Убрать</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.addModalDetailsButton}
-        onPress={() => {
-          setSelectedItem(item);
-          setDetailsModalVisible(true);
-          onClose();
-        }}
-      >
-        <Text style={styles.addModalDetailsButtonText}>Подробнее</Text>
-      </TouchableOpacity>
+      {isSelected && (
+        <>
+          {item.type === "restaurant" ? (
+         <View style={styles.controlRow}>
+         <Text style={styles.label}>Гостей</Text>
+         <View style={styles.quantityContainer}>
+           <TouchableOpacity
+             style={styles.quantityButton}
+             onPress={decrementGuestCount}
+           >
+             <Icon2 name="minus" size={18} color="#0288D1" />
+           </TouchableOpacity>
+           <TextInput
+             style={styles.input}
+             value={inputGuestCount}
+             onChangeText={handleGuestCountChange}
+             onBlur={handleGuestCountBlur}
+             keyboardType="numeric"
+             placeholder="1"
+             placeholderTextColor="#B0BEC5"
+             textAlign="center"
+           />
+           <TouchableOpacity
+             style={styles.quantityButton}
+             onPress={incrementGuestCount}
+           >
+             <Icon2 name="plus" size={18} color="#0288D1" />
+           </TouchableOpacity>
+         </View>
+         <Text style={styles.totalCost}>
+           {totalCost.toLocaleString()} ₸
+         </Text>
+       </View>
+
+          ) : (
+            <View style={styles.controlRow}>
+              <Text style={styles.label}>Количество</Text>
+              <View style={styles.quantityContainer}>
+                <TouchableOpacity
+                  style={styles.quantityButton}
+                  onPress={decrementQuantity}
+                >
+                  <Icon2 name="minus" size={18} color="#0288D1" />
+                </TouchableOpacity>
+                <TextInput
+                  style={styles.input}
+                  value={inputQuantity}
+                  onChangeText={handleQuantityChange}
+                  onBlur={handleBlur}
+                  keyboardType="numeric"
+                  placeholder="1"
+                  placeholderTextColor="#B0BEC5"
+                  textAlign="center"
+                />
+                <TouchableOpacity
+                  style={styles.quantityButton}
+                  onPress={incrementQuantity}
+                >
+                  <Icon2 name="plus" size={18} color="#0288D1" />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.totalCost}>
+                {totalCost.toLocaleString()} ₸
+              </Text>
+            </View>
+          )}
+           
+        </>
+      )}
     </View>
   );
 };
+// const SelectedItem = ({
+//   item,
+//   quantities,
+//   setQuantities,
+//   filteredData,
+//   setFilteredData,
+//   budget,
+//   setRemainingBudget,
+//   handleRemoveItem,
+//   setDetailsModalVisible,
+//   setSelectedItem,
+//   onClose,
+//   guestCount, // Новый проп для проверки
+// }) => {
+//   const itemKey = `${item.type}-${item.id}`;
+//   const [inputQuantity, setInputQuantity] = useState(quantities[itemKey] || "1");
+
+//   useEffect(() => {
+//     setInputQuantity(quantities[itemKey] || "1");
+//   }, [quantities[itemKey]]);
+
+//   const cost = item.type === "restaurant" ? item.averageCost : item.cost;
+//   const parsedQuantityForCalc = parseInt(inputQuantity, 10) || 1;
+//   const totalCost = cost * parsedQuantityForCalc;
+
+//   const syncQuantity = (value) => {
+//     let newQuantity = value === "" ? "1" : value;
+//     let quantityForCalc = parseInt(newQuantity, 10) || 1;
+
+//     // Проверка capacity для ресторанов
+//     if (item.type === "restaurant" && guestCount) {
+//       const totalGuests = quantityForCalc * parseInt(guestCount, 10);
+//       if (totalGuests > item.capacity) {
+//         quantityForCalc = Math.floor(item.capacity / parseInt(guestCount, 10));
+//         newQuantity = quantityForCalc.toString();
+//         alert(
+//           `Вместимость ресторана (${item.capacity}) превышена. Максимальное количество: ${quantityForCalc}.`
+//         );
+//       }
+//     }
+
+//     setInputQuantity(newQuantity);
+
+//     setQuantities((prevQuantities) => {
+//       const updatedQuantities = { ...prevQuantities, [itemKey]: newQuantity };
+
+//       const updatedFilteredData = filteredData.map((dataItem) => {
+//         if (`${dataItem.type}-${dataItem.id}` === itemKey) {
+//           return { ...dataItem, totalCost: cost * quantityForCalc };
+//         }
+//         return dataItem;
+//       });
+//       setFilteredData(updatedFilteredData);
+
+//       const totalSpent = updatedFilteredData.reduce((sum, dataItem) => {
+//         const key = `${dataItem.type}-${dataItem.id}`;
+//         const itemQuantity = parseInt(updatedQuantities[key], 10) || 1;
+//         const itemCost =
+//           dataItem.type === "restaurant" ? dataItem.averageCost : dataItem.cost;
+//         return sum + itemCost * itemQuantity;
+//       }, 0);
+//       setRemainingBudget(parseFloat(budget) - totalSpent);
+
+//       return updatedQuantities;
+//     });
+//   };
+
+//   const handleQuantityChange = (value) => {
+//     const filteredValue = value.replace(/[^0-9]/g, "");
+//     const newQuantity = filteredValue === "" ? "" : filteredValue;
+//     setInputQuantity(newQuantity);
+//   };
+
+//   const incrementQuantity = () => {
+//     const currentQuantity = parseInt(inputQuantity, 10) || 1;
+//     const newQuantity = (currentQuantity + 1).toString();
+//     syncQuantity(newQuantity);
+//   };
+
+//   const decrementQuantity = () => {
+//     const currentQuantity = parseInt(inputQuantity, 10) || 1;
+//     if (currentQuantity > 1) {
+//       const newQuantity = (currentQuantity - 1).toString();
+//       syncQuantity(newQuantity);
+//     }
+//   };
+
+//   const handleBlur = () => {
+//     if (inputQuantity === "" || !inputQuantity) {
+//       setInputQuantity("1");
+//       syncQuantity("1");
+//     } else {
+//       syncQuantity(inputQuantity);
+//     }
+//   };
+
+//   let title;
+//   switch (item.type) {
+//     case "restaurant":
+//       title = `${item.name} (${cost} ₸)`;
+//       break;
+//     case "clothing":
+//       title = `${item.storeName} - ${item.itemName} (${cost} ₸)`;
+//       break;
+//     case "flowers":
+//       title = `${item.salonName} - ${item.flowerName} (${cost} ₸)`;
+//       break;
+//     case "cake":
+//       title = `${item.name} (${cost} ₸)`;
+//       break;
+//     case "alcohol":
+//       title = `${item.salonName} - ${item.alcoholName} (${cost} ₸)`;
+//       break;
+//     case "program":
+//       title = `${item.teamName} (${cost} ₸)`;
+//       break;
+//     case "tamada":
+//       title = `${item.name} (${cost} ₸)`;
+//       break;
+//     case "traditionalGift":
+//       title = `${item.salonName} - ${item.itemName} (${cost} ₸)`;
+//       break;
+//     case "transport":
+//       title = `${item.salonName} - ${item.carName} (${cost} ₸)`;
+//       break;
+//     case "goods":
+//       title = `${item.item_name} (${cost} ₸)`;
+//       break;
+//     case "jewelry":
+//       title = `${item.storeName} - ${item.itemName} (${cost} ₸)`;
+//       break;
+//     default:
+//       title = "Неизвестный элемент";
+//   }
+
+//   return (
+//     <View style={[styles.addModalItemCard, styles.selectedItemCard]}>
+//       <View style={styles.addModalItemContent}>
+//         <Text style={styles.addModalItemText}>Выбрано: {title}</Text>
+//         <View style={styles.quantityContainer}>
+//           <Text style={styles.quantityLabel}>Количество:</Text>
+//           <TouchableOpacity onPress={decrementQuantity}>
+//             <Icon name="remove" size={20} color={COLORS.primary} />
+//           </TouchableOpacity>
+//           <TextInput
+//             style={styles.quantityInput}
+//             value={inputQuantity}
+//             onChangeText={handleQuantityChange}
+//             onBlur={handleBlur}
+//             keyboardType="numeric"
+//             placeholder="1"
+//             placeholderTextColor="#666"
+//             textAlign="center"
+//           />
+//           <TouchableOpacity onPress={incrementQuantity}>
+//             <Icon name="add" size={20} color={COLORS.primary} />
+//           </TouchableOpacity>
+//           <Text style={styles.totalCostText}>
+//             Итого: {totalCost.toLocaleString()} ₸
+//           </Text>
+//         </View>
+//       </View>
+//       <TouchableOpacity
+//         style={styles.removeButton}
+//         onPress={() => handleRemoveItem(item)}
+//       >
+//         <Text style={styles.removeButtonText}>Убрать</Text>
+//       </TouchableOpacity>
+//       <TouchableOpacity
+//         style={styles.addModalDetailsButton}
+//         onPress={() => {
+//           setSelectedItem(item);
+//           setDetailsModalVisible(true);
+//           onClose();
+//         }}
+//       >
+//         <Text style={styles.addModalDetailsButtonText}>Подробнее</Text>
+//       </TouchableOpacity>
+//     </View>
+//   );
+// };
+
 
 // Модальное окно для отображения элементов категории
 const CategoryItemsModal = ({
@@ -809,8 +1029,56 @@ const CategoryItemsModal = ({
           title = "Неизвестный элемент";
       }
       return (
+        // <View style={styles.addModalItemCard}>
+        //   <TouchableOpacity
+        //     style={[
+        //       styles.addModalItemContent,
+        //       isSelected && styles.disabledItemContent,
+        //     ]}
+        //     onPress={() => {
+        //       if (!isSelected) {
+        //         // Проверка capacity перед добавлением
+        //         if (item.type === "restaurant" && guestCount) {
+        //           const totalGuests = parseInt(guestCount, 10);
+        //           if (totalGuests > item.capacity) {
+        //             alert(
+        //               `Этот ресторан не может вместить ${totalGuests} гостей. Максимальная вместимость: ${item.capacity}.`
+        //             );
+        //             return;
+        //           }
+        //         }
+        //         handleAddItem(item);
+        //         const category = typeToCategoryMap[item.type];
+        //         if (category) {
+        //           updateCategories(category);
+        //         }
+        //       }
+        //     }}
+        //     disabled={isSelected}
+        //   >
+        //     <Text style={styles.addModalItemText}>{title}</Text>
+        //     {count > 0 && (
+        //       <Text style={styles.addModalItemCount}>Добавлено: {count}</Text>
+        //     )}
+        //   </TouchableOpacity>
+
+        //   <TouchableOpacity
+        //      style={styles.actionButton}
+        //     onPress={() => {
+        //       setSelectedItem(item);
+        //       setDetailsModalVisible(true);
+        //       onClose();
+        //     }}
+        //   >
+        //         <Icon2 name="magnify" size={24} color="#0288D1" />
+        //   </TouchableOpacity>
+
+        // </View>
+
         <View style={styles.addModalItemCard}>
-          <TouchableOpacity
+        <View style={[styles.addModalItemContent, isSelected && styles.disabledItemContent]}>
+
+        <TouchableOpacity
             style={[
               styles.addModalItemContent,
               isSelected && styles.disabledItemContent,
@@ -836,22 +1104,48 @@ const CategoryItemsModal = ({
             }}
             disabled={isSelected}
           >
-            <Text style={styles.addModalItemText}>{title}</Text>
-            {count > 0 && (
-              <Text style={styles.addModalItemCount}>Добавлено: {count}</Text>
-            )}
-          </TouchableOpacity>
+            
+          <Text style={styles.addModalItemText} numberOfLines={1} ellipsizeMode="tail">
+          <Icon2 name="plus" size={24} color="#0288D1" style={{marginTop:'50%'}} />
+            {title}
+          </Text>
+          
+          {count > 0 && (
+            <Text style={styles.addModalItemCount}>Добавлено: {count}</Text>
+          )}
+
+
+
+</TouchableOpacity>
+
+
+        </View>
+        <View style={styles.actions}>
+          {/* <TouchableOpacity
+            style={[styles.actionButton, isSelected && styles.disabledActionButton]}
+            onPress={handleSelectItem}
+            disabled={isSelected}
+          >
+            <Icon name="plus-circle" size={24} color={isSelected ? "#B0BEC5" : "#26A69A"} />
+          </TouchableOpacity> */}
+
+
+
+       
+
+
           <TouchableOpacity
-            style={styles.addModalDetailsButton}
+            style={styles.actionButton}
             onPress={() => {
               setSelectedItem(item);
               setDetailsModalVisible(true);
               onClose();
             }}
           >
-            <Text style={styles.addModalDetailsButtonText}>Подробнее</Text>
+            <Icon2 name="magnify" size={24} color="#0288D1" />
           </TouchableOpacity>
         </View>
+      </View>
       );
     },
     [
@@ -909,6 +1203,7 @@ const CategoryItemsModal = ({
                     onClose={onClose}
                     guestCount={guestCount} // Передаем guestCount
                   />
+              
                 ))}
               </View>
             )}
@@ -2380,6 +2675,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+
+
+  
   addModalContainer: {
     backgroundColor: COLORS.card,
     borderRadius: 20,
@@ -2466,14 +2764,178 @@ const styles = StyleSheet.create({
   addModalPriceButtonTextActive: { color: COLORS.white },
   addModalScrollView: { flex: 1, minHeight: 100 },
   addModalItemList: { paddingBottom: 20, flexGrow: 1 },
+
+
+
+
   addModalItemCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F7F7F7",
-    borderRadius: 10,
-    marginBottom: 10,
-    padding: 10,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 8,
+    marginHorizontal: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
+  addModalItemContent: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingRight: 12,
+  },
+  disabledItemContent: {
+    opacity: 0.6,
+  },
+  addModalItemText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#1A1A1A",
+    flex: 1,
+    marginRight: 8,
+  },
+  addModalItemCount: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: "#4B5563",
+  },
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  actionButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "#F1F5F9",
+    marginLeft: 8,
+  },
+  disabledActionButton: {
+    backgroundColor: "#F1F5F9",
+    opacity: 0.6,
+  },
+
+
+
+card: {
+  backgroundColor: "#FFFFFF",
+  borderRadius: 16,
+  padding: 20,
+  marginVertical: 12,
+  marginHorizontal: 16,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.08,
+  shadowRadius: 12,
+  elevation: 5,
+},
+header: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  marginBottom: 16,
+},
+titleText: {
+  fontSize: 17,
+  fontWeight: "600",
+  color: "#1A1A1A",
+  flex: 1,
+  lineHeight: 24,
+},
+actions: {
+  flexDirection: "row",
+  alignItems: "center",
+},
+actionButton: {
+  padding: 10,
+  borderRadius: 10,
+  backgroundColor: "#F1F5F9",
+  marginLeft: 8,
+},
+controlRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginBottom: 16,
+  paddingHorizontal: 4,
+},
+label: {
+  fontSize: 15,
+  fontWeight: "500",
+  color: "#4B5563",
+  marginRight: 12,
+},
+quantityContainer: {
+  flexDirection: "row",
+  alignItems: "center",
+  backgroundColor: "#F8FAFC",
+  borderRadius: 12,
+  borderWidth: 1,
+  borderColor: "#E5E7EB",
+  paddingHorizontal: 4,
+  flex: 1,
+},
+quantityButton: {
+  padding: 10,
+  paddingHorizontal: 12,
+},
+input: {
+  width: 56,
+  height: 40,
+  fontSize: 15,
+  fontWeight: "500",
+  color: "#1A1A1A",
+  textAlign: "center",
+  backgroundColor: "#FFFFFF",
+  borderRadius: 8,
+  marginHorizontal: 4,
+},
+totalCost: {
+  fontSize: 15,
+  fontWeight: "600",
+  color: "#26A69A",
+  marginLeft: 12,
+},
+
+
+
+controlRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginBottom: 16,
+},
+label: {
+  fontSize: 15,
+  fontWeight: "500",
+  color: "#4B5563",
+},
+
+quantityButton: {
+  padding: 12,
+},
+input: {
+  width: 50,
+  height: 44,
+  fontSize: 15,
+  fontWeight: "500",
+  color: "#1A1A1A",
+  textAlign: "center",
+  backgroundColor: "#FFFFFF",
+  borderRadius: 8,
+  marginHorizontal: 4,
+},
+totalCost: {
+  fontSize: 15,
+  fontWeight: "600",
+  color: "#26A69A",
+},
+
+
   selectedItemCard: { backgroundColor: "#E6F0FA" },
   addModalItemContent: { flex:1,
     paddingRight: 10,
@@ -2515,11 +2977,11 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     marginBottom: 10,
   },
-  quantityContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 10,
-  },
+  // quantityContainer: {
+  //   flexDirection: "row",
+  //   alignItems: "center",
+  //   marginTop: 10,
+  // },
   quantityLabel: {
     fontSize: 14,
     color: COLORS.textPrimary,
@@ -2543,10 +3005,10 @@ const styles = StyleSheet.create({
   },
   removeButton: {
     backgroundColor: COLORS.error,
-    paddingVertical: 8,
-    paddingHorizontal: 15,
+    // paddingVertical: 8,
+    // paddingHorizontal: 75,
     borderRadius: 10,
-    marginRight: 10,
+    // marginLeft:'40%'
   },
   removeButtonText: {
     fontSize: 14,

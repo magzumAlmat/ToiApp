@@ -203,7 +203,10 @@ import * as SecureStore from 'expo-secure-store';
 
 const api = axios.create({
   baseURL: process.env.EXPO_PUBLIC_API_baseURL,
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${process.env.EXPO_PUBLIC_API_KEY}`
+},
 });
 
 // Интерцептор запроса для добавления токена
