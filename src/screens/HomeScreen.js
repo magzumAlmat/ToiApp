@@ -1614,6 +1614,9 @@ const CreateEventScreen = ({ navigation, route }) => {
 
 
   const filterDataByBudget = useCallback(() => {
+
+    console.log('filterDataByBudget  Стартанул')
+
     if (!budget || isNaN(budget) || parseFloat(budget) <= 0) {
       alert("Пожалуйста, введите корректную сумму бюджета");
       return;
@@ -2056,7 +2059,7 @@ const CreateEventScreen = ({ navigation, route }) => {
                     ? "store"
                     : item === "Алкоголь"
                     ? "local-drink"
-                    : item === "Ювелирные изделияя"
+                    : item === "Ювелирные изделия"
                     ? "diamond"
                     : item === "Торты"
                     ? "cake"
