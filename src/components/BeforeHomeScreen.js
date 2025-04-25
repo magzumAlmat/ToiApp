@@ -445,6 +445,7 @@ const COLORS = {
   primary: '#FF6F61',
   white: '#FFFFFF',
   
+  
 };
 
 // Mapping of categories to their inactive and active image sources
@@ -491,6 +492,8 @@ const categoryImages = {
   },
 };
 
+
+
 const BeforeHomeScreen = ({ navigation, route }) => {
   console.log('BeforeHomeScreen navigation:', navigation);
   console.log('BeforeHomeScreen route.params:', route?.params);
@@ -528,6 +531,7 @@ const BeforeHomeScreen = ({ navigation, route }) => {
 
   const ITEMS_PER_PAGE = 9;
   const paginatedCategories = [];
+  
   for (let i = 0; i < categories.length; i += ITEMS_PER_PAGE) {
     paginatedCategories.push(categories.slice(i, i + ITEMS_PER_PAGE));
   }
@@ -651,34 +655,41 @@ const BeforeHomeScreen = ({ navigation, route }) => {
         />
       </View>
 
-      <View style={styles.listContainer}>
-        <View style={styles.categoryGrid}>
-          <FlatList
-            data={paginatedCategories}
-            renderItem={renderPage}
-            keyExtractor={(item, index) => `page-${index}`}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            style={styles.paginationList}
-          />
-          {paginatedCategories.length > 1 && (
-            <View style={styles.paginationDots}>
-              {paginatedCategories.map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.dot,
-                    currentPage === index ? styles.activeDot : styles.inactiveDot,
-                  ]}
-                />
-              ))}
-            </View>
-          )}
+     
+
+  <View style={styles.listContainer}>
+          <View style={styles.categoryGrid}>
+            <FlatList
+              data={paginatedCategories}
+              renderItem={renderPage}
+              keyExtractor={(item, index) => `page-${index}`}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+              style={styles.paginationList}
+            />
+            {paginatedCategories.length > 1 && (
+              <View style={styles.paginationDots}>
+                {paginatedCategories.map((_, index) => (
+                  <Image
+                    key={index}
+                    source={
+                      currentPage === index
+                        ? require('../../assets/dotOn.png') // Укажите путь к изображению активной точки
+                        : require('../../assets/dotOff.png') // Укажите путь к изображению неактивной точки
+                    }
+                    style={styles.dotImage}
+                    resizeMode="contain"
+                  />
+                ))}
+              </View>
+            )}
+          </View>
         </View>
-      </View>
+
+
 
       <View style={styles.bottomContainer}>
         <TouchableOpacity style={styles.nextButton} onPress={handleProceed}>
@@ -791,9 +802,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
     zIndex: 2,
   },
-  dot: {
-    width: 8,
-    height: 8,
+  dotImage: {
+    width: 14,
+    height: 14,
     borderRadius: 4,
     marginHorizontal: 4,
   },
