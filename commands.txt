@@ -9,4 +9,7 @@ npx expo start --tunnel
 
 
 
-npx expo start --clear    
+npx expo start --clear  
+
+
+  npx expo start --tunnel
