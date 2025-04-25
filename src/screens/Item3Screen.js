@@ -483,6 +483,9 @@ export default function Item3Screen() {
           case 'goods':
             endpoint = `/api/goods/${itemId}`;
             break;
+          case 'jewelry':
+            endpoint = `/api/jewelry/${itemId}`;
+            break;
           default:
             throw new Error('Неизвестный тип элемента');
         }
@@ -554,7 +557,9 @@ export default function Item3Screen() {
                         return `Транспорт - ${weddingItem.total_cost} тг`;
                       case 'goods':
                         return `Товар - ${weddingItem.total_cost} тг`;
-                      default:
+                        case 'jewelry':
+                          return `Ювелирные изделия - ${weddingItem.total_cost} тг`;
+                     default:
                         return `Неизвестный элемент - ${weddingItem.total_cost} тг`;
                     }
                   })()}
@@ -644,7 +649,7 @@ export default function Item3Screen() {
                     Наименование: {selectedItem.name || 'Не указано'}
                   </Text>
                   <Text style={styles.modalText}>
-                    Адрес: {selectedItem.address || 'Не указано'}
+                    Адрес: {selectedItem.address || selectedItem.itemName || 'Не указано'}
                   </Text>
                   <Text style={styles.modalText}>
                     Телефон: {selectedItem.phone || 'Не указано'}

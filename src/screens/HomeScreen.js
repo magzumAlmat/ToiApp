@@ -1295,6 +1295,8 @@ const CreateEventScreen = ({ navigation, route }) => {
         goods: userData[9] || [],
         jewelry: userData[10] || [],
       };
+      
+      console.log('JEWELRY=  ',newData[10])
       setData(newData);
     } catch (error) {
       console.error("Ошибка загрузки данных:", error);

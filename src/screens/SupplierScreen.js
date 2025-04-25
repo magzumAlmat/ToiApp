@@ -461,6 +461,7 @@ export default function SupplierScreen({ navigation }) {
     alcohol: [],
     transport: [],
     goods: [],
+    jewelry: [], // Добавляем jewelry
   });
   const [loading, setLoading] = useState(false);
   const [newGoodModalVisible, setNewGoodModalVisible] = useState(false);
