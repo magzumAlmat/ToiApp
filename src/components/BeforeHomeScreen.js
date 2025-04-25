@@ -812,6 +812,8 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 25,
     alignItems: 'center',
+    zIndex:3,
+
   },
 });
 

@@ -19,6 +19,7 @@ import {
   ScrollView,
   SafeAreaView,
 } from "react-native";
+
 import { LinearGradient } from "expo-linear-gradient";
 // import Icon from "react-native-vector-icons/MaterialIcons";
 import AntDesign from '@expo/vector-icons/AntDesign';
@@ -731,8 +732,9 @@ const SelectedItem = ({
        </View>
 
           ) : (
+            <>
             <View style={styles.controlRow}>
-              <Text style={styles.label}>Количество</Text>
+              <Text style={styles.label}>Количество  </Text>
               <View style={styles.quantityContainer}>
                 <TouchableOpacity
                   style={styles.quantityButton}
@@ -757,10 +759,19 @@ const SelectedItem = ({
                   <Icon2 name="plus" size={18} color="#0288D1" />
                 </TouchableOpacity>
               </View>
-              <Text style={styles.totalCost}>
-                {totalCost.toLocaleString()} ₸
-              </Text>
+             
+
+             
+
+
             </View>
+            <View style={styles.totalCost}>
+             <Text >
+               {totalCost.toLocaleString()} ₸
+             </Text>
+             </View>
+</>
+            
           )}
            
         </>
@@ -1840,7 +1851,7 @@ const CreateEventScreen = ({ navigation, route }) => {
     if (item === "Добавить") {
       return (
         <View style={styles.categoryRow}>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.categoryButton}
             onPress={() => setAddItemModalVisible(true)}
           >
@@ -1858,7 +1869,26 @@ const CreateEventScreen = ({ navigation, route }) => {
                 <Text style={styles.categoryText}>Добавить</Text>
               </View>
             </LinearGradient>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
+          <TouchableOpacity
+  style={styles.categoryButton}
+  onPress={() => setAddItemModalVisible(true)}
+>
+  <LinearGradient
+    colors={[COLORS.buttonGradientStart, COLORS.buttonGradientEnd]}
+    style={styles.categoryButtonGradient}
+  >
+    <View style={{ flexDirection: "row", alignItems: "center" }}>
+      {/* <Icon
+        name="add"
+        size={20}
+        color={COLORS.white}
+        style={{ marginRight: 0 }} // Убираем marginRight, так как текста больше нет
+      /> */}
+      <Text style={styles.categoryPlusText}>+</Text>
+    </View>
+  </LinearGradient>
+</TouchableOpacity>
         </View>
       );
     }
@@ -1939,6 +1969,7 @@ const CreateEventScreen = ({ navigation, route }) => {
         end={{ x: 0, y: 0 }}
         style={styles.splashContainer}
       >
+
         <TouchableOpacity
           style={{ marginTop: "15%", marginLeft: "2%" }}
           onPress={() => navigation.goBack()}
@@ -1953,6 +1984,11 @@ const CreateEventScreen = ({ navigation, route }) => {
             resizeMode="contain"
           />
         </View>
+
+ <Image
+        source={require('../../assets/footer.png')}
+        style={styles.topPatternContainer}
+      />
 
         <View style={styles.headerContainer}>
           <View style={styles.categoryItem2}>{renderCategory("Добавить")}</View>
@@ -2562,6 +2598,16 @@ const CreateEventScreen = ({ navigation, route }) => {
 
 
 const styles = StyleSheet.create({
+  topPatternContainer: {
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+    height: '20%',
+    zIndex: 1,
+    resizeMode: 'cover',
+    opacity: 0.8,
+    marginBottom:'10$'
+  },
   categoryButton: {
     flex: 1,
     height: 50,
@@ -2573,11 +2619,33 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
     marginVertical: 2,
+    width: 20, // Уменьшаем ширину кнопки, так как теперь только "+"
+  },
+  categoryButtonGradient: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#5A4032",
+    borderRadius: 10,
+  },
+  categoryPlusText: {
+    fontSize: 24, // Увеличиваем размер символа "+"
+    color: COLORS.white,
+    fontWeight: "bold",
+  },
+  // Удаляем или оставляем categoryText, если он используется в других местах
+  categoryText: {
+    fontSize: 16,
+    color: COLORS.white,
+    fontWeight: "600",
+    textAlign: "center",
+    paddingHorizontal: 10,
   },
   disabledCategoryButton: {
     opacity: 0.5,
   },
-  splashContainer: { flex: 1,marginBottom:'20%' },
+  splashContainer: { flex: 1 },
   headerContainer: {
     paddingHorizontal: 20,
     backgroundColor: "transparent",
@@ -2607,7 +2675,7 @@ const styles = StyleSheet.create({
   },
   logoContainer: { alignItems: "center", marginVertical: 20, marginTop: "0%" },
   potIcon: { width: 150, height: 150 },
-  potIcon3: { width: 70, height: 70 },
+  potIcon3: { width: 70, height: 70,zIndex:3 },
   listContainer: { flex: 1, paddingHorizontal: 20 },
   scrollView: { flex: 1 },
   categoryGrid: {
@@ -2657,12 +2725,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
     backgroundColor: "transparent",
+    zIndex:5,
+    marginBottom:'20%'
   },
   nextButton: {
     borderRadius: 25,
     overflow: "hidden",
     marginVertical: 5,
     alignItems: "center",
+    zIndex:6,
   },
   nextButtonText: {
     fontSize: 18,
@@ -2880,6 +2951,7 @@ quantityContainer: {
   flex: 1,
 },
 quantityButton: {
+
   padding: 10,
   paddingHorizontal: 12,
 },
@@ -2895,6 +2967,8 @@ input: {
   marginHorizontal: 4,
 },
 totalCost: {
+  flexDirection: "start",
+  alignItems: "center",
   fontSize: 15,
   fontWeight: "600",
   color: "#26A69A",
