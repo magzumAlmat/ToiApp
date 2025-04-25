@@ -1031,7 +1031,8 @@ import { useFonts } from 'expo-font';
 import BeforeHomeScreen from '../components/BeforeHomeScreen';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-
+import SupplierScreen from '../screens/SupplierScreen'
+import HomeScreenDraft from '../screens/HomeScreenDraft'
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -1042,6 +1043,42 @@ const LoadingScreen = () => (
 );
 
 // Компонент SplashScreen
+// const SupplierContent = ({ navigation }) => {
+//   const { user, token } = useSelector((state) => state.auth);
+//   const [showSecondButton, setShowSecondButton] = useState(false);
+//   const handlePress = () => {
+//     setShowSecondButton(true);
+//     setTimeout(() => {
+//       navigation.replace("Supplier");
+//     }, 1000);
+//   };
+//   const roleId = user?.roleId;
+
+//   return (
+//     <>
+//       {/* <View style={{marginTop:'50%'}}>
+//         <TouchableOpacity style={styles.button} onPress={handlePress}>
+//           <Text>Go to next screen</Text>
+//           <Text>{roleId}</Text>
+//         </TouchableOpacity>
+//       </View> */}
+//       <SupplierScreen/>
+//     </>
+//   );
+// };
+
+
+const SupplierContent = ({ navigation }) => {
+  const { user, token } = useSelector((state) => state.auth);
+  const roleId = user?.roleId;
+
+  if (!user || !token) {
+    return <LoadingScreen />;
+  }
+
+  return <SupplierScreen navigation={navigation} />;
+};
+
 const SplashScreen = ({ navigation }) => {
   const [showSecondButton, setShowSecondButton] = useState(false);
 
@@ -1227,19 +1264,14 @@ function AuthenticatedTabs() {
     <Tab.Navigator screenOptions={tabBarOptions}>
       {roleId === 2 ? (
         <>
-          <Tab.Screen
-            name="Home"
-            component={HomeScreen}
+         <Tab.Screen
+            name="Supplier"
+            component={SupplierContent} // Используем SupplierContent, который рендерит SupplierScreen
             options={{
               title: 'Главная',
               headerShown: false,
               tabBarIcon: ({ focused, color }) => (
-                <Icon
-                  name="home"
-                  size={24}
-                  color={color}
-                  style={styles.tabIcon}
-                />
+                <Icon name="home" size={24} color={color} style={styles.tabIcon} />
               ),
             }}
           />
@@ -1384,10 +1416,18 @@ export default function Navigation() {
     }
 
     if (token && user && navigationRef.current) {
-      console.log('User is authenticated, redirecting to SplashScreen');
-      navigationRef.current?.navigate('Splash');
+      if (user.roleId === 2) {
+        console.log('User is authenticated with roleId 2, redirecting to Supplier');
+        navigationRef.current?.navigate('Supplier');
+      } else {
+        console.log('User is authenticated, redirecting to SplashScreen');
+        navigationRef.current?.navigate('Splash');
+      }
     }
 
+
+
+    
     const subscription = Linking.addEventListener('url', (event) => {
       console.log('Deep link received:', event.url);
       if (event.url.includes('wishlist')) {
@@ -1410,6 +1450,7 @@ export default function Navigation() {
   return (
     <NavigationContainer ref={navigationRef} linking={linking}>
       <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
+        {/* <Stack.Screen name="Supplier" component={SupplierScreen} /> */}
         <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="NewScreen" component={NewScreen} />
         <Stack.Screen name="CreateEvent" component={CreateEventScreen} />

@@ -440,7 +440,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AntDesign from '@expo/vector-icons/AntDesign';
-
+import AddItemModal from '../components/AddItemModal';
 const COLORS = {
   primary: '#FF6F61',
   white: '#FFFFFF',
@@ -497,7 +497,7 @@ const categoryImages = {
 const BeforeHomeScreen = ({ navigation, route }) => {
   console.log('BeforeHomeScreen navigation:', navigation);
   console.log('BeforeHomeScreen route.params:', route?.params);
-
+  const [addItemModalVisible, setAddItemModalVisible] = useState(false);
   const selectedCategories = route?.params?.selectedCategories || [];
 
   const defaultCategories = [
@@ -627,12 +627,24 @@ const BeforeHomeScreen = ({ navigation, route }) => {
   );
 
   return (
+
+  
+
     <LinearGradient
       colors={['#F1EBDD', '#897066']}
       start={{ x: 0, y: 1 }}
       end={{ x: 0, y: 0 }}
       style={styles.splashContainer}
     >
+        <TouchableOpacity
+  style={styles.iconButton}
+  onPress={() => setAddItemModalVisible(true)}
+  disabled={!budget}
+>
+  <Icon name="add" size={24} color={!budget ? COLORS.textSecondary : '#FFFFFF'} />
+</TouchableOpacity>
+
+
       <Image
         source={require('../../assets/footer.png')}
         style={styles.topPatternContainer}

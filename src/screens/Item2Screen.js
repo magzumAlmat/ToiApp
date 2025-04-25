@@ -339,7 +339,7 @@ export default function Item2Screen({ navigation }) {
             specs: formData.specs || {}, // Передаем specs как объект JSON
             supplier_id: user.id,
           };
-          response = await api.postGoodsData(goodsData);
+          response = await api.createGood(goodsData);
           entityId = response.data.data.id; // Предполагаем структуру ответа для goods
           setFormDataId(response.data.data.id);
           break;
@@ -973,6 +973,7 @@ export default function Item2Screen({ navigation }) {
             />
           )}
           {/* <Button title="Создать" onPress={handleSubmit} disabled={!selectedItem} /> */}
+          
           <Button
             title={isLoading ? 'Создание...' : 'Создать'} // Меняем текст кнопки
             onPress={handleSubmit}
@@ -986,8 +987,8 @@ export default function Item2Screen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  title: { fontSize: 24, marginBottom: 20, textAlign: 'center' },
+  container: { flex: 1, padding: 20, marginBottom:'20%'},
+  title: { fontSize: 24, textAlign: 'center' },
   input: { borderWidth: 1, padding: 10, marginBottom: 10, borderRadius: 5 },
   pickerContainer: { marginBottom: 20 },
   label: { fontSize: 16, marginBottom: 5 },

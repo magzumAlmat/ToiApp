@@ -1,130 +1,46 @@
-
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet } from 'react-native';
+import React from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+  StyleSheet,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import * as Animatable from 'react-native-animatable';
 import { Calendar } from 'react-native-calendars';
 import { Picker } from '@react-native-picker/picker';
-import * as Animatable from 'react-native-animatable';
-import * as ExpoCalendar from 'expo-calendar';
 import { COLORS } from '../constants/colors';
-import api from '../api/api';
 
 const AdminContent = ({
   data,
-  blockedDays,
-  setBlockedDays,
+  selectedRestaurant,
+  setSelectedRestaurant,
+  selectedDate,
+  setSelectedDate,
+  tempRestaurantId,
+  setTempRestaurantId,
   showRestaurantModal,
   setShowRestaurantModal,
   showCalendarModal,
   setShowCalendarModal,
   showCalendarModal2,
   setShowCalendarModal2,
-  tempRestaurantId,
-  setTempRestaurantId,
-  selectedRestaurant,
-  setSelectedRestaurant,
-  selectedDate,
-  setSelectedDate,
+  blockedDays,
   occupiedRestaurants,
   setOccupiedRestaurants,
+  blockRestaurantDay,
+  handleSelectRestaurant,
 }) => {
-  // Fetch blocked days for restaurants
-  useEffect(() => {
-    const fetchBlockedDays = async () => {
-      try {
-        const response = await api.getBlockedDays();
-        const blocked = {};
-        response.data.forEach((block) => {
-          const date = new Date(block.date).toISOString().split('T')[0];
-          blocked[date] = {
-            marked: true,
-            dotColor: COLORS.error,
-            restaurantId: block.restaurantId,
-          };
-        });
-        setBlockedDays(blocked);
-      } catch (error) {
-        console.error('Ошибка получения заблокированных дней:', error);
-      }
-    };
-    fetchBlockedDays();
-  }, []);
-
-  // Block a restaurant day
-  const blockRestaurantDay = async (restaurantId, date) => {
-    try {
-      const response = await api.addDataBlockToRestaurant(restaurantId, date);
-      alert('Успешно поставлена бронь', response.data.message);
-      setBlockedDays((prev) => ({
-        ...prev,
-        [date.toISOString().split('T')[0]]: {
-          marked: true,
-          dotColor: COLORS.error,
-          restaurantId: restaurantId,
-        },
-      }));
-    } catch (error) {
-      console.error('Ошибка блокировки:', error);
-      alert('В этот день у данного ресторана уже стоит бронь');
-    }
-  };
-
-  // Handle blocking a day
   const handleBlockDay = async () => {
     if (!selectedRestaurant) {
       alert('Пожалуйста, выберите ресторан');
       return;
     }
 
-    try {
-      const defaultCalendar = await ExpoCalendar.getDefaultCalendarAsync();
-      await ExpoCalendar.createEventAsync(defaultCalendar.id, {
-        title: `Забронирован день для ${selectedRestaurant.name}`,
-        startDate: selectedDate,
-        endDate: new Date(selectedDate.getTime() + 24 * 60 * 60 * 1000),
-        allDay: true,
-        notes: `Ресторан ${selectedRestaurant.name} забронирован менеджером`,
-        availability: 'busy',
-      });
-
-      await blockRestaurantDay(selectedRestaurant.id, selectedDate);
-      setShowCalendarModal(false);
-      setSelectedRestaurant(null);
-      setTempRestaurantId(null);
-    } catch (error) {
-      console.error('Ошибка создания события в календаре:', error);
-      alert('Ошибка при бронировании');
-    }
-  };
-
-  // Handle restaurant selection
-  const handleSelectRestaurant = () => {
-    const restaurantId = Number(tempRestaurantId);
-    const restaurant = data?.restaurants?.find((r) => r.id === restaurantId);
-    if (restaurant) {
-      setSelectedRestaurant(restaurant);
-      setShowRestaurantModal(false);
-      setShowCalendarModal(true);
-    } else {
-      alert('Пожалуйста, выберите действительный ресторан');
-    }
-  };
-
-  // Handle viewing blocked restaurants
-  const handleViewBlockedRestaurants = async (day) => {
-    try {
-      const response = await api.getBlockedDays();
-      const blockedOnDate = response.data.filter(
-        (block) => new Date(block.date).toISOString().split('T')[0] === day.dateString
-      );
-      const restaurantIds = blockedOnDate.map((block) => block.restaurantId);
-      const restaurants = data.restaurants.filter((r) => restaurantIds.includes(r.id));
-      setOccupiedRestaurants(restaurants);
-      setShowCalendarModal2(true);
-    } catch (error) {
-      console.error('Ошибка получения заблокированных ресторанов:', error);
-      alert('Ошибка при загрузке данных');
-    }
+    await blockRestaurantDay(selectedRestaurant.id, selectedDate);
+    setShowCalendarModal(false);
   };
 
   return (
@@ -151,15 +67,6 @@ const AdminContent = ({
         <Text style={styles.actionButtonText}>Выбрать дату для бронирования</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.actionButton, styles.viewBlockedButton]}
-        onPress={() => setShowCalendarModal2(true)}
-      >
-        <Icon name="event-busy" size={20} color={COLORS.white} style={styles.buttonIcon} />
-        <Text style={styles.actionButtonText}>Посмотреть заблокированные даты</Text>
-      </TouchableOpacity>
-
-      {/* Modal for selecting restaurant */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -207,7 +114,6 @@ const AdminContent = ({
         </View>
       </Modal>
 
-      {/* Modal for selecting date to block */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -223,13 +129,12 @@ const AdminContent = ({
                   <Icon name="close" size={24} color={COLORS.textSecondary} />
                 </TouchableOpacity>
               </View>
-              <Text style={styles.modalSubtitle}>Выберите дату для бронирования:</Text>
+              <Text style={styles.modalSubtitle}>Выберите дату:</Text>
               <Calendar
                 current={selectedDate.toISOString().split('T')[0]}
                 onDayPress={(day) => setSelectedDate(new Date(day.timestamp))}
                 minDate={new Date().toISOString().split('T')[0]}
                 markedDates={{
-                  ...blockedDays,
                   [selectedDate.toISOString().split('T')[0]]: {
                     selected: true,
                     selectedColor: COLORS.primary,
@@ -257,7 +162,14 @@ const AdminContent = ({
         </View>
       </Modal>
 
-      {/* Modal for viewing blocked dates */}
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={() => setShowCalendarModal2(true)}
+      >
+        <Icon name="visibility" size={20} color={COLORS.white} style={styles.buttonIcon} />
+        <Text style={styles.actionButtonText}>Просмотр календаря</Text>
+      </TouchableOpacity>
+
       <Modal
         animationType="slide"
         transparent={true}
@@ -268,17 +180,37 @@ const AdminContent = ({
           <Animatable.View style={styles.modalContent} animation="fadeInUp" duration={300}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Заблокированные даты</Text>
+                <Text style={styles.modalTitle}>Просмотр календаря</Text>
                 <TouchableOpacity onPress={() => setShowCalendarModal2(false)}>
                   <Icon name="close" size={24} color={COLORS.textSecondary} />
                 </TouchableOpacity>
               </View>
-              <Text style={styles.modalSubtitle}>Выберите дату для просмотра забронированных ресторанов:</Text>
+              <Text style={styles.modalSubtitle}>Выберите дату для проверки:</Text>
               <Calendar
-                current={new Date().toISOString().split('T')[0]}
-                onDayPress={handleViewBlockedRestaurants}
+                current={selectedDate.toISOString().split('T')[0]}
+                onDayPress={(day) => {
+                  const dateString = day.dateString;
+                  setSelectedDate(new Date(day.timestamp));
+                  const occupied = blockedDays[dateString]
+                    ? blockedDays[dateString].dots.map((entry) => ({
+                        id: entry.restaurantId,
+                        name: entry.restaurantName,
+                      }))
+                    : [];
+                  setOccupiedRestaurants(occupied);
+                }}
                 minDate={new Date().toISOString().split('T')[0]}
-                markedDates={blockedDays}
+                markedDates={Object.keys(blockedDays).reduce((acc, date) => {
+                  acc[date] = {
+                    marked: true,
+                    dots: blockedDays[date].dots.map((dot) => ({
+                      key: dot.restaurantId.toString(),
+                      color: dot.color,
+                    })),
+                  };
+                  return acc;
+                }, {})}
+                markingType={'multi-dot'}
                 theme={{
                   selectedDayBackgroundColor: COLORS.primary,
                   todayTextColor: COLORS.accent,
@@ -289,24 +221,23 @@ const AdminContent = ({
                 }}
                 style={styles.calendar}
               />
-              {occupiedRestaurants.length > 0 && (
-                <View style={styles.occupiedRestaurantsContainer}>
-                  <Text style={styles.modalSubtitle}>Забронированные рестораны:</Text>
-                  {occupiedRestaurants.map((restaurant) => (
-                    <View key={restaurant.id} style={styles.occupiedRestaurantItem}>
-                      <Icon name="restaurant" size={18} color={COLORS.primary} style={styles.itemIcon} />
-                      <Text style={styles.occupiedRestaurantText}>{restaurant.name}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-              <TouchableOpacity
-                style={[styles.modalActionButton, styles.closeButton]}
-                onPress={() => setShowCalendarModal2(false)}
-              >
-                <Icon name="close" size={20} color={COLORS.white} style={styles.buttonIcon} />
-                <Text style={styles.modalActionButtonText}>Закрыть</Text>
-              </TouchableOpacity>
+              <View style={styles.occupiedContainer}>
+                {occupiedRestaurants.length > 0 ? (
+                  <>
+                    <Text style={styles.modalText}>
+                      На этот день уже заняты следующие рестораны:
+                    </Text>
+                    {occupiedRestaurants.map((restaurant) => (
+                      <View key={restaurant.id} style={styles.occupiedItem}>
+                        <Icon name="restaurant" size={18} color={COLORS.error} />
+                        <Text style={styles.occupiedText}>{restaurant.name}</Text>
+                      </View>
+                    ))}
+                  </>
+                ) : (
+                  <Text style={styles.modalText}>В этот день нет занятых ресторанов</Text>
+                )}
+              </View>
             </ScrollView>
           </Animatable.View>
         </View>
@@ -320,13 +251,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
     padding: 20,
+    paddingTop: 40,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
     color: COLORS.textPrimary,
     marginBottom: 20,
     textAlign: 'center',
+  },
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 15,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+
+    elevation: 2,
+  },
+  infoIcon: {
+    marginRight: 10,
   },
   subtitle: {
     fontSize: 16,
@@ -336,44 +284,26 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 16,
+    fontWeight: '500',
     color: COLORS.textPrimary,
     flex: 1,
-  },
-  infoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  infoIcon: {
-    marginRight: 12,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    justifyContent: 'center',
+    marginBottom: 15,
     shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowRadius: 5,
     elevation: 3,
   },
-  viewBlockedButton: {
-    backgroundColor: COLORS.secondary,
-  },
   buttonIcon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   actionButtonText: {
     fontSize: 16,
@@ -389,9 +319,9 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '90%',
     backgroundColor: COLORS.card,
-    borderRadius: 16,
-    maxHeight: '80%',
+    borderRadius: 20,
     padding: 20,
+    maxHeight: '80%',
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -405,52 +335,52 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: COLORS.textPrimary,
+    marginBottom: 16,
+    textAlign: 'center',
   },
   modalSubtitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: COLORS.textPrimary,
-    marginBottom: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 15,
   },
   modalText: {
-    fontSize: 16,
+    fontSize: 14,
     color: COLORS.textSecondary,
     textAlign: 'center',
-    marginBottom: 16,
   },
   pickerContainer: {
     borderWidth: 1,
     borderColor: COLORS.textSecondary,
-    borderRadius: 12,
-    marginBottom: 16,
+    borderRadius: 10,
+    marginBottom: 20,
+    overflow: 'hidden',
     backgroundColor: '#F7FAFC',
   },
   picker: {
+    height: 150,
     width: '100%',
-    height: 48,
     color: COLORS.textPrimary,
   },
   modalActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.secondary,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 12,
-    padding: 12,
     justifyContent: 'center',
     shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowRadius: 5,
     elevation: 3,
-  },
-  closeButton: {
-    backgroundColor: COLORS.textSecondary,
   },
   modalActionButtonText: {
     fontSize: 16,
@@ -461,25 +391,24 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: COLORS.textSecondary,
-    marginBottom: 16,
+    marginBottom: 20,
     overflow: 'hidden',
   },
-  occupiedRestaurantsContainer: {
-    marginTop: 12,
+  occupiedContainer: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#FFF8F5',
+    borderRadius: 10,
   },
-  occupiedRestaurantItem: {
+  occupiedItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
+    marginBottom: 5,
   },
-  itemIcon: {
-    marginRight: 10,
-  },
-  occupiedRestaurantText: {
+  occupiedText: {
     fontSize: 14,
     color: COLORS.textPrimary,
+    marginLeft: 8,
   },
 });
 

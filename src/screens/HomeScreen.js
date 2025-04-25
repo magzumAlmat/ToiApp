@@ -20,6 +20,7 @@ import {
   SafeAreaView,
 } from "react-native";
 
+
 import { LinearGradient } from "expo-linear-gradient";
 // import Icon from "react-native-vector-icons/MaterialIcons";
 import AntDesign from '@expo/vector-icons/AntDesign';
@@ -781,187 +782,6 @@ const SelectedItem = ({
     </View>
   );
 };
-// const SelectedItem = ({
-//   item,
-//   quantities,
-//   setQuantities,
-//   filteredData,
-//   setFilteredData,
-//   budget,
-//   setRemainingBudget,
-//   handleRemoveItem,
-//   setDetailsModalVisible,
-//   setSelectedItem,
-//   onClose,
-//   guestCount, // Новый проп для проверки
-// }) => {
-//   const itemKey = `${item.type}-${item.id}`;
-//   const [inputQuantity, setInputQuantity] = useState(quantities[itemKey] || "1");
-
-//   useEffect(() => {
-//     setInputQuantity(quantities[itemKey] || "1");
-//   }, [quantities[itemKey]]);
-
-//   const cost = item.type === "restaurant" ? item.averageCost : item.cost;
-//   const parsedQuantityForCalc = parseInt(inputQuantity, 10) || 1;
-//   const totalCost = cost * parsedQuantityForCalc;
-
-//   const syncQuantity = (value) => {
-//     let newQuantity = value === "" ? "1" : value;
-//     let quantityForCalc = parseInt(newQuantity, 10) || 1;
-
-//     // Проверка capacity для ресторанов
-//     if (item.type === "restaurant" && guestCount) {
-//       const totalGuests = quantityForCalc * parseInt(guestCount, 10);
-//       if (totalGuests > item.capacity) {
-//         quantityForCalc = Math.floor(item.capacity / parseInt(guestCount, 10));
-//         newQuantity = quantityForCalc.toString();
-//         alert(
-//           `Вместимость ресторана (${item.capacity}) превышена. Максимальное количество: ${quantityForCalc}.`
-//         );
-//       }
-//     }
-
-//     setInputQuantity(newQuantity);
-
-//     setQuantities((prevQuantities) => {
-//       const updatedQuantities = { ...prevQuantities, [itemKey]: newQuantity };
-
-//       const updatedFilteredData = filteredData.map((dataItem) => {
-//         if (`${dataItem.type}-${dataItem.id}` === itemKey) {
-//           return { ...dataItem, totalCost: cost * quantityForCalc };
-//         }
-//         return dataItem;
-//       });
-//       setFilteredData(updatedFilteredData);
-
-//       const totalSpent = updatedFilteredData.reduce((sum, dataItem) => {
-//         const key = `${dataItem.type}-${dataItem.id}`;
-//         const itemQuantity = parseInt(updatedQuantities[key], 10) || 1;
-//         const itemCost =
-//           dataItem.type === "restaurant" ? dataItem.averageCost : dataItem.cost;
-//         return sum + itemCost * itemQuantity;
-//       }, 0);
-//       setRemainingBudget(parseFloat(budget) - totalSpent);
-
-//       return updatedQuantities;
-//     });
-//   };
-
-//   const handleQuantityChange = (value) => {
-//     const filteredValue = value.replace(/[^0-9]/g, "");
-//     const newQuantity = filteredValue === "" ? "" : filteredValue;
-//     setInputQuantity(newQuantity);
-//   };
-
-//   const incrementQuantity = () => {
-//     const currentQuantity = parseInt(inputQuantity, 10) || 1;
-//     const newQuantity = (currentQuantity + 1).toString();
-//     syncQuantity(newQuantity);
-//   };
-
-//   const decrementQuantity = () => {
-//     const currentQuantity = parseInt(inputQuantity, 10) || 1;
-//     if (currentQuantity > 1) {
-//       const newQuantity = (currentQuantity - 1).toString();
-//       syncQuantity(newQuantity);
-//     }
-//   };
-
-//   const handleBlur = () => {
-//     if (inputQuantity === "" || !inputQuantity) {
-//       setInputQuantity("1");
-//       syncQuantity("1");
-//     } else {
-//       syncQuantity(inputQuantity);
-//     }
-//   };
-
-//   let title;
-//   switch (item.type) {
-//     case "restaurant":
-//       title = `${item.name} (${cost} ₸)`;
-//       break;
-//     case "clothing":
-//       title = `${item.storeName} - ${item.itemName} (${cost} ₸)`;
-//       break;
-//     case "flowers":
-//       title = `${item.salonName} - ${item.flowerName} (${cost} ₸)`;
-//       break;
-//     case "cake":
-//       title = `${item.name} (${cost} ₸)`;
-//       break;
-//     case "alcohol":
-//       title = `${item.salonName} - ${item.alcoholName} (${cost} ₸)`;
-//       break;
-//     case "program":
-//       title = `${item.teamName} (${cost} ₸)`;
-//       break;
-//     case "tamada":
-//       title = `${item.name} (${cost} ₸)`;
-//       break;
-//     case "traditionalGift":
-//       title = `${item.salonName} - ${item.itemName} (${cost} ₸)`;
-//       break;
-//     case "transport":
-//       title = `${item.salonName} - ${item.carName} (${cost} ₸)`;
-//       break;
-//     case "goods":
-//       title = `${item.item_name} (${cost} ₸)`;
-//       break;
-//     case "jewelry":
-//       title = `${item.storeName} - ${item.itemName} (${cost} ₸)`;
-//       break;
-//     default:
-//       title = "Неизвестный элемент";
-//   }
-
-//   return (
-//     <View style={[styles.addModalItemCard, styles.selectedItemCard]}>
-//       <View style={styles.addModalItemContent}>
-//         <Text style={styles.addModalItemText}>Выбрано: {title}</Text>
-//         <View style={styles.quantityContainer}>
-//           <Text style={styles.quantityLabel}>Количество:</Text>
-//           <TouchableOpacity onPress={decrementQuantity}>
-//             <Icon name="remove" size={20} color={COLORS.primary} />
-//           </TouchableOpacity>
-//           <TextInput
-//             style={styles.quantityInput}
-//             value={inputQuantity}
-//             onChangeText={handleQuantityChange}
-//             onBlur={handleBlur}
-//             keyboardType="numeric"
-//             placeholder="1"
-//             placeholderTextColor="#666"
-//             textAlign="center"
-//           />
-//           <TouchableOpacity onPress={incrementQuantity}>
-//             <Icon name="add" size={20} color={COLORS.primary} />
-//           </TouchableOpacity>
-//           <Text style={styles.totalCostText}>
-//             Итого: {totalCost.toLocaleString()} ₸
-//           </Text>
-//         </View>
-//       </View>
-//       <TouchableOpacity
-//         style={styles.removeButton}
-//         onPress={() => handleRemoveItem(item)}
-//       >
-//         <Text style={styles.removeButtonText}>Убрать</Text>
-//       </TouchableOpacity>
-//       <TouchableOpacity
-//         style={styles.addModalDetailsButton}
-//         onPress={() => {
-//           setSelectedItem(item);
-//           setDetailsModalVisible(true);
-//           onClose();
-//         }}
-//       >
-//         <Text style={styles.addModalDetailsButtonText}>Подробнее</Text>
-//       </TouchableOpacity>
-//     </View>
-//   );
-// };
 
 
 // Модальное окно для отображения элементов категории
@@ -1239,6 +1059,7 @@ const CategoryItemsModal = ({
 // Главный экран
 
 const CreateEventScreen = ({ navigation, route }) => {
+  
   const selectedCategories = route?.params?.selectedCategories || [];
 
   const dispatch = useDispatch();

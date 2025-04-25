@@ -231,11 +231,11 @@ export default function Item4Screen({ navigation }) {
 
   const handleLogout = async () => {
     try {
-      dispatch(startLoading());
-      await SecureStore.deleteItemAsync('token');
+      dispatch(startLoading()); // Устанавливаем состояние загрузки
+      await SecureStore.deleteItemAsync('token'); // Удаляем токен асинхронно
       console.log('Token removed from SecureStore');
-      dispatch(logout());
-      navigation.navigate('Login');
+      dispatch(logout()); // Обновляем состояние в Redux
+      navigation.navigate('Login'); // Перенаправляем на экран логина
     } catch (error) {
       console.error('Logout error:', error);
       dispatch(setError('Ошибка при выходе'));
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.white,
     marginTop: 80,
-    marginBottom: 40,
+    marginBottom: 10,
     textAlign: 'center',
     zIndex: 2,
   },
@@ -438,6 +438,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: COLORS.white,
+    zIndex:5,
   },
   text: {
     fontSize: 16,

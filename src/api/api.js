@@ -154,20 +154,7 @@
 //           reserveWishlistItemWithoutToken: (id,data) => api.patch(`/api/wishlist/${id}/reservebyunknown`, {data}, ),
         
         
-//           postGoodsData:(goodsData) => api.post(`/api/goods`, goodsData),
 
-//           getGoods:(token) => api.get(`/api/goods`,  {
-//             headers: { Authorization: `Bearer ${token}` },
-//           }),
-        
-//           getGoodById: (id) => api.get(`/api/goodbyid/${id}`),
-
-//           updateGoodById:(id,data) => api.put(`/api/updategoodbyid/${id}`,data),
-
-//           deleteGoodsById: (id) => api.delete(`/api/removegoodbyid/${id}`
-//           //   ,  {
-//           //   headers: { Authorization: `Bearer ${token}` },
-//           // }
 //         ),
 
 
@@ -518,6 +505,22 @@ updateJewelry: (id, data) =>
 
 
 
+
+
+  // postGoodsData:(goodsData) => api.post(`/api/goods`, goodsData),
+
+  // getGoods:(token) => api.get(`/api/goods`,  {
+  //   headers: { Authorization: `Bearer ${token}` },
+  // }),
+
+  // getGoodById: (id) => api.get(`/api/goodbyid/${id}`),
+
+  // updateGoodById:(id,data) => api.put(`/api/updategoodbyid/${id}`,data),
+
+  //deleteGoodsById: (id) => api.delete(`/api/removegoodbyid/${id}`
+  //   ,  {
+  //   headers: { Authorization: `Bearer ${token}` },
+  // }
 
 
   // Товары

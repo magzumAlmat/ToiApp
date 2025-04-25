@@ -1,18 +1,31 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Modal, StyleSheet, SafeAreaView } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { COLORS } from '../constants/colors';
 
-const DeleteModal = ({ visible, onClose, onConfirm }) => {
+const BudgetModal = ({ visible, onClose, budget, guestCount, onBudgetChange, onGuestCountChange, onApply }) => {
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.modalOverlay}>
+    <Modal visible={visible} transparent animationType="slide">
+      <SafeAreaView style={styles.modalOverlay}>
         <Animatable.View style={styles.modalContent} animation="zoomIn" duration={300}>
-          <Text style={styles.modalTitle}>Подтверждение удаления</Text>
-          <Text style={styles.modalText}>
-            Вы уверены, что хотите удалить этот объект? Это действие нельзя отменить.
-          </Text>
-          <View style={styles.modalButtonContainer}>
+          <Text style={styles.modalTitle}>Ваш бюджет</Text>
+          <TextInput
+            style={styles.budgetInput}
+            placeholder="Введите сумму (₸)"
+            value={budget}
+            onChangeText={onBudgetChange}
+            keyboardType="numeric"
+            placeholderTextColor={COLORS.textSecondary}
+          />
+          <TextInput
+            style={styles.budgetInput}
+            placeholder="Количество гостей"
+            value={guestCount}
+            onChangeText={onGuestCountChange}
+            keyboardType="numeric"
+            placeholderTextColor={COLORS.textSecondary}
+          />
+          <View style={styles.modalActions}>
             <TouchableOpacity
               style={[styles.modalButton, styles.cancelButton]}
               onPress={onClose}
@@ -21,13 +34,13 @@ const DeleteModal = ({ visible, onClose, onConfirm }) => {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.modalButton, styles.confirmButton]}
-              onPress={onConfirm}
+              onPress={onApply}
             >
-              <Text style={styles.modalButtonText}>Удалить</Text>
+              <Text style={styles.modalButtonText}>Применить</Text>
             </TouchableOpacity>
           </View>
         </Animatable.View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 };
@@ -42,7 +55,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '90%',
     backgroundColor: COLORS.card,
-    borderRadius: 20,
+    borderRadius: 16,
     padding: 20,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 4 },
@@ -57,22 +70,29 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
   },
-  modalText: {
+  budgetInput: {
+    width: '100%',
+    height: 48,
+    borderWidth: 1,
+    borderColor: COLORS.textSecondary,
+    borderRadius: 10,
+    paddingHorizontal: 12,
     fontSize: 16,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
+    color: COLORS.textPrimary,
     marginBottom: 20,
+    backgroundColor: '#F7FAFC',
   },
-  modalButtonContainer: {
+  modalActions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
+    gap: 12,
+    width: '100%',
   },
   modalButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderRadius: 10,
     alignItems: 'center',
+    marginHorizontal: 5,
   },
   confirmButton: {
     backgroundColor: COLORS.primary,
@@ -87,4 +107,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DeleteModal;
+export default BudgetModal;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Modal, StyleSheet } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { COLORS } from '../constants/colors';
 
@@ -22,7 +22,6 @@ const NewGoodModal = ({
             placeholder="Название товара"
             value={newGoodName}
             onChangeText={setNewGoodName}
-            placeholderTextColor={COLORS.textSecondary}
           />
           <TextInput
             style={styles.input}
@@ -30,7 +29,6 @@ const NewGoodModal = ({
             value={newGoodCost}
             onChangeText={setNewGoodCost}
             keyboardType="numeric"
-            placeholderTextColor={COLORS.textSecondary}
           />
           <View style={styles.modalButtonContainer}>
             <TouchableOpacity
@@ -64,7 +62,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderRadius: 20,
     padding: 20,
-    maxHeight: '80%',
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -97,16 +94,9 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     paddingVertical: 12,
-    borderRadius: 12,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 3,
+    borderRadius: 10,
+    alignItems: 'center',
   },
   confirmButton: {
     backgroundColor: COLORS.primary,
@@ -117,7 +107,7 @@ const styles = StyleSheet.create({
   modalButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.white,
+    color: '#FFFFFF',
   },
 });
 

@@ -1,117 +1,132 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Button } from 'react-native-paper';
 import { COLORS } from '../constants/colors';
 
 const ItemCard = ({
   item,
-  user,
   quantities,
-  handleQuantityChange,
-  handleRemoveItem,
-  handleEditItem,
-  confirmDeleteItem,
+  onQuantityChange,
+  onRemoveItem,
+  onEditItem,
+  onDeleteItem,
   navigation,
+  user,
 }) => {
   const itemKey = `${item.type}-${item.id}`;
   const quantity = quantities[itemKey] || '1';
   const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
   const totalCost = item.totalCost || cost;
 
-  const renderContent = () => {
-    switch (item.type) {
-      case 'restaurant':
-        return (
-          <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Ресторан - {item.name}</Text>
-            <Text style={styles.cardDetail}>Вместимость: {item.capacity}</Text>
-            <Text style={styles.cardDetail}>Средний чек: {item.averageCost} ₸</Text>
-          </View>
-        );
-      case 'clothing':
-        return (
-          <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Одежда - {item.storeName}</Text>
-            <Text style={styles.cardDetail}>Товар: {item.itemName}</Text>
-            <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
-          </View>
-        );
-      case 'flowers':
-        return (
-          <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Салон цветов - {item.salonName}</Text>
-            <Text style={styles.cardDetail}>Цветы: {item.flowerName}</Text>
-            <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
-          </View>
-        );
-      case 'cake':
-        return (
-          <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Кондитерская - {item.name}</Text>
-            <Text style={styles.cardDetail}>Тип торта: {item.cakeType}</Text>
-            <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
-          </View>
-        );
-      case 'alcohol':
-        return (
-          <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Алкогольный магазин - {item.salonName}</Text>
-            <Text style={styles.cardDetail}>Напиток: {item.alcoholName}</Text>
-            <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
-          </View>
-        );
-      case 'program':
-        return (
-          <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Программа - {item.teamName}</Text>
-            <Text style={styles.cardDetail}>Тип: {item.type}</Text>
-            <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
-          </View>
-        );
-      case 'tamada':
-        return (
-          <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Тамада - {item.name}</Text>
-            <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
-          </View>
-        );
-      case 'traditionalGift':
-        return (
-          <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Традиционные подарки - {item.salonName}</Text>
-            <Text style={styles.cardDetail}>Товар: {item.itemName}</Text>
-            <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
-          </View>
-        );
-      case 'transport':
-        return (
-          <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Транспорт - {item.salonName}</Text>
-            <Text style={styles.cardDetail}>Авто: {item.carName} Марка: {item.brand}</Text>
-            <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
-          </View>
-        );
-      case 'goods':
-        return (
-          <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Товар - {item.item_name}</Text>
-            <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
-          </View>
-        );
-      default:
-        return <Text style={styles.cardTitle}>Неизвестный тип: {item.type}</Text>;
-    }
-  };
+  let content;
+  switch (item.type) {
+    case 'restaurant':
+      content = (
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle}>Ресторан - {item.name}</Text>
+          <Text style={styles.cardDetail}>Вместимость: {item.capacity}</Text>
+          <Text style={styles.cardDetail}>Средний чек: {item.averageCost} ₸</Text>
+        </View>
+      );
+      break;
+    case 'clothing':
+      content = (
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle}>Одежда - {item.storeName}</Text>
+          <Text style={styles.cardDetail}>Товар: {item.itemName}</Text>
+          <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
+        </View>
+      );
+      break;
+    case 'flowers':
+      content = (
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle}>Салон цветов - {item.salonName}</Text>
+          <Text style={styles.cardDetail}>Цветы: {item.flowerName}</Text>
+          <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
+        </View>
+      );
+      break;
+    case 'cake':
+      content = (
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle}>Кондитерская - {item.name}</Text>
+          <Text style={styles.cardDetail}>Тип торта: {item.cakeType}</Text>
+          <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
+        </View>
+      );
+      break;
+    case 'alcohol':
+      content = (
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle}>Алкогольный магазин - {item.salonName}</Text>
+          <Text style={styles.cardDetail}>Напиток: {item.alcoholName}</Text>
+          <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
+        </View>
+      );
+      break;
+    case 'program':
+      content = (
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle}>Программа - {item.teamName}</Text>
+          <Text style={styles.cardDetail}>Тип: {item.type}</Text>
+          <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
+        </View>
+      );
+      break;
+    case 'tamada':
+      content = (
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle}>Тамада - {item.name}</Text>
+          <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
+        </View>
+      );
+      break;
+    case 'traditionalGift':
+      content = (
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle}>Традиционные подарки - {item.salonName}</Text>
+          <Text style={styles.cardDetail}>Товар: {item.itemName}</Text>
+          <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
+        </View>
+      );
+      break;
+    case 'transport':
+      content = (
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle}>Транспорт - {item.salonName}</Text>
+          <Text style={styles.cardDetail}>Авто: {item.carName} Марка: {item.brand}</Text>
+          <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
+        </View>
+      );
+      break;
+    case 'goods':
+      content = (
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle}>Товар - {item.item_name}</Text>
+          <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
+        </View>
+      );
+      break;
+    default:
+      content = <Text style={styles.cardTitle}>Неизвестный тип: {item.type}</Text>;
+  }
 
   return (
     <View style={styles.card}>
-      {renderContent()}
+      {content}
       {user?.roleId === 3 && (
         <>
           <TouchableOpacity
             style={styles.removeButton}
-            onPress={() => handleRemoveItem(itemKey)}
+            onPress={() => onRemoveItem(itemKey)}
           >
             <Icon name="close" size={20} color={COLORS.error} />
           </TouchableOpacity>
@@ -120,7 +135,7 @@ const ItemCard = ({
               style={styles.quantityInput}
               placeholder="Кол-во"
               value={quantities[itemKey] || ''}
-              onChangeText={(value) => handleQuantityChange(itemKey, value)}
+              onChangeText={(value) => onQuantityChange(itemKey, value)}
               keyboardType="numeric"
             />
             <Text style={styles.totalCost}>Итого: {totalCost} ₸</Text>
@@ -135,10 +150,10 @@ const ItemCard = ({
       )}
       {user?.roleId === 2 && (
         <View style={styles.actionButtons}>
-          <TouchableOpacity onPress={() => handleEditItem(item.id, item.type)}>
+          <TouchableOpacity onPress={() => onEditItem(item.id, item.type)}>
             <Icon name="edit" size={20} color={COLORS.secondary} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => confirmDeleteItem(item.id, item.type)}>
+          <TouchableOpacity onPress={() => onDeleteItem(item.id, item.type)}>
             <Icon name="delete" size={20} color={COLORS.primary} />
           </TouchableOpacity>
         </View>
@@ -193,7 +208,7 @@ const styles = StyleSheet.create({
   totalCost: {
     fontSize: 14,
     fontWeight: '500',
-    color: COLORS.textPrimary,
+    color: '#000000',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -212,7 +227,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   detailsButtonText: {
-    color: COLORS.white,
+    color: '#FFFFFF',
     fontSize: 14,
   },
 });

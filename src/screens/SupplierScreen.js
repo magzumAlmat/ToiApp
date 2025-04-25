@@ -1,4 +1,420 @@
-// SupplierScreen.js
+// import React, { useEffect, useState,useCallback } from 'react';
+// import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
+// import { createStackNavigator } from '@react-navigation/stack';
+// import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+// import { useSelector } from 'react-redux';
+// import HomeScreen from '../screens/HomeScreen';
+// import ItemEditScreen from '../screens/ItemEditScreen';
+// import Item2Screen from '../screens/Item2Screen';
+// import Item3Screen from '../screens/Item3Screen';
+// import Item4Screen from '../screens/Item4Screen';
+// import LoginScreen from '../screens/LoginScreen';
+// import RegisterScreen from '../screens/RegisterScreen';
+// import { View, Image, StyleSheet, TouchableOpacity, ImageBackground, FlatList, SafeAreaView } from 'react-native';
+// import DetailsScreen from '../screens/DetailsScreen';
+// import WeddingWishlistScreen from '../screens/WeddingWishlistScreen';
+// import * as Linking from 'expo-linking';
+// import { Text } from 'react-native-paper';
+// import AddItemModal from '../components/AddItemModal';
+// import { useFocusEffect } from '@react-navigation/native';
+// import SupplierContent from '../components/SupplierContent'
+
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// const SupplierScreen = ({ navigation }) => {
+//     const [user, setUser] = useState(null);
+//   const [data, setData] = useState({
+//     restaurants: [],
+//     clothing: [],
+//     tamada: [],
+//     programs: [],
+//     traditionalGifts: [],
+//     flowers: [],
+//     cakes: [],
+//     alcohol: [],
+//     transport: [],
+//     goods: [],
+//   });
+//   const [filteredData, setFilteredData] = useState([]);
+//   const [budget, setBudget] = useState('');
+//   const [guestCount, setGuestCount] = useState('');
+//   const [remainingBudget, setRemainingBudget] = useState(0);
+//   const [priceFilter, setPriceFilter] = useState('average');
+//   const [budgetModalVisible, setBudgetModalVisible] = useState(false);
+//   const [addItemModalVisible, setAddItemModalVisible] = useState(false);
+//   const [weddingModalVisible, setWeddingModalVisible] = useState(false);
+//   const [warningModalVisible, setWarningModalVisible] = useState(false);
+//   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+//   const [newGoodModalVisible, setNewGoodModalVisible] = useState(false);
+//   const [itemToDelete, setItemToDelete] = useState(null);
+//   const [newGoodName, setNewGoodName] = useState('');
+//   const [newGoodCost, setNewGoodCost] = useState('');
+//   const [weddingName, setWeddingName] = useState('');
+//   const [weddingDate, setWeddingDate] = useState(new Date());
+//   const [showDatePicker, setShowDatePicker] = useState(false);
+//   const [blockedDays, setBlockedDays] = useState({});
+//   const [quantities, setQuantities] = useState({});
+//   const [loading, setLoading] = useState(true);
+//   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+//   const [tempRestaurantId, setTempRestaurantId] = useState(null);
+//   const [showRestaurantModal, setShowRestaurantModal] = useState(false);
+//   const [showCalendarModal, setShowCalendarModal] = useState(false);
+//   const [showCalendarModal2, setShowCalendarModal2] = useState(false);
+//   const [occupiedRestaurants, setOccupiedRestaurants] = useState([]);
+
+
+//   useFocusEffect(
+//     useCallback(() => {
+//       const loadUserData = async () => {
+//         try {
+//           const storedUser = await AsyncStorage.getItem('user');
+//           if (storedUser) {
+//             const parsedUser = JSON.parse(storedUser);
+//             setUser(parsedUser);
+//             const fetchedData = await fetchData();
+//             setData(fetchedData);
+
+//             const blocked = {};
+//             fetchedData.restaurants.forEach((restaurant) => {
+//               if (restaurant.blocked_days) {
+//                 restaurant.blocked_days.forEach((date) => {
+//                   if (!blocked[date]) {
+//                     blocked[date] = { dots: [] };
+//                   }
+//                   blocked[date].dots.push({
+//                     restaurantId: restaurant.id,
+//                     restaurantName: restaurant.name,
+//                     color: COLORS.error,
+//                   });
+//                 });
+//               }
+//             });
+//             setBlockedDays(blocked);
+//           } else {
+//             navigation.replace('Login');
+//           }
+//         } catch (error) {
+//           console.error('Ошибка при загрузке данных:', error);
+//           Alert.alert('Ошибка', 'Не удалось загрузить данные. Попробуйте снова.');
+//         } finally {
+//           setLoading(false);
+//         }
+//       };
+//       loadUserData();
+//     }, [navigation])
+//   );
+
+
+//   const fetchData = async () => {
+//     try {
+//       const response = await fetch('http://localhost:3000/data'); // Adjust endpoint as needed
+//       if (response.ok) {
+//         return await response.json();
+//       } else {
+//         throw new Error('Failed to fetch data');
+//       }
+//     } catch (error) {
+//       console.error('Fetch data error:', error);
+//       throw error;
+//     }
+//   };
+
+
+//   const handleBudgetChange = (value) => setBudget(value);
+//   const handleGuestCountChange = (value) => setGuestCount(value);
+
+//   const filterDataByBudget = () => {
+//     if (!budget || isNaN(budget)) {
+//       Alert.alert('Ошибка', 'Пожалуйста, введите корректный бюджет');
+//       return;
+//     }
+
+//     const budgetNum = parseFloat(budget);
+//     let filtered = [];
+
+//     const addItemToFiltered = (item, type, costField) => {
+//       const cost = item[costField];
+//       if (type === 'restaurant' && guestCount && item.capacity < parseInt(guestCount)) {
+//         return;
+//       }
+//       if (priceFilter === 'min' && cost <= budgetNum * 0.3) {
+//         filtered.push({ ...item, type, totalCost: cost });
+//       } else if (priceFilter === 'average' && cost <= budgetNum * 0.6) {
+//         filtered.push({ ...item, type, totalCost: cost });
+//       } else if (priceFilter === 'max' && cost <= budgetNum) {
+//         filtered.push({ ...item, type, totalCost: cost });
+//       }
+//     };
+
+//     Object.keys(data).forEach((key) => {
+//       const typeMap = {
+//         restaurants: { type: 'restaurant', costField: 'averageCost' },
+//         clothing: { type: 'clothing', costField: 'cost' },
+//         tamada: { type: 'tamada', costField: 'cost' },
+//         programs: { type: 'program', costField: 'cost' },
+//         traditionalGifts: { type: 'traditionalGift', costField: 'cost' },
+//         flowers: { type: 'flowers', costField: 'cost' },
+//         cakes: { type: 'cake', costField: 'cost' },
+//         alcohol: { type: 'alcohol', costField: 'cost' },
+//         transport: { type: 'transport', costField: 'cost' },
+//         goods: { type: 'goods', costField: 'cost' },
+//       };
+//       if (typeMap[key]) {
+//         data[key].forEach((item) => addItemToFiltered(item, typeMap[key].type, typeMap[key].costField));
+//       }
+//     });
+
+//     setFilteredData(filtered);
+//     setRemainingBudget(
+//       budgetNum - filtered.reduce((sum, item) => sum + (item.totalCost || item.cost || 0), 0)
+//     );
+//     setBudgetModalVisible(false);
+//   };
+
+//   const handleQuantityChange = (itemKey, value) => {
+//     setQuantities((prev) => {
+//       const newQuantities = { ...prev, [itemKey]: value };
+//       const totalCost = filteredData.reduce((sum, item) => {
+//         const key = `${item.type}-${item.id}`;
+//         const quantity = parseInt(newQuantities[key] || 1);
+//         const cost = item.totalCost || item.cost || 0;
+//         return sum + (isNaN(quantity) ? cost : quantity * cost);
+//       }, 0);
+//       setRemainingBudget(parseFloat(budget) - totalCost);
+//       return newQuantities;
+//     });
+//   };
+
+//   const handleAddItem = (item) => {
+//     setFilteredData((prev) => {
+//       const newData = [...prev, { ...item, type: item.type, totalCost: item.cost || item.averageCost }];
+//       const totalCost = newData.reduce((sum, item) => {
+//         const key = `${item.type}-${item.id}`;
+//         const quantity = parseInt(quantities[key] || 1);
+//         const cost = item.totalCost || item.cost || 0;
+//         return sum + (isNaN(quantity) ? cost : quantity * cost);
+//       }, 0);
+//       setRemainingBudget(parseFloat(budget) - totalCost);
+//       return newData;
+//     });
+//     setAddItemModalVisible(false);
+//   };
+
+//   const handleRemoveItem = (itemKey) => {
+//     setFilteredData((prev) => {
+//       const newData = prev.filter((item) => `${item.type}-${item.id}` !== itemKey);
+//       const totalCost = newData.reduce((sum, item) => {
+//         const key = `${item.type}-${item.id}`;
+//         const quantity = parseInt(quantities[key] || 1);
+//         const cost = item.totalCost || item.cost || 0;
+//         return sum + (isNaN(quantity) ? cost : quantity * cost);
+//       }, 0);
+//       setRemainingBudget(parseFloat(budget) - totalCost);
+//       return newData;
+//     });
+//     setQuantities((prev) => {
+//       const newQuantities = { ...prev };
+//       delete newQuantities[itemKey];
+//       return newQuantities;
+//     });
+//   };
+
+//   const handleCreateGood = async () => {
+//     if (!newGoodName || !newGoodCost) {
+//       Alert.alert('Ошибка', 'Пожалуйста, заполните все поля');
+//       return;
+//     }
+//     try {
+//       const newGood = {
+//         item_name: newGoodName,
+//         cost: parseFloat(newGoodCost),
+//         supplier_id: user.id,
+//         category: 'Прочее',
+//       };
+//       const response = await fetch('http://192.168.1.104:3000/goods', {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify(newGood),
+//       });
+//       if (response.ok) {
+//         const createdGood = await response.json();
+//         setData((prev) => ({
+//           ...prev,
+//           goods: [...prev.goods, createdGood],
+//         }));
+//         setNewGoodName('');
+//         setNewGoodCost('');
+//         setNewGoodModalVisible(false);
+//         Alert.alert('Успех', 'Товар успешно создан');
+//       } else {
+//         Alert.alert('Ошибка', 'Не удалось создать товар');
+//       }
+//     } catch (error) {
+//       console.error('Ошибка при создании товара:', error);
+//       Alert.alert('Ошибка', 'Произошла ошибка при создании товара');
+//     }
+//   };
+
+//   const handleEditItem = (id, type) => {
+//     navigation.navigate('EditItem', { id, type });
+//   };
+
+//   const handleDeleteItem = async () => {
+//     if (!itemToDelete) return;
+//     const { id, type } = itemToDelete;
+//     try {
+//       const typeMap = {
+//         restaurant: 'restaurants',
+//         clothing: 'clothing',
+//         tamada: 'tamada',
+//         program: 'programs',
+//         traditionalGift: 'traditionalGifts',
+//         flowers: 'flowers',
+//         cake: 'cakes',
+//         alcohol: 'alcohol',
+//         transport: 'transport',
+//         goods: 'goods',
+//       };
+//       const endpoint = typeMap[type];
+//       if (!endpoint) {
+//         Alert.alert('Ошибка', 'Неверный тип объекта');
+//         return;
+//       }
+//       const response = await fetch(`http://192.168.1.104:3000/${endpoint}/${id}`, {
+//         method: 'DELETE',
+//       });
+//       if (response.ok) {
+//         setData((prev) => ({
+//           ...prev,
+//           [endpoint]: prev[endpoint].filter((item) => item.id !== id),
+//         }));
+//         setDeleteModalVisible(false);
+//         setItemToDelete(null);
+//         Alert.alert('Успех', 'Объект успешно удален');
+//       } else {
+//         Alert.alert('Ошибка', 'Не удалось удалить объект');
+//       }
+//     } catch (error) {
+//       console.error('Ошибка при удалении объекта:', error);
+//       Alert.alert('Ошибка', 'Произошла ошибка при удалении объекта');
+//     }
+//   };
+
+//   const handleSelectRestaurant = () => {
+//     const restaurant = data.restaurants.find((r) => r.id === tempRestaurantId);
+//     if (restaurant) {
+//       setSelectedRestaurant(restaurant);
+//       setShowRestaurantModal(false);
+//       setShowCalendarModal(true);
+//     } else {
+//       Alert.alert('Ошибка', 'Пожалуйста, выберите ресторан');
+//     }
+//   };
+
+//   const onDateChange = (day) => {
+//     const selected = new Date(day.timestamp);
+//     const dateString = selected.toISOString().split('T')[0];
+//     if (blockedDays[dateString]?.dots?.some((dot) => dot.restaurantId === selectedRestaurant?.id)) {
+//       setWarningModalVisible(true);
+//     } else {
+//       setWeddingDate(selected);
+//       setShowDatePicker(false);
+//     }
+//   };
+
+//   const handleCreateWedding = async () => {
+//     if (!weddingName || !weddingDate || filteredData.length === 0) {
+//       Alert.alert('Ошибка', 'Заполните все поля и выберите элементы для свадьбы');
+//       return;
+//     }
+
+//     const dateString = weddingDate.toISOString().split('T')[0];
+//     const isBlocked = blockedDays[dateString]?.dots?.some(
+//       (dot) => dot.restaurantId === filteredData.find((item) => item.type === 'restaurant')?.id
+//     );
+
+//     if (isBlocked) {
+//       setWarningModalVisible(true);
+//       return;
+//     }
+
+//     try {
+//       const weddingData = {
+//         user_id: user.id,
+//         name: weddingName,
+//         date: weddingDate.toISOString().split('T')[0],
+//         items: filteredData.map((item) => ({
+//           type: item.type,
+//           id: item.id,
+//           quantity: parseInt(quantities[`${item.type}-${item.id}`] || 1),
+//           totalCost: item.totalCost || item.cost || item.averageCost,
+//         })),
+//       };
+//       const response = await createWedding(weddingData);
+//       if (response.ok) {
+//         Alert.alert('Успех', 'Свадьба успешно создана');
+//         setWeddingModalVisible(false);
+//         setWeddingName('');
+//         setWeddingDate(new Date());
+//         setFilteredData([]);
+//         setQuantities({});
+//         setBudget('');
+//         setGuestCount('');
+//         setRemainingBudget(0);
+//       } else {
+//         Alert.alert('Ошибка', 'Не удалось создать свадьбу');
+//       }
+//     } catch (error) {
+//       console.error('Ошибка при создании свадьбы:', error);
+//       Alert.alert('Ошибка', 'Произошла ошибка при создании свадьбы');
+//     }
+//   };
+
+//   const handleBlockRestaurantDay = async (restaurantId, date) => {
+//     try {
+//       const response = await blockRestaurantDay(restaurantId, date.toISOString().split('T')[0]);
+//       if (response.ok) {
+//         const updatedBlockedDays = { ...blockedDays };
+//         const dateString = date.toISOString().split('T')[0];
+//         if (!updatedBlockedDays[dateString]) {
+//           updatedBlockedDays[dateString] = { dots: [] };
+//         }
+//         updatedBlockedDays[dateString].dots.push({
+//           restaurantId,
+//           restaurantName: selectedRestaurant.name,
+//           color: COLORS.error,
+//         });
+//         setBlockedDays(updatedBlockedDays);
+//         Alert.alert('Успех', 'Дата успешно забронирована');
+//       } else {
+//         Alert.alert('Ошибка', 'Не удалось забронировать дату');
+//       }
+//     } catch (error) {
+//       console.error('Ошибка при бронировании даты:', error);
+//       Alert.alert('Ошибка', 'Произошла ошибка при бронировании даты');
+//     }
+//   };
+
+
+
+
+
+
+
+//   return (
+//     <>
+
+//         <View style={{ marginTop: "20%" }}>
+       
+
+//         </View>
+
+//     </>
+//   );
+// };
+// export default SupplierScreen;
+
+
+
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -12,7 +428,7 @@ import {
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../store/authSlice';
-import api from '../api/api';
+import api from '../api/api'
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as Animatable from 'react-native-animatable';
 import { ActivityIndicator } from 'react-native';
@@ -30,8 +446,8 @@ const COLORS = {
   error: '#FF0000',
 };
 
-export default function SupplierScreen() {
-  const navigation = useNavigation();
+export default function SupplierScreen({ navigation }) {
+
   const dispatch = useDispatch();
   const { token, user } = useSelector((state) => state.auth);
   const [data, setData] = useState({
@@ -53,27 +469,92 @@ export default function SupplierScreen() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
+  // const fetchData = async () => {
+  //   if (!token || !user?.id || user?.roleId !== 2) return;
+  //   setLoading(true);
+  //   try {
+  //     const responses = await Promise.all([
+  //       api.getRestaurans,
+  //       api.getAllClothing,
+  //       api.getAllTamada,
+  //       api.getAllPrograms,
+  //       api.getAllTraditionalGifts,
+  //       api.getAllFlowers,
+  //       api.getAllCakes,
+  //       api.getAllAlcohol,
+  //       api.getAllTransport,
+  //       api.getGoods(token),
+  //     ]);
+  
+  //     // Логирование ответов для отладки
+  //     console.log('API responses:', responses);
+  
+  //     const userData = responses.map((response, index) => {
+  //       if (!response || !response.data) {
+  //         console.warn(`Response ${index} is invalid or has no data:`, response);
+  //         return []; // Возвращаем пустой массив, если response.data отсутствует
+  //       }
+  //       return response.data.filter((item) => item.supplier_id === user.id) || [];
+  //     });
+  
+  //     const newData = {
+  //       restaurants: userData[0] || [],
+  //       clothing: userData[1] || [],
+  //       tamada: userData[2] || [],
+  //       programs: userData[3] || [],
+  //       traditionalGifts: userData[4] || [],
+  //       flowers: userData[5] || [],
+  //       cakes: userData[6] || [],
+  //       alcohol: userData[7] || [],
+  //       transport: userData[8] || [],
+  //       goods: userData[9] || [],
+  //     };
+  //     setData(newData);
+  //   } catch (error) {
+  //     console.error('Ошибка загрузки данных:', error);
+  //     alert('Ошибка загрузки данных: ' + (error.response?.data?.message || error.message));
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const fetchData = async () => {
-    if (!token || !user?.id || user?.roleId !== 2) return;
+    console.log('fetchData: user=', user, 'token=', token);
+    if (!token || !user?.id || user?.roleId !== 2) {
+      console.warn('Missing token or user data, skipping fetch');
+      return;
+    }
     setLoading(true);
     try {
-      const responses = await Promise.all([
-        api.getRestaurans(),
-        api.getAllClothing(),
-        api.getAllTamada(),
-        api.getAllPrograms(),
-        api.getAllTraditionalGifts(),
-        api.getAllFlowers(),
-        api.getAllCakes(),
-        api.getAllAlcohol(),
-        api.getAllTransport(),
+      const responses = await Promise.allSettled([
+        api.getRestaurants(),
+        api.getClothing(),
+        api.getTamada(),
+        api.getPrograms(),
+        api.getTraditionalGifts(),
+        api.getFlowers(),
+        api.getCakes(),
+        api.getAlcohol(),
+        api.getTransport(),
         api.getGoods(token),
       ]);
-
-      const userData = responses.map((response) =>
-        response.data.filter((item) => item.supplier_id === user.id)
-      );
-
+  
+      console.log('API responses:', responses);
+  
+      const userData = responses.map((result, index) => {
+        if (result.status === 'fulfilled' && result.value?.data) {
+          console.log(`Response ${index} data:`, result.value.data);
+          return (
+            result.value.data.filter((item) => {
+              const supplierId = item.supplier_id || item.supplierId || item.user_id;
+              return supplierId === user.id;
+            }) || []
+          );
+        }
+        console.warn(`Request ${index} failed or has no data:`, result);
+        return [];
+      });
+  
       const newData = {
         restaurants: userData[0] || [],
         clothing: userData[1] || [],
@@ -86,6 +567,7 @@ export default function SupplierScreen() {
         transport: userData[8] || [],
         goods: userData[9] || [],
       };
+      console.log('Processed data:', newData);
       setData(newData);
     } catch (error) {
       console.error('Ошибка загрузки данных:', error);
@@ -94,6 +576,10 @@ export default function SupplierScreen() {
       setLoading(false);
     }
   };
+
+
+
+
 
   useEffect(() => {
     if (!token || user?.roleId !== 2) {
@@ -273,7 +759,7 @@ export default function SupplierScreen() {
             <Text style={styles.cardDetail}>Цветы: {item.flowerName}</Text>
             <Text style={styles.cardDetail}>Тип: {item.flowerType}</Text>
             <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
-            <Text style={styles.cardDetail}>  style={styles.cardDetail}>Адрес: {item.address}</Text>
+            <Text style={styles.cardDetail}>Адрес: {item.address}</Text>
           </View>
         );
         break;
@@ -394,12 +880,12 @@ export default function SupplierScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.supplierContainer}>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.createButton}
             onPress={() => setNewGoodModalVisible(true)}
           >
             <Text style={styles.createButtonText}>Добавить товар</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={COLORS.primary} />

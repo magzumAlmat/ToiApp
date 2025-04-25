@@ -1,26 +1,35 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet,Modal } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  FlatList,
+  Modal,
+  StyleSheet,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as Animatable from 'react-native-animatable';
 import { COLORS } from '../constants/colors';
 
-const AddItemModal = ({
-  visible,
-  setVisible,
-  combinedData,
-  filteredData,
-  handleAddItem,
-  searchQuery,
-  setSearchQuery,
-  selectedTypeFilter,
-  setSelectedTypeFilter,
-  selectedDistrict,
-  setSelectedDistrict,
-  costRange,
-  setCostRange,
-  openModal, // Add openModal prop
-}) => {
-  const [isButtonDisabled, setIsButtonDisabled] = useState(false); // For debouncing
+const AddItemModal = ({ visible, onClose, data, onAddItem, filteredData }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState('all');
+  const [selectedDistrict, setSelectedDistrict] = useState('all');
+  const [costRange, setCostRange] = useState('all');
+
+  const combinedData = [
+    ...data.restaurants.map((item) => ({ ...item, type: 'restaurant' })),
+    ...data.clothing.map((item) => ({ ...item, type: 'clothing' })),
+    ...data.tamada.map((item) => ({ ...item, type: 'tamada' })),
+    ...data.programs.map((item) => ({ ...item, type: 'program' })),
+    ...data.traditionalGifts.map((item) => ({ ...item, type: 'traditionalGift' })),
+    ...data.flowers.map((item) => ({ ...item, type: 'flowers' })),
+    ...data.cakes.map((item) => ({ ...item, type: 'cake' })),
+    ...data.alcohol.map((item) => ({ ...item, type: 'alcohol' })),
+    ...data.transport.map((item) => ({ ...item, type: 'transport' })),
+    ...data.goods.map((item) => ({ ...item, type: 'goods' })),
+  ].filter((item) => item.type !== 'goods' || item.category !== 'Прочее');
 
   const typesMapping = [
     { key: 'clothing', costField: 'cost', type: 'clothing', label: 'Одежда' },
@@ -102,17 +111,7 @@ const AddItemModal = ({
 
   const filteredItems = getFilteredData();
 
-  // Debounce function to prevent rapid clicks
-  const debounce = (func, delay) => {
-    return (...args) => {
-      if (isButtonDisabled) return;
-      setIsButtonDisabled(true);
-      func(...args);
-      setTimeout(() => setIsButtonDisabled(false), delay);
-    };
-  };
-
-  const renderAddItem = ({ item }) => {
+  const renderItem = ({ item }) => {
     const isSelected = filteredData.some(
       (selectedItem) => `${selectedItem.type}-${selectedItem.id}` === `${item.type}-${item.id}`
     );
@@ -157,26 +156,14 @@ const AddItemModal = ({
     }
 
     return (
-      <View style={styles.addModalItemCard}>
-        <TouchableOpacity
-          style={styles.addModalItemContent}
-          onPress={debounce(() => handleAddItem(item), 300)}
-        >
-          <Text style={styles.addModalItemText}>{title}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.addModalDetailsButton}
-          onPress={debounce(() => openModal('details', { item }), 300)}
-        >
-          <Text style={styles.addModalDetailsButtonText}>Подробнее</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity style={styles.addItemCard} onPress={() => onAddItem(item)}>
+        <Text style={styles.addItemText}>{title}</Text>
+      </TouchableOpacity>
     );
   };
 
   return (
     <Modal visible={visible} transparent animationType="slide">
-
       <View style={styles.modalOverlay}>
         <Animatable.View style={styles.addModalContainer} animation="zoomIn" duration={300}>
           <View style={styles.addModalHeader}>
@@ -184,7 +171,7 @@ const AddItemModal = ({
             <TouchableOpacity
               style={styles.addModalCloseIcon}
               onPress={() => {
-                setVisible(false);
+                onClose();
                 setSearchQuery('');
                 setSelectedTypeFilter('all');
                 setSelectedDistrict('all');
@@ -297,7 +284,7 @@ const AddItemModal = ({
 
           <FlatList
             data={filteredItems}
-            renderItem={renderAddItem}
+            renderItem={renderItem}
             keyExtractor={(item) => `${item.type}-${item.id}`}
             contentContainerStyle={styles.addModalItemList}
             ListEmptyComponent={<Text style={styles.addModalEmptyText}>Ничего не найдено</Text>}
@@ -462,41 +449,15 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 12,
   },
-  addModalItemCard: {
+  addItemCard: {
     backgroundColor: COLORS.card,
     borderRadius: 10,
     padding: 12,
     marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#EDF2F7',
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  addModalItemContent: {
-    flex: 1,
-    marginRight: 10,
-  },
-  addModalItemText: {
+  addItemText: {
     fontSize: 14,
     color: COLORS.textPrimary,
-    fontWeight: '500',
-  },
-  addModalDetailsButton: {
-    backgroundColor: COLORS.secondary,
-    borderRadius: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  addModalDetailsButtonText: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: '500',
   },
   addModalEmptyText: {
     fontSize: 14,
