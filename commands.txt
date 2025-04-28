@@ -13,3 +13,11 @@ npx expo start --clear
 
 
   npx expo start --tunnel
+
+
+
+
+   rm mipmap-mdpi/ic_launcher_foreground.png    mipmap-mdpi/ic_launcher_round.png  mipmap-mdpi/ic_launcher.png
+billionare@mac res % rm mipmap-xhdpi/ic_launcher_foreground.png    mipmap-xhdpi/ic_launcher_round.png  mipmap-xhdpi/ic_launcher.png
+billionare@mac res % rm mipmap-xxhdpi/ic_launcher_foreground.png    mipmap-xxhdpi/ic_launcher_round.png  mipmap-xxhdpi/ic_launcher.png
+billionare@mac res % rm mipmap-xxxhdpi/ic_launcher_foreground.png    mipmap-xxxhdpi/ic_launcher_round.png  mipmap-xxxhdpi/ic_launcher.png

@@ -14,6 +14,14 @@
     },
     "production": {
       "autoIncrement": true
+    },
+    "release": {
+      "android": {
+        "gradleCommand": ":app:assembleRelease",
+        "cache": {
+          "disabled": true
+        }
+      }
     }
   },
   "submit": {
