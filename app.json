@@ -18,13 +18,14 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.amagzum.mobile",
       "infoPlist": {
-        "NSCalendarsFullAccessUsageDescription": "Это приложение требует доступ к вашему календарю для добавления событий, связанных с вашей свадьбой."
+        "NSCalendarsFullAccessUsageDescription": "Это приложение требует доступ к вашему календарю для добавления событий, связанных с вашей свадьбой.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor":"./assets/adaptive-icon.png"
       },
       "permissions": [
         "android.permission.READ_CALENDAR",
