@@ -21,3 +21,10 @@ npx expo start --clear
 billionare@mac res % rm mipmap-xhdpi/ic_launcher_foreground.png    mipmap-xhdpi/ic_launcher_round.png  mipmap-xhdpi/ic_launcher.png
 billionare@mac res % rm mipmap-xxhdpi/ic_launcher_foreground.png    mipmap-xxhdpi/ic_launcher_round.png  mipmap-xxhdpi/ic_launcher.png
 billionare@mac res % rm mipmap-xxxhdpi/ic_launcher_foreground.png    mipmap-xxxhdpi/ic_launcher_round.png  mipmap-xxxhdpi/ic_launcher.png
+
+
+
+eas login
+eas build:configure --platform ios
+
+npx expo run:ios --configuration Release    Это создаст нативный билд в папке ios/build/

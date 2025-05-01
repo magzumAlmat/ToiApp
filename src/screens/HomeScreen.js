@@ -1792,11 +1792,107 @@ const CreateEventScreen = ({ navigation, route }) => {
     return (typeOrder[typeA] || 11) - (typeOrder[typeB] || 11);
   });
 
+  // const renderCategory = (item) => {
+  //   if (item === "Добавить") {
+  //     return (
+  //       <View style={styles.categoryRow}>
+         
+  //         <TouchableOpacity
+  //               style={styles.categoryButton}
+  //               onPress={() => setAddItemModalVisible(true)}
+  //             >
+  //                 <LinearGradient
+  //                   colors={[COLORS.buttonGradientStart, COLORS.buttonGradientEnd]}
+  //                   style={styles.categoryButtonGradient}
+  //                 >
+  //                   <View style={{ flexDirection: "row", alignItems: "center" }}>
+  //                     {/* <Icon
+  //                       name="add"
+  //                       size={20}
+  //                       color={COLORS.white}
+  //                       style={{ marginRight: 0 }} // Убираем marginRight, так как текста больше нет
+  //                     /> */}
+  //                     <Text style={styles.categoryPlusText}>+</Text>
+  //                   </View>
+  //                 </LinearGradient>
+  //               </TouchableOpacity>
+  //       </View>
+  //     );
+  //   }
+
+  //   const isDisabled = disabledCategories.includes(item);
+
+  //   return (
+  //     <View style={styles.categoryRow}>
+  //       <TouchableOpacity
+  //         style={styles.removeCategoryButton}
+  //         onPress={() => handleRemoveCategory(item)}
+  //       >
+  //         <Icon
+  //           name={isDisabled ? "add-circle" : "remove-circle"}
+  //           size={20}
+  //           color={isDisabled ? COLORS.primary : COLORS.error}
+  //         />
+  //       </TouchableOpacity>
+  //       <TouchableOpacity
+  //         style={[styles.categoryButton, isDisabled && styles.disabledCategoryButton]}
+  //         onPress={() => {
+  //           if (!isDisabled) {
+  //             handleCategoryPress(item);
+  //           }
+  //         }}
+  //         disabled={isDisabled}
+  //       >
+  //         <LinearGradient
+  //           colors={[COLORS.buttonGradientStart, COLORS.buttonGradientEnd]}
+  //           style={styles.categoryButtonGradient}
+  //         >
+  //           <View style={{ flexDirection: "row", alignItems: "center" }}>
+  //             <Icon
+  //               name={
+  //                 item === "Ресторан"
+  //                   ? "restaurant"
+  //                   : item === "Прокат авто"
+  //                   ? "directions-car"
+  //                   : item === "Фото-видео съёмка"
+  //                   ? "camera-alt"
+  //                   : item === "Ведущий"
+  //                   ? "mic"
+  //                   : item === "Традиционные подарки"
+  //                   ? "card-giftcard"
+  //                   : item === "Свадебный салон"
+  //                   ? "store"
+  //                   : item === "Алкоголь"
+  //                   ? "local-drink"
+  //                   : item === "Ювелирные изделия"
+  //                   ? "diamond"
+  //                   : item === "Торты"
+  //                   ? "cake"
+  //                   : "category"
+  //               }
+  //               size={20}
+  //               color={COLORS.white}
+  //               style={{ marginRight: 10 }}
+  //             />
+  //             <Text style={styles.categoryText}>{item}</Text>
+  //           </View>
+  //         </LinearGradient>
+  //       </TouchableOpacity>
+  //     </View>
+  //   );
+  // };
+
+
+
+
+
+
+
   const renderCategory = (item) => {
     if (item === "Добавить") {
       return (
         <View style={styles.categoryRow}>
-          {/* <TouchableOpacity
+          <TouchableOpacity
             style={styles.categoryButton}
             onPress={() => setAddItemModalVisible(true)}
           >
@@ -1805,51 +1901,84 @@ const CreateEventScreen = ({ navigation, route }) => {
               style={styles.categoryButtonGradient}
             >
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Icon
-                  name="add"
-                  size={20}
-                  color={COLORS.white}
-                  style={{ marginRight: 10 }}
-                />
-                <Text style={styles.categoryText}>Добавить</Text>
+                <Text style={styles.categoryPlusText}>+</Text>
               </View>
             </LinearGradient>
-          </TouchableOpacity> */}
-          <TouchableOpacity
-  style={styles.categoryButton}
-  onPress={() => setAddItemModalVisible(true)}
->
-  <LinearGradient
-    colors={[COLORS.buttonGradientStart, COLORS.buttonGradientEnd]}
-    style={styles.categoryButtonGradient}
-  >
-    <View style={{ flexDirection: "row", alignItems: "center" }}>
-      {/* <Icon
-        name="add"
-        size={20}
-        color={COLORS.white}
-        style={{ marginRight: 0 }} // Убираем marginRight, так как текста больше нет
-      /> */}
-      <Text style={styles.categoryPlusText}>+</Text>
-    </View>
-  </LinearGradient>
-</TouchableOpacity>
+          </TouchableOpacity>
         </View>
       );
     }
-
+  
     const isDisabled = disabledCategories.includes(item);
+  
 
+ 
+  // 'Шоу программа': "program",
+ 
+  // 'Традиционные подарки': "traditionalGift",
+ 
+
+ 
+
+
+    // Маппинг категорий на изображения для активного и неактивного состояния
+    const categoryIcons = {
+     "Цветы": {
+        off: require("../../assets/cvetyOn.png"),
+        on: require("../../assets/cvetyOff.png"),
+      },
+      "Прокат авто": {
+        off: require("../../assets/prokatAvtoOn.png"),
+        on: require("../../assets/prokatAutooff.png"),
+      },
+      "Шоу программа": {
+        off: require("../../assets/show.png"),
+        on: require("../../assets/showTurnOff.png"),
+      },
+      "Ресторан": {
+        off: require("../../assets/restaurantOn.png"),
+        on: require("../../assets/restaurantTurnOff.png"),
+      },
+     
+      "Ведущий": {
+        off: require("../../assets/vedushieOn.png"),
+        on: require("../../assets/vedushieOff.png"),
+      },
+      // "Традиционные подарки": {
+      //   on: require("../assets/icons/giftOn.png"),
+      //   off: require("../assets/icons/giftOff.png"),
+      // },
+      "Свадебный салон": {
+        off: require("../../assets/svadebnyisalon.png"),
+        on: require("../../assets/svadeblyisalonOff.png"),
+      },
+      "Алкоголь": {
+        off: require("../../assets/alcoholOn.png"),
+        on: require("../../assets/alcoholOff.png"),
+      },
+      "Ювелирные изделия": {
+        off: require("../../assets/uvizdeliyaOn.png"),
+        on: require("../../assets/uvIzdeliyaOff.png"),
+      },
+      "Торты": {
+        off: require("../../assets/torty.png"),
+        on: require("../../assets/tortyTurnOff.png"),
+      },
+      // Добавьте другие категории, если нужно
+    };
+  
+    // Иконка для категории внутри кнопки
+    const categoryIcon = categoryIcons[item]?.on || require("../../assets/join.png"); // Иконка по умолчанию, если не найдена
+  
     return (
       <View style={styles.categoryRow}>
         <TouchableOpacity
           style={styles.removeCategoryButton}
           onPress={() => handleRemoveCategory(item)}
         >
-          <Icon
-            name={isDisabled ? "add-circle" : "remove-circle"}
-            size={20}
-            color={isDisabled ? COLORS.primary : COLORS.error}
+          <Image
+            source={isDisabled ? categoryIcons[item]?.on : categoryIcons[item]?.off}
+            style={{ width: 60, height: 70 }} // Настройте размер под ваши нужды
           />
         </TouchableOpacity>
         <TouchableOpacity
@@ -1866,7 +1995,11 @@ const CreateEventScreen = ({ navigation, route }) => {
             style={styles.categoryButtonGradient}
           >
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Icon
+              {/* <Image
+                source={categoryIcon}
+                style={{ width: 20, height: 20, marginRight: 10 }} // Настройте размер и отступ
+              /> */}
+               <Icon
                 name={
                   item === "Ресторан"
                     ? "restaurant"
@@ -1899,6 +2032,14 @@ const CreateEventScreen = ({ navigation, route }) => {
       </View>
     );
   };
+
+
+
+
+
+
+
+
 
   const handleGoBack = () => {
     navigation.navigate("BeforeHomeScreen", {
@@ -2565,6 +2706,7 @@ const styles = StyleSheet.create({
     elevation: 5,
     marginVertical: 2,
     width: 20, // Уменьшаем ширину кнопки, так как теперь только "+"
+    
   },
   categoryButtonGradient: {
     flex: 1,
@@ -2640,16 +2782,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  // categoryRow: {
+  //   flexDirection: "row",
+  //   alignItems: "center",
+  //   width: "100%",
+  //   marginVertical: 0,
+
+  // },
+  // removeCategoryButton: {
+  //   padding: 0,
+  //   marginRight: 10,
+  //   marginTop:20
+  // },
+
   categoryRow: {
     flexDirection: "row",
     alignItems: "center",
-    width: "100%",
-    marginVertical: 2,
+    marginBottom: 10,
   },
   removeCategoryButton: {
-    padding: 10,
     marginRight: 10,
   },
+  
   categoryButtonGradient: {
     flex: 1,
     justifyContent: "center",

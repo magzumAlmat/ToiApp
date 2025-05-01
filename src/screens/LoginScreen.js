@@ -215,12 +215,12 @@ export default function LoginScreen({ navigation }) {
         style={styles.footerPattern}
       />
 
-      <TouchableOpacity
+      {/* <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
       >
         <AntDesign name="left" size={24} color={COLORS.white} />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       <Text style={styles.title}>Вход</Text>
 
