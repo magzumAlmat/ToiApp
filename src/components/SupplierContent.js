@@ -273,7 +273,7 @@ export default function SupplierScreen() {
             <Text style={styles.cardDetail}>Цветы: {item.flowerName}</Text>
             <Text style={styles.cardDetail}>Тип: {item.flowerType}</Text>
             <Text style={styles.cardDetail}>Стоимость: {item.cost} ₸</Text>
-            <Text style={styles.cardDetail}>  style={styles.cardDetail}>Адрес: {item.address}</Text>
+            <Text style={styles.cardDetail} >Адрес: {item.address}</Text>
           </View>
         );
         break;

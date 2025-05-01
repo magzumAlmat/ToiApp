@@ -1033,6 +1033,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import SupplierScreen from '../screens/SupplierScreen'
 import HomeScreenDraft from '../screens/HomeScreenDraft'
+import AdminScreen from '../screens/AdminScreen';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -1078,6 +1079,19 @@ const SupplierContent = ({ navigation }) => {
 
   return <SupplierScreen navigation={navigation} />;
 };
+
+
+const AdminContent = ({ navigation }) => {
+  const { user, token } = useSelector((state) => state.auth);
+  const roleId = user?.roleId;
+
+  if (!user || !token) {
+    return <LoadingScreen />;
+  }
+
+  return <AdminScreen navigation={navigation} />;
+};
+
 
 const SplashScreen = ({ navigation }) => {
   const [showSecondButton, setShowSecondButton] = useState(false);
@@ -1262,7 +1276,23 @@ function AuthenticatedTabs() {
 
   return (
     <Tab.Navigator screenOptions={tabBarOptions}>
-      {roleId === 2 ? (
+      {
+      roleId === 1 ? (<>
+       <Tab.Screen
+            name="Admin"
+            component={AdminContent} // Используем SupplierContent, который рендерит SupplierScreen
+            options={{
+              title: 'Admin',
+              headerShown: false,
+              tabBarIcon: ({ focused, color }) => (
+                <Icon name="home" size={24} color={color} style={styles.tabIcon} />
+              ),
+            }}
+          />
+      </>):
+      
+      
+      roleId === 2 ? (
         <>
          <Tab.Screen
             name="Supplier"
@@ -1406,6 +1436,49 @@ export default function Navigation() {
 
   const navigationRef = useNavigationContainerRef();
 
+  // useEffect(() => {
+  //   if (token && !user) {
+  //     console.log('Token exists but user is missing, redirecting to Login in 2s');
+  //     const timer = setTimeout(() => {
+  //       navigationRef.current?.navigate('Login');
+  //     }, 2000);
+  //     return () => clearTimeout(timer);
+  //   }
+
+  //   if (token && user && navigationRef.current) {
+  //     if (user.roleId === 2) {
+  //       console.log('User is authenticated with roleId 2, redirecting to Supplier');
+  //       navigationRef.current?.navigate('Supplier');
+  //     } else {
+  //       console.log('User is authenticated, redirecting to SplashScreen');
+  //       navigationRef.current?.navigate('Splash');
+  //     }
+  //   }
+
+  //   if (token && user && navigationRef.current) {
+  //     if (user.roleId === 1) {
+  //       console.log('User is authenticated with roleId 1, redirecting to Supplier');
+  //       navigationRef.current?.navigate('Admin');
+  //     } else {
+  //       console.log('User is authenticated, redirecting to SplashScreen');
+  //       navigationRef.current?.navigate('Splash');
+  //     }
+  //   }
+
+
+
+    
+  //   const subscription = Linking.addEventListener('url', (event) => {
+  //     console.log('Deep link received:', event.url);
+  //     if (event.url.includes('wishlist')) {
+  //       navigationRef.current?.navigate('Wishlist', { id: event.url.split('/').pop() });
+  //     }
+  //   });
+
+  //   return () => subscription.remove();
+  // }, [token, user]);
+
+
   useEffect(() => {
     if (token && !user) {
       console.log('Token exists but user is missing, redirecting to Login in 2s');
@@ -1414,30 +1487,33 @@ export default function Navigation() {
       }, 2000);
       return () => clearTimeout(timer);
     }
-
+  
     if (token && user && navigationRef.current) {
-      if (user.roleId === 2) {
+      if (user.roleId === 1) {
+        console.log('User is authenticated with roleId 1, redirecting to Admin');
+        navigationRef.current?.navigate('Authenticated', { screen: 'Admin' });
+      } else if (user.roleId === 2) {
         console.log('User is authenticated with roleId 2, redirecting to Supplier');
-        navigationRef.current?.navigate('Supplier');
+        navigationRef.current?.navigate('Authenticated', { screen: 'Supplier' });
       } else {
         console.log('User is authenticated, redirecting to SplashScreen');
         navigationRef.current?.navigate('Splash');
       }
     }
-
-
-
-    
+  
     const subscription = Linking.addEventListener('url', (event) => {
       console.log('Deep link received:', event.url);
       if (event.url.includes('wishlist')) {
         navigationRef.current?.navigate('Wishlist', { id: event.url.split('/').pop() });
       }
     });
-
+  
     return () => subscription.remove();
   }, [token, user]);
 
+
+
+  
   const linking = {
     prefixes: ['myapp://', 'exp://172.20.10.7:8081'],
     config: {
@@ -1451,6 +1527,7 @@ export default function Navigation() {
     <NavigationContainer ref={navigationRef} linking={linking}>
       <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
         {/* <Stack.Screen name="Supplier" component={SupplierScreen} /> */}
+        
         <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="NewScreen" component={NewScreen} />
         <Stack.Screen name="CreateEvent" component={CreateEventScreen} />

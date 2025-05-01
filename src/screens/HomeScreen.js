@@ -1098,7 +1098,7 @@ const CreateEventScreen = ({ navigation, route }) => {
   const [weddingDate, setWeddingDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [shouldFilter, setShouldFilter] = useState(false);
-
+const [blockedDays, setBlockedDays] = useState({});
   const scrollViewRef = useRef(null);
 
   const updateCategories = useCallback((newCategory) => {
@@ -1690,31 +1690,136 @@ const CreateEventScreen = ({ navigation, route }) => {
     }, 0);
   };
 
+  useEffect(() => {
+    fetchAllBlockedDays();
+  }, []);
+
+  const fetchAllBlockedDays = async () => {
+    try {
+      const response = await api.fetchAllBlockDays();
+      console.log('Ответ API fetchAllBlockDays:', response.data);
+      const blockedDays = {};
+      response.data.forEach((entry) => {
+        const { date, restaurantId, restaurantName } = entry;
+        if (!blockedDays[date]) {
+          blockedDays[date] = {
+            marked: true,
+            dots: [],
+          };
+        }
+        blockedDays[date].dots.push({
+          restaurantId,
+          restaurantName,
+
+        });
+      });
+      console.log('Сформированные blockedDays:', blockedDays);
+      setBlockedDays(blockedDays);
+    } catch (error) {
+      console.error('Ошибка загрузки заблокированных дней:', error.message);
+    }
+  };
+
+
+  // const handleSubmit = async () => {
+  //   if (!weddingName.trim()) {
+  //     alert("Пожалуйста, укажите название свадьбы");
+  //     return;
+  //   }
+  //   if (!filteredData.length) {
+  //     alert("Пожалуйста, выберите хотя бы один элемент для свадьбы");
+  //     return;
+  //   }
+  //   if (!user?.id || !token) {
+  //     alert("Ошибка авторизации. Пожалуйста, войдите в систему.");
+  //     navigation.navigate("Login");
+  //     return;
+  //   }
+
+  //   const dateString = weddingDate.toISOString().split("T")[0];
+  //   const weddingData = {
+  //     name: weddingName.trim(),
+  //     date: dateString,
+  //     host_id: user.id,
+  //     items: filteredData.map((item) => {
+  //       const quantity = parseInt(quantities[`${item.type}-${item.id}`] || "1");
+  //       const effectiveQuantity =
+  //         item.type === "restaurant" ? parseInt(guestCount, 10) || 1 : quantity;
+  //       const cost = item.type === "restaurant" ? item.averageCost : item.cost;
+  //       return {
+  //         id: item.id,
+  //         type: item.type,
+  //         quantity: effectiveQuantity,
+  //         totalCost: cost * effectiveQuantity,
+  //       };
+  //     }),
+  //   };
+
+  //   try {
+  //     await api.createWedding(weddingData, token);
+  //     alert("Свадьба успешно создана!");
+  //     setModalVisible(false);
+  //     setWeddingName("");
+  //     setWeddingDate(new Date());
+  //     setShowDatePicker(false);
+  //     setFilteredData([]);
+  //     setQuantities({});
+  //     setBudget("");
+  //     setGuestCount("");
+  //     setRemainingBudget(0);
+  //   } catch (error) {
+  //     console.error("Ошибка при создании свадьбы:", error);
+  //     alert("Ошибка: " + (error.response?.data?.error || error.message));
+  //   }
+  // };
+
+
   const handleSubmit = async () => {
+    // Валидация базовых полей
     if (!weddingName.trim()) {
-      alert("Пожалуйста, укажите название свадьбы");
+      alert('Пожалуйста, укажите название свадьбы');
       return;
     }
     if (!filteredData.length) {
-      alert("Пожалуйста, выберите хотя бы один элемент для свадьбы");
+      alert('Пожалуйста, выберите хотя бы один элемент для свадьбы');
       return;
     }
     if (!user?.id || !token) {
-      alert("Ошибка авторизации. Пожалуйста, войдите в систему.");
-      navigation.navigate("Login");
+      alert('Ошибка авторизации. Пожалуйста, войдите в систему.');
+      navigation.navigate('Login');
       return;
     }
-
-    const dateString = weddingDate.toISOString().split("T")[0];
+  
+    // Формирование строки даты
+    const dateString = weddingDate.toISOString().split('T')[0];
+  
+    // Проверка, есть ли ресторан в filteredData
+    const restaurantItem = filteredData.find((item) => item.type === 'restaurant');
+    if (restaurantItem) {
+      // Проверка, заблокирована ли дата для этого ресторана
+      if (blockedDays[dateString]) {
+        const isRestaurantBlocked = blockedDays[dateString].dots.some(
+          (dot) => dot.restaurantId === restaurantItem.id
+        );
+        if (isRestaurantBlocked) {
+          alert(
+            ` Дата ${dateString} уже забронирована для ресторана ${restaurantItem.name}. Пожалуйста, выберите другую дату.`
+          );
+          return;
+        }
+      }
+    }
+  
+    // Формирование данных для отправки
     const weddingData = {
       name: weddingName.trim(),
       date: dateString,
       host_id: user.id,
       items: filteredData.map((item) => {
-        const quantity = parseInt(quantities[`${item.type}-${item.id}`] || "1");
+        const quantity = parseInt(quantities[`${item.type}-${item.id}`] || '1');
         const effectiveQuantity =
-          item.type === "restaurant" ? parseInt(guestCount, 10) || 1 : quantity;
-        const cost = item.type === "restaurant" ? item.averageCost : item.cost;
+          item.type === 'restaurant' ? parseInt(guestCount, 10) || 1 : quantity;
+        const cost = item.type === 'restaurant' ? item.averageCost : item.cost;
         return {
           id: item.id,
           type: item.type,
@@ -1723,24 +1828,27 @@ const CreateEventScreen = ({ navigation, route }) => {
         };
       }),
     };
-
+  
+    // Отправка данных на сервер
     try {
       await api.createWedding(weddingData, token);
-      alert("Свадьба успешно создана!");
+      alert('Свадьба успешно создана!');
       setModalVisible(false);
-      setWeddingName("");
+      setWeddingName('');
       setWeddingDate(new Date());
       setShowDatePicker(false);
       setFilteredData([]);
       setQuantities({});
-      setBudget("");
-      setGuestCount("");
+      setBudget('');
+      setGuestCount('');
       setRemainingBudget(0);
     } catch (error) {
-      console.error("Ошибка при создании свадьбы:", error);
-      alert("Ошибка: " + (error.response?.data?.error || error.message));
+      console.error('Ошибка при создании свадьбы:', error);
+      alert('Ошибка: ' + (error.response?.data?.error || error.message));
     }
   };
+
+
 
   const onDateChange = (day) => {
     setWeddingDate(new Date(day.timestamp));
@@ -1924,45 +2032,45 @@ const CreateEventScreen = ({ navigation, route }) => {
     // Маппинг категорий на изображения для активного и неактивного состояния
     const categoryIcons = {
      "Цветы": {
-        off: require("../../assets/cvetyOn.png"),
-        on: require("../../assets/cvetyOff.png"),
+        on: require("../../assets/cvetyOn.png"),
+        off: require("../../assets/cvetyOff.png"),
       },
       "Прокат авто": {
-        off: require("../../assets/prokatAvtoOn.png"),
-        on: require("../../assets/prokatAutooff.png"),
+        on: require("../../assets/prokatAvtoOn.png"),
+        off: require("../../assets/prokatAutooff.png"),
       },
       "Шоу программа": {
-        off: require("../../assets/show.png"),
-        on: require("../../assets/showTurnOff.png"),
+        on: require("../../assets/show.png"),
+        off: require("../../assets/showTurnOff.png"),
       },
       "Ресторан": {
-        off: require("../../assets/restaurantOn.png"),
-        on: require("../../assets/restaurantTurnOff.png"),
+        on: require("../../assets/restaurantOn.png"),
+        off: require("../../assets/restaurantTurnOff.png"),
       },
      
       "Ведущий": {
-        off: require("../../assets/vedushieOn.png"),
-        on: require("../../assets/vedushieOff.png"),
+        on: require("../../assets/vedushieOn.png"),
+        off: require("../../assets/vedushieOff.png"),
       },
       // "Традиционные подарки": {
       //   on: require("../assets/icons/giftOn.png"),
       //   off: require("../assets/icons/giftOff.png"),
       // },
       "Свадебный салон": {
-        off: require("../../assets/svadebnyisalon.png"),
-        on: require("../../assets/svadeblyisalonOff.png"),
+        on: require("../../assets/svadebnyisalon.png"),
+        off: require("../../assets/svadeblyisalonOff.png"),
       },
       "Алкоголь": {
-        off: require("../../assets/alcoholOn.png"),
-        on: require("../../assets/alcoholOff.png"),
+        on: require("../../assets/alcoholOn.png"),
+        off: require("../../assets/alcoholOff.png"),
       },
       "Ювелирные изделия": {
-        off: require("../../assets/uvizdeliyaOn.png"),
-        on: require("../../assets/uvIzdeliyaOff.png"),
+        on: require("../../assets/uvizdeliyaOn.png"),
+        off: require("../../assets/uvIzdeliyaOff.png"),
       },
       "Торты": {
-        off: require("../../assets/torty.png"),
-        on: require("../../assets/tortyTurnOff.png"),
+        on: require("../../assets/torty.png"),
+        off: require("../../assets/tortyTurnOff.png"),
       },
       // Добавьте другие категории, если нужно
     };
